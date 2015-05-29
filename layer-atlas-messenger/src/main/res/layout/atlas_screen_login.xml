@@ -1,0 +1,48 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/atlas_background_white"
+    tools:context="com.layer.atlas.messenger.AtlasSettingsScreen"
+    >
+    
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                  xmlns:tools="http://schemas.android.com/tools"
+                  android:layout_width="match_parent"
+                  android:layout_height="match_parent"
+                  android:orientation="vertical"
+                  tools:context="com.layer.atlas.messenger.AtlasSettingsScreen"
+        >
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="2"
+            android:background="@android:color/transparent"
+            />
+
+        <EditText
+            android:id="@+id/atlas_screen_login_username"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginLeft="32dp"
+            android:layout_marginRight="32dp"
+            android:background="@drawable/atlas_ctl_edit_text"
+            android:hint="Your name"
+            android:inputType="textCapSentences|textNoSuggestions"
+            android:singleLine="true"
+            />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="3"
+            android:background="@android:color/transparent"
+            />
+
+    </LinearLayout>
+
+</FrameLayout>
+
