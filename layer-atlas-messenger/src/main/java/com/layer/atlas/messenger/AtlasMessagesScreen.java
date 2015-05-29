@@ -15,12 +15,13 @@
  */
 package com.layer.atlas.messenger;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Locale;
@@ -70,7 +71,7 @@ import com.layer.sdk.messaging.MessagePart;
 public class AtlasMessagesScreen extends Activity {
 
     private static final String TAG = AtlasMessagesScreen.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     public static final String EXTRA_CONVERSATION_IS_NEW = "conversation.new";
     public static final String EXTRA_CONVERSATION_URI = keys.CONVERSATION_URI;
@@ -245,6 +246,8 @@ public class AtlasMessagesScreen extends Activity {
         
         if (resultCode != Activity.RESULT_OK) return;
         
+        final LayerClient layerClient = ((MessengerApp) getApplication()).getLayerClient();
+        
         switch (requestCode) {
             case REQUEST_CODE_CAMERA  :
                 
@@ -262,74 +265,24 @@ public class AtlasMessagesScreen extends Activity {
                 }
                 
                 try {
-                    BitmapFactory.Options optOriginal = new BitmapFactory.Options();
-                    optOriginal.inJustDecodeBounds = true;
-                    BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optOriginal);
-                    if (debug) Log.w(TAG, "onActivityResult() original: " + optOriginal.outWidth + "x" + optOriginal.outHeight);
-                    int previewWidthMax = 512;
-                    int previewHeightMax = 512;
-                    int previewWidth;
-                    int previewHeight;
-                    int sampleSize;
-                    if (optOriginal.outWidth > optOriginal.outHeight) {
-                        sampleSize = optOriginal.outWidth / previewWidthMax;
-                        previewWidth = 512;
-                        previewHeight = (int) (1.0 * previewWidth * optOriginal.outHeight / optOriginal.outWidth);
-                        if (debug) Log.w(TAG, "onActivityResult() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
-                    } else {
-                        sampleSize = optOriginal.outHeight / previewHeightMax;
-                        previewHeight = 512;
-                        previewWidth = (int) (1.0 * previewHeight * optOriginal.outWidth / optOriginal.outHeight);
-                        if (debug) Log.w(TAG, "onActivityResult() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
-                    }
-                    
-                    BitmapFactory.Options optsPreview = new BitmapFactory.Options();
-                    optsPreview.inSampleSize = sampleSize;
-                    Bitmap decodedBmp = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optsPreview);
-                    if (decodedBmp == null) {
-                        if (debug) Log.w(TAG, "onActivityResult() taking photo, but photo file cannot be decoded: " + photoFile.getPath());
-                        return;
-                    }
-                    if (debug) Log.w(TAG, "onActivityResult() decoded bitmap: " + decodedBmp.getWidth() + "x" + decodedBmp.getHeight() + ", " + decodedBmp.getByteCount() + " bytes ");
-                    Bitmap bmp = Bitmap.createScaledBitmap(decodedBmp, previewWidth, previewHeight, false);
-                    if (debug) Log.w(TAG, "onActivityResult() preview bitmap: " + bmp.getWidth() + "x" + bmp.getHeight() + ", " + bmp.getByteCount() + " bytes ");
-                    
-                    String fileName = "cameraPreview" + System.currentTimeMillis() + ".jpg";
-                    final File previewFile = new File(getCacheDir(), fileName); 
-                    FileOutputStream fos = new FileOutputStream(previewFile);
-                    bmp.compress(Bitmap.CompressFormat.JPEG, 70, fos);
-                    fos.close();
-                    
-                    LayerClient layerClient = ((MessengerApp) getApplication()).getLayerClient();
-                    // send original
+                    // prepare original
                     final File originalFile = photoFile;
-                    FileInputStream fisOriginal = new FileInputStream(photoFile) {
+                    FileInputStream fisOriginal = new FileInputStream(originalFile) {
                         public void close() throws IOException {
                             super.close();
                             boolean deleted = originalFile.delete();
-                            if (debug) Log.w(TAG, "close() original file is " + (!deleted ? "not" : "") + " removed: " + originalFile.getName());
+                            if (debug) Log.w(TAG, "close() original file is" + (!deleted ? " not" : "") + " removed: " + originalFile.getName());
                             photoFile = null;
                         }
                     };
-                    final MessagePart originalPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_JPEG, fisOriginal, photoFile.length());
-                    // send preview
-                    FileInputStream fisPreview = new FileInputStream(previewFile) {
-                        public void close() throws IOException {
-                            super.close();
-                            boolean deleted = previewFile.delete();
-                            if (debug) Log.w(TAG, "close() preview file is " + (!deleted ? "not" : "") + " removed: " + previewFile.getName());
-                        }
-                    };
-                    final MessagePart previewPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_JPEG_PREVIEW, fisPreview, previewFile.length());
-                    // send dimensions
-                    JSONObject joDimensions = new JSONObject();
-                    joDimensions.put("width", optOriginal.outWidth);
-                    joDimensions.put("height", optOriginal.outHeight);
-                    joDimensions.put("orientation", 0);
-                    if (debug) Log.w(TAG, "onActivityResult() dimensions: " + joDimensions);
-                    final MessagePart dimensionsPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_DIMENSIONS, joDimensions.toString().getBytes() );
+                    final MessagePart originalPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_JPEG, fisOriginal, originalFile.length());
                     
-                    Message msg = layerClient.newMessage(originalPart, previewPart, dimensionsPart);
+                    MessagePart[] previewAndSize = buildPreviewAndSize(layerClient, originalFile);
+                    if (previewAndSize == null) {
+                        Log.e(TAG, "onActivityResult() cannot build preview, cancel send...");
+                        return;
+                    }
+                    Message msg = layerClient.newMessage(originalPart, previewAndSize[0], previewAndSize[1]);
                     if (debug) Log.w(TAG, "onActivityResult() sending photo... ");
                     conv.send(msg);
                 } catch (Exception e) {
@@ -359,8 +312,6 @@ public class AtlasMessagesScreen extends Activity {
                     
                     // test file copy locally
                     try {
-                        LayerClient layerClient = ((MessengerApp) getApplication()).getLayerClient();
-
                         // create message and upload content
                         InputStream fis = null;
                         File fileToUpload = new File(resultFileName);
@@ -373,22 +324,39 @@ public class AtlasMessagesScreen extends Activity {
                                 if (debug) Log.w(TAG, "onActivityResult() cannot open stream with ContentResolver, uri: " + data.getData());
                             }
                         }
-                        // Message msg = layerClient.newMessage(layerClient.newMessagePart(mimeType, fis, fileToUpload.length()));
-                        ByteArrayOutputStream baos = new ByteArrayOutputStream();;
+                        
+                        String fileName = "galleryFile" + System.currentTimeMillis() + ".jpg";
+                        final File originalFile = new File(getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES), fileName);
+
+                        OutputStream fos = new FileOutputStream(originalFile);
                         byte[] buffer = new byte[65536];
                         int bytesRead = 0;
                         int totalBytes = 0;
                         for (; (bytesRead = fis.read(buffer)) != -1; totalBytes += bytesRead) {
-                            baos.write(buffer, 0, bytesRead);
+                            fos.write(buffer, 0, bytesRead);
                         }
                         fis.close();
-                        byte[] content = baos.toByteArray();
-                        baos.close();
-                        if (debug) Log.w(TAG, "onActivityResult() loaded " + totalBytes + " into memory");
+                        fos.close();
                         
-                        Message msg = layerClient.newMessage(layerClient.newMessagePart(mimeType, content));
+                        if (debug) Log.w(TAG, "onActivityResult() copied " + totalBytes + " to file: " + originalFile.getName());
+                        
+                        FileInputStream fisOriginal = new FileInputStream(originalFile) {
+                            public void close() throws IOException {
+                                super.close();
+                                boolean deleted = originalFile.delete();
+                                if (debug) Log.w(TAG, "close() original file is" + (!deleted ? " not" : "") + " removed: " + originalFile.getName());
+                            }
+                        };
+                        final MessagePart originalPart = layerClient.newMessagePart(mimeType, fisOriginal, originalFile.length());
+                        
+                        MessagePart[] previewAndSize = buildPreviewAndSize(layerClient, originalFile);
+                        if (previewAndSize == null) {
+                            Log.e(TAG, "onActivityResult() cannot build preview, cancel send...");
+                            return;
+                        }
+                        Message msg = layerClient.newMessage(originalPart, previewAndSize[0], previewAndSize[1]);
+                        if (debug) Log.w(TAG, "onActivityResult() uploaded " + originalFile.length() + " bytes");
                         conv.send(msg);
-                        if (debug) Log.w(TAG, "onActivityResult() uploaded " + fileToUpload.length() + " bytes");
                     } catch (Exception e) {
                         Log.e(TAG, "onActivityResult() cannot upload file: " + resultFileName, e);
                         return;
@@ -399,6 +367,68 @@ public class AtlasMessagesScreen extends Activity {
             default :
                 break;
         }
+    }
+
+    private MessagePart[] buildPreviewAndSize(final LayerClient layerClient, final File imageFile) throws FileNotFoundException, IOException, JSONException {
+        // prepare preview
+        BitmapFactory.Options optOriginal = new BitmapFactory.Options();
+        optOriginal.inJustDecodeBounds = true;
+        //BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optOriginal);
+        BitmapFactory.decodeStream(new FileInputStream(imageFile), null, optOriginal);
+        if (debug) Log.w(TAG, "buildPreviewAndSize() original: " + optOriginal.outWidth + "x" + optOriginal.outHeight);
+        int previewWidthMax = 512;
+        int previewHeightMax = 512;
+        int previewWidth;
+        int previewHeight;
+        int sampleSize;
+        if (optOriginal.outWidth > optOriginal.outHeight) {
+            sampleSize = optOriginal.outWidth / previewWidthMax;
+            previewWidth = previewWidthMax;
+            previewHeight = (int) (1.0 * previewWidth * optOriginal.outHeight / optOriginal.outWidth);
+            if (debug) Log.w(TAG, "buildPreviewAndSize() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
+        } else {
+            sampleSize = optOriginal.outHeight / previewHeightMax;
+            previewHeight = previewHeightMax;
+            previewWidth = (int) (1.0 * previewHeight * optOriginal.outWidth / optOriginal.outHeight);
+            if (debug) Log.w(TAG, "buildPreviewAndSize() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
+        }
+        
+        BitmapFactory.Options optsPreview = new BitmapFactory.Options();
+        optsPreview.inSampleSize = sampleSize;
+        //Bitmap decodedBmp = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optsPreview);
+        Bitmap decodedBmp = BitmapFactory.decodeStream(new FileInputStream(imageFile), null, optsPreview);
+        if (decodedBmp == null) {
+            if (debug) Log.w(TAG, "buildPreviewAndSize() taking photo, but photo file cannot be decoded: " + imageFile.getPath());
+            return null;
+        }
+        if (debug) Log.w(TAG, "buildPreviewAndSize() decoded bitmap: " + decodedBmp.getWidth() + "x" + decodedBmp.getHeight() + ", " + decodedBmp.getByteCount() + " bytes ");
+        Bitmap bmp = Bitmap.createScaledBitmap(decodedBmp, previewWidth, previewHeight, false);
+        if (debug) Log.w(TAG, "buildPreviewAndSize() preview bitmap: " + bmp.getWidth() + "x" + bmp.getHeight() + ", " + bmp.getByteCount() + " bytes ");
+        
+        String fileName = "cameraPreview" + System.currentTimeMillis() + ".jpg";
+        final File previewFile = new File(getCacheDir(), fileName); 
+        FileOutputStream fos = new FileOutputStream(previewFile);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 50, fos);
+        fos.close();
+        
+        FileInputStream fisPreview = new FileInputStream(previewFile) {
+            public void close() throws IOException {
+                super.close();
+                boolean deleted = previewFile.delete();
+                if (debug) Log.w(TAG, "buildPreviewAndSize() preview file is" + (!deleted ? " not" : "") + " removed: " + previewFile.getName());
+            }
+        };
+        final MessagePart previewPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_JPEG_PREVIEW, fisPreview, previewFile.length());
+        
+        // prepare dimensions
+        JSONObject joDimensions = new JSONObject();
+        joDimensions.put("width", optOriginal.outWidth);
+        joDimensions.put("height", optOriginal.outHeight);
+        joDimensions.put("orientation", 0);
+        if (debug) Log.w(TAG, "buildPreviewAndSize() dimensions: " + joDimensions);
+        final MessagePart dimensionsPart = layerClient.newMessagePart(Atlas.MIME_TYPE_IMAGE_DIMENSIONS, joDimensions.toString().getBytes() );
+        MessagePart[] previewAndSize = new MessagePart[] {previewPart, dimensionsPart};
+        return previewAndSize;
     }
     
     /**
