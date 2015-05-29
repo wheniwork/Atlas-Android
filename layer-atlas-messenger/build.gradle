@@ -8,8 +8,8 @@ android {
         applicationId "com.layer.atlas.messenger"
         minSdkVersion 14
         targetSdkVersion 14
-        versionCode 1
-        versionName "1.0"
+        versionCode 9
+        versionName "0.9.9"
     }
     buildTypes {
         release {
