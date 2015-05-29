@@ -1,11 +1,12 @@
 <img src="assets/atlas-github-header.png"/>
 
 ##<a name="overview"></a>Preview Release Overview
-<div style="float:right;padding-left:32px;"><img src="assets/walkthrough.gif" /></div>
+
+<img align="right" src="assets/walkthrough.gif" />
+
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library as well as an example app.
 
 Note: Atlas for Android is currently a **Preview Release**. This repository will be updated substantially in the coming weeks.
-
 
 
 ###<a name="example_app"></a>Example App
@@ -50,8 +51,6 @@ The Atlas library is located in the `layer-atlas` directory.  The table below de
     </tr>
 </table>
 
-<div style="clear: both"></div>
-
 ##<a name="installation"></a>Installation
 See the <a href="INSTALLATION.md">installation guide</a>
 
@@ -60,10 +59,11 @@ Atlas is divided into five basic `View` components, typically presented on a scr
 
 ##<a name="conversations"></a>Conversations
 
-<div style="float:right;padding-left:32px;"><img src="assets/conversations.png" /></div>
-
 ###AtlasConversationList
-The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsList.java">AtlasConversationsList</a> is a list of Conversations. 
+
+<a href="assets/conversations.png"><img align="right" src="assets/conversations-s.png" /></a>
+
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsList.java">AtlasConversationsList</a> is a list of Conversations.
 
 ####XML
 
@@ -87,13 +87,11 @@ conversationsList.setClickListener(new ConversationClickListener() {
 });
 ```
 
-<div style="clear: both"></div>
-
 ##<a name="messages"></a>Messages
 
 ###AtlasMessageList
 
-<div style="float:right;padding-left:32px;"><img src="assets/messages.png" /></div>
+<a href="assets/messages.png"><img align="right" src="assets/messages-s.png" /></a>
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessagesList.java">AtlasMessagesList</a> is list of Messages, rendered as Cells.
 
@@ -123,11 +121,9 @@ messagesList.setItemClickListener(new ItemClickListener() {
 });
 ```
 
-<div style="clear: both"></div>
-
 ###AtlasMessageComposer
 
-<div style="float:right;padding-left:32px;"><img src="assets/message-composer.png" /></div>
+<a href="assets/message-composer.png"><img align="right" src="assets/message-composer-s.png" /></a>
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessageComposer.java">AtlasMessageComposer</a> is a set of buttons and a text entry area for composing messages. 
 
@@ -172,6 +168,7 @@ messageComposer.registerMenuItem("Image", new OnClickListener() {
 ```
 
 ###AtlasTypingIndicator
+
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasTypingIndicator.java">AtlasTypingIndicator</a> presents the user with active typers.
 
 ####XML
@@ -191,17 +188,13 @@ typingIndicator = (AtlasTypingIndicator) findViewById(R.id.typing_indicator);
 typingIndicator.init(conv, new AtlasTypingIndicator.DefaultTypingIndicatorCallback(participantProvider));
 ```
 
-<div style="clear: both"></div>
-
 ##<a name="participants"></a>Participants
 
 ###AtlasParticipantPicker
 
-<div style="float:right;padding-left:32px;"><img src="assets/participant-picker.png" /></div>
+<a href="assets/participant-picker.png"><img align="right" src="assets/participant-picker-s.png" /></a>
 
 The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasParticipantPicker.java">AtlasParticipantPicker</a> allows the user to search and select one or more participants.
-
-
 
 ####XML
 
@@ -219,8 +212,6 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasParticipantPicker.ja
 AtlasParticipantPicker participantsPicker = (AtlasParticipantPicker) findViewById(R.id.participant_picker);
 participantsPicker.init(userIdsToSkip, participantProvider);
 ```
-
-<div style="clear: both"></div>
 
 #<a name="styling"></a>Styling
 Atlas allows you to quickly style its components through code, layouts, and themes.  For a complete list of stylable component attributes, see <a href="layer-atlas/src/main/res/values/atlas-styles.xml">atlas-styles.xml</a>
