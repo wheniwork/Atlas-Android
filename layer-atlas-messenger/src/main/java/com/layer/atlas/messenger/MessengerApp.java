@@ -73,9 +73,16 @@ public class MessengerApp extends Application implements AppIdCallback {
         return layerClient;
     }
 
-    public void initLayerClient(final String localAppId) {
+    /**
+     * Initializes a new LayerClient if needed, or returns the already-initialized LayerClient.
+     * 
+     * @param localAppId Layer App ID to initialize a LayerClient with
+     * @return The newly initialized LayerClient, or the existing LayerClient
+     */
+    public LayerClient initLayerClient(final String localAppId) {
+        if (layerClient != null) return layerClient;
         final LayerClient client = LayerClient.newInstance(this, localAppId, new Options()
-                .broadcastPushInForeground(true)
+                .broadcastPushInForeground(false)
                 .googleCloudMessagingSenderId(GCM_SENDER_ID));
         if (DEBUG) Log.w(TAG, "onCreate() client created");
 
@@ -88,6 +95,7 @@ public class MessengerApp extends Application implements AppIdCallback {
 
         if (DEBUG) Log.d(TAG, "onCreate() Refreshing Contacts");
         getParticipantProvider().refresh();
+        return layerClient;
     }
 
     public ParticipantProvider getParticipantProvider() {

@@ -88,9 +88,8 @@ public class MessengerPushReceiver extends BroadcastReceiver {
         if (!(appContext instanceof MessengerApp)) return null;
 
         MessengerApp app = (MessengerApp)appContext;
-        final LayerClient client = app.getLayerClient();
+        final LayerClient client = app.initLayerClient(app.getAppId());
         if (client == null || !client.isAuthenticated()) return null;
-        // TODO: initialize client with app ID
         
         Conversation conversation = client.getConversation(conversationId);
         if (conversation != null) return Atlas.getTitle(conversation, app.getParticipantProvider(), client.getAuthenticatedUserId());
