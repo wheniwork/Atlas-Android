@@ -1,11 +1,12 @@
-![Atlas Header](assets/atlas-github-header.png)
+<img src="assets/atlas-github-header.png"/>
 
 ##<a name="overview"></a>Preview Release Overview
+<div style="float:right;padding-left:32px;"><img src="assets/walkthrough.gif" /></div>
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library as well as an example app.
 
 Note: Atlas for Android is currently a **Preview Release**. This repository will be updated substantially in the coming weeks.
 
-![Walkthrough](assets/walkthrough.gif)
+
 
 ###<a name="example_app"></a>Example App
 The Atlas example app is located in the `layer-atlas-messenger` directory.
@@ -49,14 +50,22 @@ The Atlas library is located in the `layer-atlas` directory.  The table below de
     </tr>
 </table>
 
+<div style="clear: both"></div>
+
 ##<a name="installation"></a>Installation
 See the <a href="INSTALLATION.md">installation guide</a>
 
-##<a name="component_details"></a>Component Details
-Atlas is divided into five basic `View` components.
+#<a name="component_details"></a>Component Details
+Atlas is divided into five basic `View` components, typically presented on a screen with a user's [conversations](#conversations), a screen with [messages](#messages) within a conversation, and a component that lets the user select [participants](#participants).
 
-###AtlasConversationsList
-The `AtlasConversationList` is a list of Conversations. 
+##<a name="conversations"></a>Conversations
+
+<div style="float:right;padding-left:32px;"><img src="assets/conversations.png" /></div>
+
+###AtlasConversationList
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsList.java">AtlasConversationsList</a> is a list of Conversations. 
+
+####XML
 
 ```xml
 <com.layer.atlas.AtlasConversationsList
@@ -65,6 +74,8 @@ The `AtlasConversationList` is a list of Conversations.
     android:layout_height="match_parent"
     />
 ```
+
+####Java
 
 ```java
 conversationsList = (AtlasConversationsList) findViewById(R.id.conversations_list);
@@ -76,8 +87,17 @@ conversationsList.setClickListener(new ConversationClickListener() {
 });
 ```
 
-###AtlasMessagesList
-The `AtlasMessageList` is list of Messages, rendered as Cells.
+<div style="clear: both"></div>
+
+##<a name="messages"></a>Messages
+
+###AtlasMessageList
+
+<div style="float:right;padding-left:32px;"><img src="assets/messages.png" /></div>
+
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessagesList.java">AtlasMessagesList</a> is list of Messages, rendered as Cells.
+
+####XML
 
 ```xml
 <com.layer.atlas.AtlasMessagesList
@@ -86,6 +106,8 @@ The `AtlasMessageList` is list of Messages, rendered as Cells.
     android:layout_height="match_parent"
     />
 ```
+
+####Java
 
 ```java
 messagesList = (AtlasMessagesList) findViewById(R.id.messages_list);
@@ -101,8 +123,15 @@ messagesList.setItemClickListener(new ItemClickListener() {
 });
 ```
 
+<div style="clear: both"></div>
+
 ###AtlasMessageComposer
-The `AtlasMessageComposer` is a set of buttons and a text entry area for composing messages. 
+
+<div style="float:right;padding-left:32px;"><img src="assets/message-composer.png" /></div>
+
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasMessageComposer.java">AtlasMessageComposer</a> is a set of buttons and a text entry area for composing messages. 
+
+####XML
 
 ```xml
 <com.layer.atlas.AtlasMessageComposer
@@ -111,6 +140,8 @@ The `AtlasMessageComposer` is a set of buttons and a text entry area for composi
     android:layout_height="wrap_content"
     />
 ```
+
+####Java
 
 ```java
 AtlasMessageComposer messageComposer = (AtlasMessageComposer) findViewById(R.id.message_composer);
@@ -140,24 +171,10 @@ messageComposer.registerMenuItem("Image", new OnClickListener() {
 });
 ```
 
-###AtlasParticipantPicker
-The `AtlasParticipantPicker` allows the user to search and select one or more participants.
-
-```xml
-<com.layer.atlas.AtlasParticipantPicker
-    android:id="@+id/participant_picker"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    />
-```
-
-```java
-AtlasParticipantPicker participantsPicker = (AtlasParticipantPicker) findViewById(R.id.participant_picker);
-participantsPicker.init(userIdsToSkip, participantProvider);
-```
-
 ###AtlasTypingIndicator
-The `AtlasTypingIndicator` presents the user with active typers.
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasTypingIndicator.java">AtlasTypingIndicator</a> presents the user with active typers.
+
+####XML
 
 ```xml
 <com.layer.atlas.AtlasTypingIndicator
@@ -167,22 +184,56 @@ The `AtlasTypingIndicator` presents the user with active typers.
     />
 ```
 
+####Java
+
 ```java
 typingIndicator = (AtlasTypingIndicator) findViewById(R.id.typing_indicator);
 typingIndicator.init(conv, new AtlasTypingIndicator.DefaultTypingIndicatorCallback(participantProvider));
 ```
 
-##<a name="styling"></a>Styling
+<div style="clear: both"></div>
+
+##<a name="participants"></a>Participants
+
+###AtlasParticipantPicker
+
+<div style="float:right;padding-left:32px;"><img src="assets/participant-picker.png" /></div>
+
+The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasParticipantPicker.java">AtlasParticipantPicker</a> allows the user to search and select one or more participants.
+
+
+
+####XML
+
+```xml
+<com.layer.atlas.AtlasParticipantPicker
+    android:id="@+id/participant_picker"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    />
+```
+
+####Java
+
+```java
+AtlasParticipantPicker participantsPicker = (AtlasParticipantPicker) findViewById(R.id.participant_picker);
+participantsPicker.init(userIdsToSkip, participantProvider);
+```
+
+<div style="clear: both"></div>
+
+#<a name="styling"></a>Styling
 Atlas allows you to quickly style its components through code, layouts, and themes.  For a complete list of stylable component attributes, see <a href="layer-atlas/src/main/res/values/atlas-styles.xml">atlas-styles.xml</a>
 
-<!--**Dynamically adjust View styles through code (coming soon):**
+<!--####Dynamically adjust View styles through code (coming soon):
 
 ```java
 	AtlasMessageList messageList = (AtlasMessageList) findViewById(R.id.messageList);
 	messageList.setMyBubbleColor(Color.YELLOW);
 ```
 -->
-**Set attributes on individual views within your layouts:**
+
+####Set attributes on individual views within your layouts:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -201,7 +252,7 @@ Atlas allows you to quickly style its components through code, layouts, and them
 </LinearLayout>
 ```
 
-**Customize the global Atlas theme from your `styles.xml`:**
+####Customize the global Atlas theme from your `styles.xml`:
 
 ```xml
 <?xml version="1.0" encoding="utf-8"?>
@@ -218,14 +269,14 @@ Atlas allows you to quickly style its components through code, layouts, and them
 </resources>
 ```
 
-##<a name="contributing"></a>Contributing
+#<a name="contributing"></a>Contributing
 Atlas is an Open Source project maintained by Layer. Feedback and contributions are always welcome and the maintainers try to process patches as quickly as possible. Feel free to open up a Pull Request or Issue on Github.
 
-##<a name="license"></a>License
+#<a name="license"></a>License
 
 Atlas is licensed under the terms of the [Apache License, version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html). Please see the [LICENSE](LICENSE) file for full details.
 
-##<a name="contact"></a>Contact
+#<a name="contact"></a>Contact
 
 Atlas was developed in San Francisco by the Layer team. If you have any technical questions or concerns about this project feel free to reach out to [Layer Support](mailto:support@layer.com).
 
