@@ -12,7 +12,7 @@ Note: Atlas for Android is currently a **Preview Release**. This repository will
 ###<a name="example_app"></a>Example App
 The Atlas example app is located in the `layer-atlas-messenger` directory.
 
-* **QR Code:**  To get started as fast as possible, launch the app and scan your Layer Atlas QR code.  If you need a free account, get it at <a href="https://getatlas.layer.com/">getatlas.layer.com</a>.
+* **QR Code:**  To get started as fast as possible, visit the [Experience Atlas](https://developer.layer.com/dashboard/signup/atlas) page, download and launch the app, then scan your Layer Atlas QR code.  A free Sandbox account is available at [Layer.com](https://developer.layer.com/signup/atlas).
 * **App ID:** If you already have a Layer App ID, you can bypass the QR code by entering your App ID in <a href="layer-atlas-messenger/src/main/java/com/layer/atlas/messenger/MessengerApp.java#L42">MessengerApp</a> before building, in `LAYER_APP_ID`.
 
 ###<a name="api_quickstart"></a>API Quickstart
