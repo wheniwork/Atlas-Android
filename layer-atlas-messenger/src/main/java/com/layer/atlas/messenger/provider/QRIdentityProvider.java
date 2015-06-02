@@ -37,8 +37,10 @@ import java.util.List;
 public class QRIdentityProvider extends IdentityProvider {
     private final String TAG = QRIdentityProvider.class.getSimpleName();
 
+    protected final AppIdCallback mAppIdCallback;
+    
     public QRIdentityProvider(AppIdCallback appIdCallback) {
-        super(appIdCallback);
+        this.mAppIdCallback = appIdCallback;
     }
 
     @Override
@@ -81,5 +83,10 @@ public class QRIdentityProvider extends IdentityProvider {
             Log.e(TAG, "Error when fetching identity token", e);
         }
         return null;
+    }
+
+    @Override
+    public boolean passwordRequired() {
+        return false;
     }
 }

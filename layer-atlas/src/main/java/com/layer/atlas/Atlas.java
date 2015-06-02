@@ -141,6 +141,8 @@ public class Atlas {
          * @return The last name of this Participant
          */
         String getLastName();
+        
+        public static Comparator<Participant> COMPARATOR = new FilteringComparator("");
     }
 
     /**

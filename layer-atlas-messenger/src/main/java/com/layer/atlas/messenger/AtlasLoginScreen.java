@@ -17,14 +17,18 @@ package com.layer.atlas.messenger;
 
 import android.app.Activity;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
+import android.view.View;
+import android.view.View.OnClickListener;
 import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.layer.atlas.messenger.provider.IdentityProvider;
+import com.layer.atlas.messenger.provider.ParticipantProvider;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -39,6 +43,8 @@ public class AtlasLoginScreen extends Activity {
     
     private volatile boolean inProgress = false;
     private EditText loginText;
+    private EditText passwordText;
+    private View goButton;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,8 +52,10 @@ public class AtlasLoginScreen extends Activity {
         setContentView(R.layout.atlas_screen_login);
         
         loginText = (EditText) findViewById(R.id.atlas_screen_login_username);
-        
-        loginText.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+        passwordText = (EditText) findViewById(R.id.atlas_screen_login_password);
+        goButton = findViewById(R.id.atlas_screen_login_go_btn);
+
+        final TextView.OnEditorActionListener doneListener = new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
                 if (actionId == EditorInfo.IME_ACTION_DONE || (event.getKeyCode() == KeyEvent.KEYCODE_ENTER && event.getAction() == KeyEvent.ACTION_DOWN)) {
@@ -56,28 +64,56 @@ public class AtlasLoginScreen extends Activity {
                 }
                 return false;
             }
+        };
+        if (((MessengerApp)getApplication()).getIdentityProvider().passwordRequired()) {
+            passwordText.setVisibility(View.VISIBLE);
+            loginText.setInputType(loginText.getInputType() & ~InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+            passwordText.setOnEditorActionListener(doneListener);
+            goButton.setVisibility(View.VISIBLE);
+        } else {
+            loginText.setOnEditorActionListener(doneListener);
+        }
+        
+        goButton.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                login();
+            }
         });
+
         loginText.requestFocus();
+        
     }
 
     private void updateValues() {
-        // TODO: Do something with inProgress
+        if (inProgress) {
+            if (goButton.getVisibility() == View.VISIBLE) {
+                goButton.setEnabled(false);
+            }
+        } else {
+            if (goButton.getVisibility() == View.VISIBLE) {
+                goButton.setEnabled(true);
+            }
+        }
     }
 
     private void login() {
+        final MessengerApp app = (MessengerApp)getApplication();
+        final LayerClient layerClient = app.getLayerClient();
+        final IdentityProvider identityProvider = app.getIdentityProvider();
+        
         final String userName = loginText.getText().toString().trim();
+        final String userPass = identityProvider.passwordRequired() ? passwordText.getText().toString().trim() : null;
+        
         if (userName.isEmpty()) return;
         inProgress = true;
 
-        final MessengerApp app = (MessengerApp)getApplication();
-        final LayerClient layerClient = app.getLayerClient();
         layerClient.registerAuthenticationListener(new LayerAuthenticationListener() {
             public void onAuthenticationChallenge(final LayerClient client, final String nonce) {
                 if (debug) Log.w(TAG, "onAuthenticationChallenge() nonce: " + nonce);
                 new Thread(new Runnable() {
                     public void run() {
                         try {
-                            final IdentityProvider.Result result = app.getIdentityProvider().getIdentityToken(nonce, userName, null);
+                            final IdentityProvider.Result result = identityProvider.getIdentityToken(nonce, userName, userPass);
                             if (result.error != null || result.identityToken == null) {
                                 inProgress = false;
                                 updateValues();
@@ -89,8 +125,8 @@ public class AtlasLoginScreen extends Activity {
                                 return;
                             }
                             layerClient.answerAuthenticationChallenge(result.identityToken);
-                            if (result.participants != null) {
-                                app.getParticipantProvider().set(result.participants);
+                            if (result.participants != null && app.getParticipantProvider() instanceof ParticipantProvider) {
+                                ((ParticipantProvider)app.getParticipantProvider()).set(result.participants);
                             }
                         } catch (Exception e) {
                             e.printStackTrace();

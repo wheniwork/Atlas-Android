@@ -227,7 +227,6 @@ public class AtlasConversationsScreen extends Activity {
                 Toast.makeText(v.getContext(), "Title should be replaced by edit text here...", Toast.LENGTH_LONG).show();
             }
         });
+        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
-
-
 }

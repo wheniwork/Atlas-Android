@@ -15,15 +15,12 @@
  */
 package com.layer.atlas.messenger.provider;
 
-import com.layer.atlas.messenger.AppIdCallback;
-
 import java.util.List;
 
 /**
  * IdentityProvider is a mechanism for retrieving Identity Tokens for authenticating LayerClients.
  */
 public abstract class IdentityProvider {
-    protected final AppIdCallback mAppIdCallback;
 
     public static class Result {
         // Optional Identity Token present if authentication was successful
@@ -34,10 +31,6 @@ public abstract class IdentityProvider {
 
         // Optional contacts provided by the identity service on successful login
         public List<Participant> participants;
-    }
-
-    public IdentityProvider(AppIdCallback appIdCallback) {
-        mAppIdCallback = appIdCallback;
     }
 
     /**
@@ -53,4 +46,10 @@ public abstract class IdentityProvider {
      * @return
      */
     public abstract Result getIdentityToken(String nonce, String userName, String userPassword);
+    
+    /**
+     * Used by login screen. Return <b>true</b> to make AtlasLoginScreen show both Username and 
+     * Password text
+     */
+    public abstract boolean passwordRequired();
 }

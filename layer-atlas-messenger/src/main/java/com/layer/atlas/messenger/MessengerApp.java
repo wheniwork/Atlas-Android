@@ -15,16 +15,20 @@
  */
 package com.layer.atlas.messenger;
 
+import java.lang.reflect.Method;
 import java.util.Iterator;
 
 import android.app.Application;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Window;
 
-import com.layer.atlas.messenger.provider.QRIdentityProvider;
-import com.layer.atlas.messenger.provider.QRParticipantProviderCallback;
+import com.layer.atlas.Atlas;
+import com.layer.atlas.messenger.provider.HerokuIdentityProvider;
 import com.layer.atlas.messenger.provider.IdentityProvider;
 import com.layer.atlas.messenger.provider.ParticipantProvider;
+import com.layer.atlas.messenger.provider.QRIdentityProvider;
+import com.layer.atlas.messenger.provider.QRParticipantProviderCallback;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.LayerClient.Options;
 
@@ -52,7 +56,7 @@ public class MessengerApp extends Application implements AppIdCallback {
 
     private LayerClient layerClient;
     private IdentityProvider identityProvider;
-    private ParticipantProvider participantProvider;
+    private Atlas.ParticipantProvider participantProvider;
     private String appId = LAYER_APP_ID;
 
     public interface keys {
@@ -64,9 +68,16 @@ public class MessengerApp extends Application implements AppIdCallback {
         super.onCreate();
         LayerClient.enableLogging();
         LayerClient.applicationCreated(this);
-        if (appId == null) appId = loadAppId();
-        identityProvider = new QRIdentityProvider(this);
-        participantProvider = new ParticipantProvider(this, new QRParticipantProviderCallback(this));
+        if (appId == null) {
+            this.appId = loadAppId(); 
+            this.identityProvider = new QRIdentityProvider(this);
+            this.participantProvider = new ParticipantProvider(this, new QRParticipantProviderCallback(this));
+        } else {
+            HerokuIdentityProvider herokuBasedProvider = new HerokuIdentityProvider(this, appId);
+            this.identityProvider = herokuBasedProvider;
+            this.participantProvider = herokuBasedProvider;
+            herokuBasedProvider.load();
+        }
     }
 
     public LayerClient getLayerClient() {
@@ -93,12 +104,14 @@ public class MessengerApp extends Application implements AppIdCallback {
         else if (!client.isConnected()) client.connect();
         if (DEBUG) Log.w(TAG, "onCreate() Layer launched");
 
-        if (DEBUG) Log.d(TAG, "onCreate() Refreshing Contacts");
-        getParticipantProvider().refresh();
+        if (getParticipantProvider() instanceof ParticipantProvider) {
+            if (DEBUG) Log.d(TAG, "onCreate() Refreshing Contacts");
+            ((ParticipantProvider)getParticipantProvider()).refresh();
+        }
         return layerClient;
     }
 
-    public ParticipantProvider getParticipantProvider() {
+    public Atlas.ParticipantProvider getParticipantProvider() {
         return participantProvider;
     }
 
@@ -141,5 +154,23 @@ public class MessengerApp extends Application implements AppIdCallback {
         }
         sb.append("]");
         return sb.toString();
+    }
+    
+    /** Window flags for translucency are available on Android 5.0+ */
+    public static final int FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS = 0x80000000;
+    public static final int FLAG_TRANSLUCENT_STATUS = 0x04000000;
+    
+    /** Changes Status Bar color On Android 5.0+ devices. Do nothing on devices without translucency support */
+    public static void setStatusBarColor(Window wnd, int color) {
+        try {
+            final Method mthd_setStatusBarColor = wnd.getClass().getMethod("setStatusBarColor", int.class);
+            if (mthd_setStatusBarColor != null) {
+                mthd_setStatusBarColor.invoke(wnd, color);
+                wnd.addFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                wnd.clearFlags(FLAG_TRANSLUCENT_STATUS);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "prepareActionBar() e");
+        }
     }
 }

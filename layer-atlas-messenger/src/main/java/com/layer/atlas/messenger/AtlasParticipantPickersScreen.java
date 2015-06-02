@@ -80,6 +80,7 @@ public class AtlasParticipantPickersScreen extends Activity {
                 finish();
             }
         });
+        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
     
 }

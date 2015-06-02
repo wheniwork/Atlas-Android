@@ -15,7 +15,9 @@
  */
 package com.layer.atlas.messenger;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 
 import android.app.Activity;
@@ -31,8 +33,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
-import com.layer.atlas.Atlas.FilteringComparator;
-import com.layer.atlas.messenger.provider.Participant;
+import com.layer.atlas.Atlas.Participant;
 import com.layer.sdk.messaging.Conversation;
 
 /**
@@ -88,31 +89,36 @@ public class AtlasConversationSettingsScreen extends Activity {
         // refresh names screen
         namesList.removeAllViews();
         
-        HashSet<String> participantSet = new HashSet<String>(conv.getParticipants());
-        participantSet.remove(app101.getLayerClient().getAuthenticatedUserId());
-        Atlas.Participant[] participants = new Atlas.Participant[participantSet.size()];
-        int i = 0;
-        for (String userId : participantSet) {
-            Participant participant = app101.getParticipantProvider().get(userId);
-            participants[i++] = participant;
+        HashSet<String> userIds = new HashSet<String>(conv.getParticipants());
+        userIds.remove(app101.getLayerClient().getAuthenticatedUserId());
+        ArrayList<ParticipantEntry> entries = new ArrayList<ParticipantEntry>(userIds.size());
+        for (String userId : userIds) {
+            Participant participant = app101.getParticipantProvider().getParticipant(userId);
+            if (participant == null) continue;
+            entries.add(new ParticipantEntry(userId, participant));
         }
-        Arrays.sort(participants, new FilteringComparator(""));
         
-        for (int iContact = 0; iContact < participants.length; iContact++) {
+        Collections.sort(entries, new Comparator<ParticipantEntry>() {
+            public int compare(ParticipantEntry lhs, ParticipantEntry rhs) {
+                return Participant.COMPARATOR.compare(lhs.participant, rhs.participant);
+            }
+        });
+        
+        for (int iContact = 0; iContact < entries.size(); iContact++) {
             View convert = getLayoutInflater().inflate(R.layout.atlas_screen_conversation_settings_participant_convert, namesList, false);
             
             TextView avaText = (TextView) convert.findViewById(R.id.atlas_screen_conversation_settings_convert_ava);
-            avaText.setText(Atlas.getInitials(participants[iContact]));
+            avaText.setText(Atlas.getInitials(entries.get(iContact).participant));
             TextView nameText = (TextView) convert.findViewById(R.id.atlas_screen_conversation_settings_convert_name);
-            nameText.setText(Atlas.getFullName(participants[iContact]));
+            nameText.setText(Atlas.getFullName(entries.get(iContact).participant));
             
-            convert.setTag(participants[iContact]);
+            convert.setTag(entries.get(iContact));
             convert.setOnLongClickListener(contactLongClickListener);
             
             namesList.addView(convert);
         }
         
-        if (participantSet.size() == 1) { // one-on-one
+        if (userIds.size() == 1) { // one-on-one
             btnLeaveGroup.setVisibility(View.GONE);
         } else {                        // multi
             btnLeaveGroup.setVisibility(View.VISIBLE);
@@ -120,11 +126,21 @@ public class AtlasConversationSettingsScreen extends Activity {
 
     }
     
+    private static class ParticipantEntry {
+        private final String userId;
+        private final Participant participant;
+        public ParticipantEntry(String userId, Participant participant) {
+            if (userId == null || participant == null) throw new IllegalArgumentException("userId and participant cannot be null. userId: " + userId + ", participant: " + participant);
+            this.userId = userId;
+            this.participant = participant;
+        }
+    }
+    
     private OnLongClickListener contactLongClickListener = new OnLongClickListener() {
         public boolean onLongClick(View v) {
-            Participant participant = (Participant) v.getTag();
-            conv.removeParticipants(participant.userId);
-            Toast.makeText(v.getContext(), "Removing " + Atlas.getFullName(participant), Toast.LENGTH_LONG).show();
+            ParticipantEntry entry = (ParticipantEntry) v.getTag();
+            conv.removeParticipants(entry.userId);
+            Toast.makeText(v.getContext(), "Removing " + Atlas.getFullName(entry.participant), Toast.LENGTH_LONG).show();
             updateValues();
             return true;
         }
@@ -161,6 +177,7 @@ public class AtlasConversationSettingsScreen extends Activity {
         });
         
         ((TextView)findViewById(R.id.atlas_actionbar_title_text)).setText("Details");
+        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
 
 }

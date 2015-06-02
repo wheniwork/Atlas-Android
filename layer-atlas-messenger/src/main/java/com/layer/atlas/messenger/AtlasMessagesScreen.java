@@ -53,6 +53,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
+import com.layer.atlas.Atlas.Participant;
 import com.layer.atlas.AtlasMessageComposer;
 import com.layer.atlas.AtlasMessagesList;
 import com.layer.atlas.AtlasMessagesList.Cell;
@@ -60,7 +61,6 @@ import com.layer.atlas.AtlasMessagesList.ItemClickListener;
 import com.layer.atlas.AtlasParticipantPicker;
 import com.layer.atlas.AtlasTypingIndicator;
 import com.layer.atlas.messenger.MessengerApp.keys;
-import com.layer.atlas.messenger.provider.Participant;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
@@ -95,6 +95,7 @@ public class AtlasMessagesScreen extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.uiHandler = new Handler();
+        
         setContentView(R.layout.atlas_screen_messages);
         final MessengerApp app = (MessengerApp) getApplication();
 
@@ -127,7 +128,7 @@ public class AtlasMessagesScreen extends Activity {
                 }
 
                 // push
-                Participant myParticipant = app.getParticipantProvider().get(app.getLayerClient().getAuthenticatedUserId());
+                Participant myParticipant = app.getParticipantProvider().getParticipant(app.getLayerClient().getAuthenticatedUserId());
                 String senderName = Atlas.getFullName(myParticipant);
                 Map<String, String> metadata = new HashMap<String, String>();
                 String text = Atlas.Tools.toString(message);
@@ -537,6 +538,7 @@ public class AtlasMessagesScreen extends Activity {
                 startActivityForResult(intent, REQUEST_CODE_SETTINGS);
             }
         });
+        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
 
 }

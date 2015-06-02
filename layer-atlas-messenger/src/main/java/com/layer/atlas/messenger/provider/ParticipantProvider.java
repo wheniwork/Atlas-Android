@@ -91,7 +91,7 @@ public class ParticipantProvider implements Atlas.ParticipantProvider {
      *
      * @return All cachec Contacts.
      */
-    public List<Participant> getAll() {
+    private List<Participant> getAll() {
         synchronized (mParticipantMap) {
             return new ArrayList<Participant>(mParticipantMap.values());
         }

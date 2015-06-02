@@ -24,7 +24,7 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas;
-import com.layer.atlas.messenger.provider.Participant;
+import com.layer.atlas.Atlas.Participant;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -110,7 +110,7 @@ public class AtlasSettingsScreen extends Activity {
         MessengerApp app = (MessengerApp)getApplication();
         LayerClient client = app.getLayerClient();
         String userId = (client == null)? null : client.getAuthenticatedUserId();
-        Participant participant = (userId == null)? null : app.getParticipantProvider().get(userId);
+        Participant participant = (userId == null)? null : app.getParticipantProvider().getParticipant(userId);
 
         usernameTextView.setText(participant == null ? null : Atlas.getFullName(participant)); 
         statusTextView.setText((client != null && client.isConnected())? "Connected" : "Disconnected");
@@ -141,5 +141,6 @@ public class AtlasSettingsScreen extends Activity {
                 finish();
             }
         });
+        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
 }
