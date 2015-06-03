@@ -15,6 +15,7 @@
  */
 package com.layer.atlas.messenger.provider;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -42,7 +43,7 @@ import com.layer.atlas.Atlas.Participant;
  */
 public class HerokuIdentityProvider extends IdentityProvider implements Atlas.ParticipantProvider {
     private static final String TAG = HerokuIdentityProvider.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     private static final String PREF_KEY_EMAIL = "email";
     private static final String PREF_KEY_AUTH_TOKEN = "authToken";
@@ -55,12 +56,28 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
     private String authToken;
     private String email;
     
-    private Map<String, Contact> contacts = new HashMap<String, Contact>();
+    private Map<String, Contact> contacts = Collections.synchronizedMap(new HashMap<String, Contact>());
 
-    public HerokuIdentityProvider(Context context, String appId) {
+    public HerokuIdentityProvider(Context context, final String appId) {
         this.appId = appId;
         sharedPrefs = context.getSharedPreferences("identity", Context.MODE_PRIVATE);
         load();
+        // refresh contacts
+        new Thread(new Runnable() {
+            public void run() {
+                synchronized (HerokuIdentityProvider.this) {
+                    while (authToken == null) {
+                        try {
+                            if (debug) Log.w(TAG, "refresher.run() authToken is still null");
+                            HerokuIdentityProvider.this.wait(5000);
+                        } catch (InterruptedException ignored) {}
+                    }
+                }
+                // fetch contacts
+                if (debug) Log.w(TAG, "refresher.run() requesting contacts for: " + email);
+                fetchContacts(appId, authToken, email);
+            }
+        }, "heroku-contact-fetcher").start();
     }
 
     @Override
@@ -86,7 +103,6 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
                 return null;
             }
 
-            // fetch contacts
             String responseString = EntityUtils.toString(response.getEntity());
             JSONObject jsonResp = new JSONObject(responseString);
             Result result = new Result();
@@ -96,10 +112,10 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
             this.authToken = jsonResp.optString("authentication_token");
             this.email = userEmail;
             save();
+            synchronized (this) {
+                notifyAll();
+            }
             
-            if (debug) Log.w(TAG, "getIdentityToken() requesting contacts for: " + userEmail);
-            fetchContacts(appId, authToken, userEmail);
-
             return result;
         } catch (Exception e) {
             Log.e(TAG, "Error when fetching identity token", e);
@@ -126,7 +142,7 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
             if (debug) Log.w(TAG, "fetchContacts() fetched json: " + responseString);
             if (parseContacts(responseString, contacts) != null) {
                 // save if contacts are ok
-                sharedPrefs.edit().putString(PREF_KEY_CONTACTS, responseString);
+                sharedPrefs.edit().putString(PREF_KEY_CONTACTS, responseString).apply();
             };
             
         } catch (Exception e) {
@@ -161,7 +177,7 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
         String contactsJSON = sharedPrefs.getString(PREF_KEY_CONTACTS, null);
         if (contactsJSON != null) {
             parseContacts(contactsJSON, contacts);
-        }
+        } 
     }
 
     void save() {

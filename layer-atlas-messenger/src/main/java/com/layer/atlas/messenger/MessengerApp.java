@@ -169,8 +169,6 @@ public class MessengerApp extends Application implements AppIdCallback {
                 wnd.addFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
                 wnd.clearFlags(FLAG_TRANSLUCENT_STATUS);
             }
-        } catch (Exception e) {
-            Log.e(TAG, "prepareActionBar() e");
-        }
+        } catch (Exception ignored) {}
     }
 }

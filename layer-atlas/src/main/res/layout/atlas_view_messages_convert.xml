@@ -93,10 +93,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginRight="8dp"
-            android:layout_marginLeft="8dp">
+            android:layout_marginLeft="8dp"
+            />
             
-        </FrameLayout>
-        
         <View 
             android:id="@+id/atlas_view_messages_convert_spacer_right"
             android:layout_width="32dp"
@@ -104,6 +103,17 @@
             />
     
     </LinearLayout>
+    
+    <TextView 
+        android:id="@+id/atlas_view_messages_convert_delivery_receipt"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginRight="12dp"
+        android:layout_gravity="right"
+        android:textColor="@color/atlas_text_gray"
+        android:textSize="@dimen/atlas_text_size_smaller2"
+        android:text="Read at 10:12 AM"
+        />
     
     <View 
         android:id="@+id/atlas_view_messages_convert_spacer_bottom"

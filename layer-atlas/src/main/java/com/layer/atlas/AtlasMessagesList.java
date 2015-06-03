@@ -35,6 +35,7 @@ import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.RoundRectShape;
+import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -58,6 +59,7 @@ import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.LayerObject;
 import com.layer.sdk.messaging.Message;
+import com.layer.sdk.messaging.Message.RecipientStatus;
 import com.layer.sdk.messaging.MessagePart;
 
 /**
@@ -70,19 +72,28 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     
     private static final boolean CLUSTERED_BUBBLES = false;
     
+    private static final int MESSAGE_TYPE_UPDATE_VALUES = 0;
+    private static final int MESSAGE_REFRESH_UPDATE_ALL = 0;
+    private static final int MESSAGE_REFRESH_UPDATE_DELIVERY = 1;
+
     private final DateFormat timeFormat;
     
     private ListView messagesList;
     private BaseAdapter messagesAdapter;
-
+    
     private ArrayList<Cell> viewItems = new ArrayList<Cell>();
     
     private LayerClient client;
     private Conversation conv;
     
+    private Message latestReadMessage = null;
+    private Message latestDeliveredMessage = null;
+    
     private ItemClickListener clickListener;
     
     //styles
+    private static final float CELL_CONTAINER_ALPHA_UNSENT  = 0.5f;
+    private static final float CELL_CONTAINER_ALPHA_SENT    = 1.0f;
     private int myBubbleColor;
     private int myTextColor;
     private int myTextStyle;
@@ -114,7 +125,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         this.timeFormat = android.text.format.DateFormat.getTimeFormat(context);
     }
 
-    public void init(LayerClient layerClient, final Atlas.ParticipantProvider participantProvider) {
+    public void init(final LayerClient layerClient, final Atlas.ParticipantProvider participantProvider) {
         if (layerClient == null) throw new IllegalArgumentException("LayerClient cannot be null");
         if (participantProvider == null) throw new IllegalArgumentException("ParticipantProvider cannot be null");
         
@@ -187,6 +198,23 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     textAvatar.setVisibility(View.VISIBLE);
                 }
                 
+                // mark unsent messages
+                View cellContainer = convertView.findViewById(R.id.atlas_view_messages_cell_container);
+                cellContainer.setAlpha((myMessage && !cell.messagePart.getMessage().isSent()) 
+                        ? CELL_CONTAINER_ALPHA_UNSENT : CELL_CONTAINER_ALPHA_SENT);
+                
+                // delivery receipt check
+                TextView receiptView = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_delivery_receipt);
+                receiptView.setVisibility(View.GONE);
+                if (latestDeliveredMessage != null && latestDeliveredMessage.getId().equals(cell.messagePart.getMessage().getId())) {
+                    receiptView.setVisibility(View.VISIBLE);
+                    receiptView.setText("Delivered");
+                }
+                if (latestReadMessage != null && latestReadMessage.getId().equals(cell.messagePart.getMessage().getId())) {
+                    receiptView.setVisibility(View.VISIBLE);
+                    receiptView.setText("Read");
+                }
+                
                 // processing cell
                 bindCell(convertView, cell);
 
@@ -209,8 +237,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 ViewGroup cellContainer = (ViewGroup) convertView.findViewById(R.id.atlas_view_messages_cell_container);
                 
                 View cellRootView = cell.onBind(cellContainer);
-                
-                boolean inContainer = false;
+                boolean alreadyInContainer = false;
                 // cleanUp container
                 cellRootView.setVisibility(View.VISIBLE);
                 for (int iChild = 0; iChild < cellContainer.getChildCount(); iChild++) {
@@ -218,10 +245,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     if (child != cellRootView) {
                         child.setVisibility(View.GONE);
                     } else {
-                        inContainer = true;
+                        alreadyInContainer = true;
                     }
                 }
-                if (!inContainer) {
+                if (!alreadyInContainer) {
                     cellContainer.addView(cellRootView);
                 }
             }
@@ -311,14 +338,14 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 destination.add(new GeoCell(part));
             } else {
                 Cell cellData = new TextCell(part);
-                if (debug) Log.w(TAG, "cellForMessage() default item: " + cellData);
+                if (false && debug) Log.w(TAG, "cellForMessage() default item: " + cellData);
                 destination.add(cellData);
             }
         }
         
     }
     
-    public synchronized void updateValues() {
+    public void updateValues() {
         if (conv == null) return;
         
         long started = System.currentTimeMillis();
@@ -327,16 +354,20 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         viewItems.clear();
         if (messages.isEmpty()) return;
         
+        latestReadMessage = null;
+        latestDeliveredMessage = null;
+
         ArrayList<Cell> messageItems = new ArrayList<AtlasMessagesList.Cell>();
         for (Message message : messages) {
             // System messages have `null` user ID
             if (message.getSender().getUserId() == null) continue;  
 
-            List<MessagePart> parts = message.getMessageParts();
             messageItems.clear();
             buildCellForMessage(message, messageItems);
             viewItems.addAll(messageItems);
         }
+        
+        updateDeliveryStatus(messages);
         
         // calculate heads/tails
         int currentItem = 0;
@@ -380,20 +411,93 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             currentUser = item.messagePart.getMessage().getSender().getUserId();
             lastMessageTime = sentAt.getTime();
             calLastMessage.setTime(sentAt);
-            if (debug) Log.d(TAG, "updateValues() item: " + item);
+            if (false && debug) Log.d(TAG, "updateValues() item: " + item);
         }
-            viewItems.get(viewItems.size() - 1).clusterTail = true; // last one is always a tail
+        viewItems.get(viewItems.size() - 1).clusterTail = true; // last one is always a tail
 
         if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started));
         messagesAdapter.notifyDataSetChanged();
 
     }
+
+    private boolean updateDeliveryStatus(List<Message> messages) {
+        if (debug) Log.w(TAG, "updateDeliveryStatus() checking messages:   " + messages.size());
+        Message oldLatestDeliveredMessage = latestDeliveredMessage;
+        Message oldLatestReadMessage = latestReadMessage;
+        // reset before scan
+        latestDeliveredMessage = null;
+        latestReadMessage = null;
+        
+        for (Message message : messages) {
+            // only our messages
+            if (client.getAuthenticatedUserId().equals(message.getSender().getUserId())){
+                if (!message.isSent()) continue;
+                Map<String, RecipientStatus> statuses = message.getRecipientStatus();
+                if (statuses == null || statuses.size() == 0) continue;
+                for (Map.Entry<String, RecipientStatus> entry : statuses.entrySet()) {
+                    // our read-status doesn't matter 
+                    if (entry.getKey().equals(client.getAuthenticatedUserId())) continue;
+                    
+                    if (entry.getValue() == RecipientStatus.READ) {
+                        latestDeliveredMessage = message;
+                        latestReadMessage = message;
+                        break;
+                    }
+                    if (entry.getValue() == RecipientStatus.DELIVERED) {
+                        latestDeliveredMessage = message;
+                    }
+                }
+            }
+        }
+        boolean changed = false;
+        if      (oldLatestDeliveredMessage == null && latestDeliveredMessage != null) changed = true;
+        else if (oldLatestDeliveredMessage != null && latestDeliveredMessage == null) changed = true;
+        else if (oldLatestDeliveredMessage != null && latestDeliveredMessage != null 
+                && !oldLatestDeliveredMessage.getId().equals(latestDeliveredMessage.getId())) changed = true;
+        
+        if      (oldLatestReadMessage == null && latestReadMessage != null) changed = true;
+        else if (oldLatestReadMessage != null && latestReadMessage == null) changed = true;
+        else if (oldLatestReadMessage != null && latestReadMessage != null 
+                && !oldLatestReadMessage.getId().equals(latestReadMessage.getId())) changed = true;
+        
+        if (debug) Log.w(TAG, "updateDeliveryStatus() read status changed: " + (changed ? "yes" : "no"));
+        if (debug) Log.w(TAG, "updateDeliveryStatus() latestRead:          " + (latestReadMessage != null ? latestReadMessage.getSentAt() + ", id: " + latestReadMessage.getId() : "null"));
+        if (debug) Log.w(TAG, "updateDeliveryStatus() latestDelivered:     " + (latestDeliveredMessage != null ? latestDeliveredMessage.getSentAt()+ ", id: " + latestDeliveredMessage.getId() : "null"));
+        
+        return changed;
+    }
+    
+    private long messageUpdateSentAt = 0;
+    
+    private final Handler refreshHandler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            long started = System.currentTimeMillis();
+            if (msg.what ==  MESSAGE_TYPE_UPDATE_VALUES) {
+                if (msg.arg1 == MESSAGE_REFRESH_UPDATE_ALL) {
+                    updateValues();
+                } else if (msg.arg1 == MESSAGE_REFRESH_UPDATE_DELIVERY) {
+                    LayerClient client = (LayerClient) msg.obj;
+                    boolean changed = updateDeliveryStatus(client.getMessages(conv));
+                    if (changed) messagesAdapter.notifyDataSetInvalidated();
+                    if (debug) Log.w(TAG, "refreshHandler() delivery status changed: " + changed);
+                }
+                if (msg.arg2 > 0) {
+                    messagesList.smoothScrollToPosition(messagesAdapter.getCount() - 1);
+                }
+            }
+            final long currentTimeMillis = System.currentTimeMillis();
+            if (debug) Log.w(TAG, "handleMessage() delay: " + (currentTimeMillis - messageUpdateSentAt) + "ms, handled in: " + (currentTimeMillis - started) + "ms"); 
+            messageUpdateSentAt = 0;
+        }
+        
+    };
     
     @Override
     public void onEventMainThread(LayerChangeEvent event) {
         if (conv == null) return;
         boolean updateValues = false;
         boolean jumpToBottom = false;
+        boolean updateDeliveryStatus = false;
         for (LayerChange change : event.getChanges()) {
             if (change.getObjectType() == LayerObject.Type.MESSAGE) {
                 Message msg = (Message) change.getObject();
@@ -404,9 +508,20 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     }
                 }
             }
+            if (change.getChangeType() == Type.UPDATE && "recipientStatus".equals(change.getAttributeName())) {
+                updateDeliveryStatus = true;
+            }
         }
-        if (updateValues) updateValues();
-        if (jumpToBottom) messagesList.smoothScrollToPosition(messagesAdapter.getCount() - 1);
+        
+        if (updateValues || updateDeliveryStatus) {
+            if (messageUpdateSentAt == 0) messageUpdateSentAt = System.currentTimeMillis();
+            refreshHandler.removeMessages(MESSAGE_TYPE_UPDATE_VALUES);
+            final android.os.Message message = refreshHandler.obtainMessage();
+            message.arg1 = updateValues ? MESSAGE_REFRESH_UPDATE_ALL : MESSAGE_REFRESH_UPDATE_DELIVERY;
+            message.arg2 = jumpToBottom ? 1 : 0; 
+            message.obj  = event.getClient();
+            refreshHandler.sendMessage(message);
+        }
     }
 
     public void jumpToLastMessage() {
@@ -531,7 +646,6 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 textOther.setTypeface(otherTextTypeface, otherTextStyle);
             }
             return cellText;
-            
         }
     }
     
