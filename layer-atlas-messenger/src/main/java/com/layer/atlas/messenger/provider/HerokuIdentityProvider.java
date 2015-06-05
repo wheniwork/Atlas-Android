@@ -189,13 +189,14 @@ public class HerokuIdentityProvider extends IdentityProvider implements Atlas.Pa
 
     @Override
     public Map<String, Participant> getParticipants(String filter, Map<String, Participant> result) {
-         for (Map.Entry<String, Contact> entry : contacts.entrySet()) {
+        String filterLowercase = filter.toLowerCase(); 
+        for (Map.Entry<String, Contact> entry : contacts.entrySet()) {
              Contact contact = entry.getValue();
-             if (contact.firstName != null && contact.firstName.indexOf(filter) > -1) {
+             if (contact.firstName != null && contact.firstName.toLowerCase().indexOf(filterLowercase) > -1) {
                  result.put(entry.getKey(), contact);
                  continue;
              }
-             if (contact.lastName != null && contact.lastName.indexOf(filter) > -1) {
+             if (contact.lastName != null && contact.lastName.toLowerCase().indexOf(filterLowercase) > -1) {
                  result.put(entry.getKey(), contact);
                  continue;
              }

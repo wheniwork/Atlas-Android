@@ -23,9 +23,6 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.TreeSet;
 
-import com.layer.atlas.Atlas.Participant;
-import com.layer.atlas.Atlas.ParticipantProvider;
-
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
@@ -46,6 +43,9 @@ import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
+
+import com.layer.atlas.Atlas.Participant;
+import com.layer.atlas.Atlas.ParticipantProvider;
 
 /**
  * @author Oleg Orlov
@@ -297,6 +297,7 @@ public class AtlasParticipantPicker extends FrameLayout {
     }
     
     private void filterParticipants(final String filter) {
+        filteredParticipants.clear();
         participantProvider.getParticipants(filter, filteredParticipants);
         participantsForAdapter.clear();
         for (Map.Entry<String, Participant> entry : filteredParticipants.entrySet()) {
