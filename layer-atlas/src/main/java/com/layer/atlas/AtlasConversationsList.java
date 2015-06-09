@@ -274,18 +274,22 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                 
                 conversations.add(conv);
             }
+            
             Collections.sort(conversations, new Comparator<Conversation>() {
                 public int compare(Conversation lhs, Conversation rhs) {
-                    long now = System.currentTimeMillis();
-                    long leftSentAt = now;
-                    if (lhs != null && lhs.getLastMessage() != null && lhs.getLastMessage().getSentAt() != null) {
-                        leftSentAt = lhs.getLastMessage().getSentAt().getTime();
+                    long leftSentAt = Long.MAX_VALUE;
+                    Message leftLastMessage = lhs.getLastMessage();
+                    if (leftLastMessage != null && leftLastMessage.getSentAt() != null) {
+                        leftSentAt = leftLastMessage.getSentAt().getTime();
                     }
-                    long rightSentdAt = now;
-                    if (rhs != null && rhs.getLastMessage() != null && rhs.getLastMessage().getSentAt() != null) {
-                        rightSentdAt = rhs.getLastMessage().getSentAt().getTime();
+                    long rightSentAt = Long.MAX_VALUE;
+                    Message rightLastMessage = rhs.getLastMessage();
+                    if (rightLastMessage != null && rightLastMessage.getSentAt() != null) {
+                        rightSentAt = rightLastMessage.getSentAt().getTime();
                     }
-                    return (int) (rightSentdAt - leftSentAt);
+                    long result = rightSentAt - leftSentAt;
+                    if (result == 0L) return 0;
+                    return result < 0L ? -1 : 1;
                 }
             });
         }
