@@ -116,9 +116,9 @@ public class AtlasLoginScreen extends Activity {
                             final IdentityProvider.Result result = identityProvider.getIdentityToken(nonce, userName, userPass);
                             if (result.error != null || result.identityToken == null) {
                                 inProgress = false;
-                                updateValues();
                                 runOnUiThread(new Runnable() {
                                     public void run() {
+                                        updateValues();
                                         Toast.makeText(AtlasLoginScreen.this, result.error, Toast.LENGTH_LONG).show();
                                     }
                                 });

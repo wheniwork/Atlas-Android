@@ -274,6 +274,8 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             }
         });
         // --- end of messageView
+        
+        updateValues();
     }
     
     public void parseStyle(Context context, AttributeSet attrs, int defStyle) {

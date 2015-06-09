@@ -248,9 +248,14 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
         });
         
         applyStyle();
+
+        updateValues();
     }
     
     public void updateValues() {
+        if (conversationsAdapter == null) {                 // never initialized
+            return;
+        }
         
         conversations.clear();                              // always clean, rebuild if authenticated 
         conversationsAdapter.notifyDataSetChanged();

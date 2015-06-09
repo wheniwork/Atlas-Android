@@ -249,9 +249,9 @@ public class AtlasParticipantPicker extends FrameLayout {
                 return false;
             }
         });
-
-        filterParticipants("");
         // END OF ---------------------- Participant Picker ---------------------------------------- 
+        
+        filterParticipants("");
 
         applyStyle();
     }
