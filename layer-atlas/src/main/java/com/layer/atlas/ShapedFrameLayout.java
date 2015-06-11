@@ -42,19 +42,29 @@ public class ShapedFrameLayout extends FrameLayout {
     
     public ShapedFrameLayout(Context context, AttributeSet attrs) {
         super(context, attrs);
+        prepareRendering();
     }
 
     public ShapedFrameLayout(Context context) {
         super(context);
+        prepareRendering();
     }
 
     public ShapedFrameLayout(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        prepareRendering();
     }
 
     public void setCornersDp(float[] cornerRadii) {
         System.arraycopy(cornerRadii, 0, this.corners, 0, 4);
         refreshShape = true;
+    }
+    
+    private void prepareRendering() {
+        if (android.os.Build.VERSION.SDK_INT < 18) {
+            setLayerType(LAYER_TYPE_SOFTWARE, null);
+            if (debug)  Log.d(TAG, "setSoftwareRendering() software rendering...");
+        }
     }
     
     public void setCornerRadiusDp(float topLeft, float topRight, float bottomRight, float bottomLeft) {
@@ -70,12 +80,8 @@ public class ShapedFrameLayout extends FrameLayout {
         
         int width = getMeasuredWidth();
         int height = getMeasuredHeight();
-        if (android.os.Build.VERSION.SDK_INT < 18) {
-            setLayerType(LAYER_TYPE_SOFTWARE, null);
-            if (debug)  Log.d(TAG, "dispatchDraw() size: " + width + "x" + height + " software rendering...");
-        } else {
-            if (debug)  Log.d(TAG, "dispatchDraw() size: " + width + "x" + height);
-        }
+        
+        if (debug)  Log.d(TAG, "dispatchDraw() size: " + width + "x" + height);
         
         if (refreshShape) {
             shaper.reset();

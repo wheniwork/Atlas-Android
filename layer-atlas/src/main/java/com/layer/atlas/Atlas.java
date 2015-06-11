@@ -15,12 +15,26 @@
  */
 package com.layer.atlas;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
+import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.util.TypedValue;
+import android.view.View;
+import android.view.ViewGroup;
 
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
@@ -103,8 +117,10 @@ public class Atlas {
         public static String toString(Message msg) {
             StringBuilder sb = new StringBuilder();
             for (MessagePart mp : msg.getMessageParts()) {
-                if ("text/plain".equals(mp.getMimeType())) {
+                if (MIME_TYPE_TEXT.equals(mp.getMimeType())) {
                     sb.append(new String(mp.getData()));
+                } else if (MIME_TYPE_ATLAS_LOCATION.equals(mp.getMimeType())){
+                    sb.append("Attachemnt: Location");
                 } else {
                     sb.append("Attachment: Image");
                     break;
@@ -120,6 +136,59 @@ public class Atlas {
                 result[i * 2 + 1] = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, cornerRadiusDp[i], displayMetrics);
             }
             return result;
+        }
+        
+        public static float getPxFromDp(float dp, Context context) {
+            return getPxFromDp(dp, context.getResources().getDisplayMetrics());
+        }
+        
+        public static float getPxFromDp(float dp, DisplayMetrics displayMetrics) {
+            return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, dp, displayMetrics);
+        }
+        
+        public static View findChildById(ViewGroup group, int id) {
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View child = group.getChildAt(i);
+                if (child.getId() == id) return child;
+            }
+            return null;
+        }
+        
+        public static void closeQuietly(InputStream stream) {
+            if (stream == null) return;
+            try {
+                stream.close();
+            } catch (Throwable ignoredQueitly) {}
+        }
+        
+        public static void closeQuietly(OutputStream stream) {
+            if (stream == null) return;
+            try {
+                stream.close();
+            } catch (Throwable ignoredQueitly) {}
+        }
+
+        /**
+         * @return number of copied bytes
+         */
+        public static int streamCopyAndClose(InputStream from, OutputStream to) throws IOException {
+            int totalBytes = streamCopy(from, to);
+            from.close();
+            to.close();
+            return totalBytes;
+        }
+
+        /**
+         * @return number of copied bytes
+         */
+        public static int streamCopy(InputStream from, OutputStream to) throws IOException {
+            byte[] buffer = new byte[65536];
+            int bytesRead = 0;
+            int totalBytes = 0;
+            for (; (bytesRead = from.read(buffer)) != -1; totalBytes += bytesRead) {
+                to.write(buffer, 0, bytesRead);
+            }
+            return totalBytes;
         }
     }
 
@@ -195,6 +264,240 @@ public class Atlas {
             if (left == -1 && right != -1) return 1;
             if (left - right != 0) return left - right;
             return String.CASE_INSENSITIVE_ORDER.compare(lhs, rhs);
+        }
+    }
+
+    /**
+     * TODO: 
+     * 
+     * - imageCache should accept any "Downloader" that download something with progress 
+     * - imageCache should reschedule image if decoding failed
+     * - imageCache should reschedule image if decoded width was cut due to OOM (-> sampleSize > 1) 
+     * - maximum retries should be configurable
+     * 
+     */
+    public static class ImageLoader {
+        private static final String TAG = Atlas.ImageLoader.class.getSimpleName();
+        private static final boolean debug = false;
+        
+        private static final int BITMAP_DECODE_RETRIES = 10;
+        private static final double MEMORY_THRESHOLD = 0.7;
+        
+        private volatile boolean shutdownLoader = false;
+        private final Thread processingThread;
+        private final Object lock = new Object();
+        private final ArrayList<ImageSpec> queue = new ArrayList<ImageSpec>();
+        
+        private LinkedHashMap<Object, Bitmap> cache = new LinkedHashMap<Object, Bitmap>(40, 1f, true) {
+            private static final long serialVersionUID = 1L;
+            protected boolean removeEldestEntry(Entry<Object, Bitmap> eldest) {
+                // calculate available memory
+                long maxMemory = Runtime.getRuntime().maxMemory();
+                long usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+                boolean cleaningRequired = 1.0 * usedMemory / maxMemory > MEMORY_THRESHOLD; 
+                
+                final Object id = eldest.getKey();
+                if (cleaningRequired) if (debug) Log.w(TAG, "removeEldestEntry() cleaning bitmap for: " + id + ", size: " + cache.size() + ", queue: " + queue.size());
+                else                  if (debug) Log.w(TAG, "removeEldestEntry() " + " nothing, size: " + cache.size() + ", queue: " + queue.size());                    
+    
+                return cleaningRequired;
+            }
+        };
+    
+        public ImageLoader() {
+            // launching thread
+            processingThread = new Decoder("AtlasImageLoader"); 
+            processingThread.start();
+        }
+        
+        private final class Decoder extends Thread {
+            public Decoder(String threadName) {
+                super(threadName);
+            }
+            public void run() {
+                if (debug) Log.w(TAG, "ImageLoader.run() started");
+                while (!shutdownLoader) {
+   
+                    ImageSpec spec = null;
+                    // search bitmap ready to inflate
+                    // wait for queue
+                    synchronized (lock) {
+                        while (spec == null && !shutdownLoader) {
+                            try {
+                                lock.wait();
+                                if (shutdownLoader) return;
+                                // picking from queue
+                                for (int i = 0; i < queue.size(); i++) {
+                                    if (queue.get(i).inputStreamProvider.ready()) { // ready to inflate
+                                        spec = queue.remove(i);
+                                        break;
+                                    }
+                                }
+                            } catch (InterruptedException e) {}
+                        }
+                    }
+   
+                    // decoding bitmap
+                    int requiredWidth = spec.requiredWidth;
+                    int requiredHeight = spec.requiredHeight;
+                    // load
+                    long started = System.currentTimeMillis();
+                    InputStream streamForBounds = spec.inputStreamProvider.getInputStream();
+                    if (streamForBounds == null) { 
+                        Log.e(TAG, "decodeImage() stream is null! Request cancelled. Spec: " + spec.id + ", provider: " + spec.inputStreamProvider.getClass().getSimpleName()); return; 
+                    }
+                    BitmapFactory.Options originalOpts = new BitmapFactory.Options();
+                    originalOpts.inJustDecodeBounds = true;
+                    BitmapFactory.decodeStream(streamForBounds, null, originalOpts);
+                    Tools.closeQuietly(streamForBounds);
+                    // update spec if width and height are unknown
+                    spec.originalWidth = originalOpts.outWidth;
+                    spec.originalHeight = originalOpts.outHeight;
+                    int sampleSize = 1;
+                    while (originalOpts.outWidth / (sampleSize * 2) > requiredWidth) {
+                        sampleSize *= 2;
+                    }
+                    BitmapFactory.Options decodeOpts = new BitmapFactory.Options();
+                    decodeOpts.inSampleSize = sampleSize;
+                    Bitmap bmp = null;
+                    InputStream streamForBitmap = spec.inputStreamProvider.getInputStream();
+                    try {
+                        bmp = BitmapFactory.decodeStream(streamForBitmap, null, decodeOpts);
+                    } catch (OutOfMemoryError e) {
+                        if (debug) Log.w(TAG, "decodeImage() out of memory. remove eldest");
+                        removeEldest();
+                        System.gc();
+                    }
+                    Tools.closeQuietly(streamForBitmap);
+                    if (bmp != null) {
+                        if (debug) Log.d(TAG, "decodeImage() decoded " + bmp.getWidth() + "x" + bmp.getHeight() 
+                                + " " + bmp.getByteCount() + " bytes" 
+                                + " req: " + requiredWidth + "x" + requiredHeight 
+                                                + " original: " + originalOpts.outWidth + "x" + originalOpts.outHeight 
+                                + " sampleSize: " + sampleSize
+                                + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                    } else {
+                        if (debug) Log.d(TAG, "decodeImage() not decoded " + " req: " + requiredWidth + "x" + requiredHeight 
+                                + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                    }
+   
+                    // decoded
+                    synchronized (lock) {
+                        if (bmp != null) {
+                            cache.put(spec.id, bmp);
+                            if (spec.listener != null) spec.listener.onBitmapLoaded(spec);
+                        } else if (spec.retries < BITMAP_DECODE_RETRIES) {
+                            spec.retries++;
+                            queue.add(0, spec);         // schedule retry
+                            lock.notifyAll();
+                        } /*else forget about this image, never put it back in queue */
+                    }
+   
+                    if (debug) Log.w(TAG, "decodeImage()   cache: " + cache.size() + ", queue: " + queue.size() + ", id: " + spec.id);
+                }
+            }
+        }
+    
+        public Bitmap getBitmapFromCache(Object id) {
+            return cache.get(id);
+        }
+                
+        /**
+         * @return - byteCount of removed bitmap if bitmap found. <bold>-1</bold> otherwise
+         */
+        private int removeEldest() {
+            synchronized (lock) {
+                if (cache.size() > 0) {
+                    Map.Entry<Object, Bitmap> entry = cache.entrySet().iterator().next();
+                    Bitmap bmp = entry.getValue();
+                    cache.remove(entry.getKey());
+                    if (debug) Log.w(TAG, "removeEldest() id: " + entry.getKey() + ", bytes: " + bmp.getByteCount());
+                    return bmp.getByteCount();
+                } else {
+                    if (debug) Log.w(TAG, "removeEldest() nothing to remove...");
+                    return -1;
+                }
+            }
+        }
+                
+        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, ImageLoader.BitmapLoadListener loadListener) {
+            ImageSpec spec = null;
+            synchronized (lock) {
+                for (int i = 0; i < queue.size(); i++) {
+                    if (queue.get(i).id.equals(id)) {
+                        spec = queue.remove(i);
+                        break;
+                    }
+                }
+                if (spec == null) {
+                    spec = new ImageSpec();
+                    spec.id = id;
+                    spec.inputStreamProvider = streamProvider;
+                    spec.requiredHeight = requiredHeight;
+                    spec.requiredWidth = requiredWidth;
+                    spec.listener = loadListener;
+                }
+                queue.add(0, spec);
+                lock.notifyAll();
+            }
+            if (debug) Log.w(TAG, "requestBitmap() cache: " + cache.size() + ", queue: " + queue.size() + ", id: " + id);
+            return spec;
+        }
+
+        public static class ImageSpec {
+            public Object id;
+            public StreamProvider inputStreamProvider;
+            public int requiredWidth;
+            public int requiredHeight;
+            public int originalWidth;
+            public int originalHeight;
+            public int downloadProgress;
+            public int retries = 0;
+            public ImageLoader.BitmapLoadListener listener;
+        }
+
+        public static abstract class BitmapLoadListener {
+            public abstract void onBitmapLoaded(ImageSpec spec);
+        }
+        
+        public static abstract class StreamProvider {
+            public abstract InputStream getInputStream();
+            public abstract boolean ready();
+        }
+        
+        public static class MessagePartStreamProvider extends StreamProvider {
+            public final MessagePart part;
+            public MessagePartStreamProvider(MessagePart part) {
+                if (part == null) throw new IllegalStateException("MessagePart cannot be null");
+                this.part = part;
+            }
+            public InputStream getInputStream() {
+                return part.getDataStream();
+            }
+            public boolean ready() {
+                return part.isContentReady();
+            }
+        }
+        
+        public static class FileStreamProvider extends StreamProvider {
+            final File file;
+            public FileStreamProvider(File file) {
+                if (file == null) throw new IllegalStateException("File cannot be null");
+                if (!file.exists()) throw new IllegalStateException("File must exist!");
+                this.file = file;
+            }
+            public InputStream getInputStream() {
+                try {
+                    return new FileInputStream(file);
+                } catch (FileNotFoundException e) {
+                    Log.e(TAG, "FileStreamProvider.getStream() cannot open file. file: " + file, e);
+                    return null;
+                }
+            }
+            public boolean ready() {
+                if (debug) Log.w(TAG, "ready() FileStreamProvider, file ready: " + file.getAbsolutePath());
+                return true;
+            }
         }
     }
     

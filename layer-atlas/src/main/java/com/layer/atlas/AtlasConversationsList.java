@@ -42,6 +42,7 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
 import com.layer.sdk.changes.LayerChangeEvent;

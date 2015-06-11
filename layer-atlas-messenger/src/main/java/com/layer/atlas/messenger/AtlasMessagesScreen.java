@@ -54,6 +54,7 @@ import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
 import com.layer.atlas.Atlas.Participant;
+import com.layer.atlas.Atlas.Tools;
 import com.layer.atlas.AtlasMessageComposer;
 import com.layer.atlas.AtlasMessagesList;
 import com.layer.atlas.AtlasMessagesList.Cell;
@@ -333,14 +334,7 @@ public class AtlasMessagesScreen extends Activity {
                         final File originalFile = new File(getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES), fileName);
 
                         OutputStream fos = new FileOutputStream(originalFile);
-                        byte[] buffer = new byte[65536];
-                        int bytesRead = 0;
-                        int totalBytes = 0;
-                        for (; (bytesRead = fis.read(buffer)) != -1; totalBytes += bytesRead) {
-                            fos.write(buffer, 0, bytesRead);
-                        }
-                        fis.close();
-                        fos.close();
+                        int totalBytes = Tools.streamCopyAndClose(fis, fos);
                         
                         if (debug) Log.w(TAG, "onActivityResult() copied " + totalBytes + " to file: " + originalFile.getName());
                         

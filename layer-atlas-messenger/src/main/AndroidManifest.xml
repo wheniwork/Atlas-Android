@@ -61,6 +61,7 @@
 
         <activity
             android:name=".AtlasConversationsScreen"
+            android:screenOrientation="portrait"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -71,6 +72,7 @@
         <activity
             android:name=".AtlasMessagesScreen"
             android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="portrait"
             android:label="@string/atlas_screen_messages_title" >
         </activity>
 
@@ -78,23 +80,27 @@
             android:name=".AtlasConversationSettingsScreen"
             android:windowSoftInputMode="stateHidden"
             android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="portrait"
             android:label="@string/atlas_screen_messages_title" >
         </activity>
 
         <activity
             android:name=".AtlasSettingsScreen"
+            android:screenOrientation="portrait"
             android:label="@string/atlas_screen_settings_title" >
         </activity>
 
         <activity
             android:name=".AtlasLoginScreen"
             android:windowSoftInputMode="stateAlwaysVisible"
+            android:screenOrientation="portrait"
             android:label="@string/atlas_screen_settings_title" >
         </activity>
 
         <activity
             android:name=".AtlasParticipantPickersScreen"
             android:configChanges="orientation|keyboardHidden"
+            android:screenOrientation="portrait"
             android:label="ScreenTest: remove me from manifest" >
         </activity>
 
