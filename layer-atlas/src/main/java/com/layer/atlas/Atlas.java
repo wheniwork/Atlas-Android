@@ -34,6 +34,7 @@ import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
+import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
 
 import com.layer.sdk.messaging.Conversation;
@@ -111,8 +112,13 @@ public class Atlas {
     }
 
     public static final class Tools {
-        public static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm a"); // TODO: localization required
-        public static final SimpleDateFormat sdfDayOfWeek = new SimpleDateFormat("EEEE, LLL dd,"); // TODO: localization required
+        /** Millis in 24 Hours */
+        public static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
+        // TODO: localization required to all time based constants below
+        public static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm a"); 
+        public static final SimpleDateFormat sdfDayOfWeek = new SimpleDateFormat("EEEE, LLL dd,");
+        /** Ensure you decrease value returned by Calendar.get(Calendar.DAY_OF_WEEK) by 1. Calendar's days starts from 1. */
+        public static final String[] TIME_WEEKDAYS_NAMES = new String[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
         
         public static String toString(Message msg) {
             StringBuilder sb = new StringBuilder();
@@ -189,6 +195,14 @@ public class Atlas {
                 to.write(buffer, 0, bytesRead);
             }
             return totalBytes;
+        }
+
+        public static String toStringSpec(int measureSpec) {
+            switch (MeasureSpec.getMode(measureSpec)) {
+                case MeasureSpec.AT_MOST : return "[At_Most: " + MeasureSpec.getSize(measureSpec) + "]";  
+                case MeasureSpec.EXACTLY : return "[Exactly: " + MeasureSpec.getSize(measureSpec) + "]";
+                default                  : return "[UnSpeci: " + MeasureSpec.getSize(measureSpec) + "]";
+            }
         }
     }
 

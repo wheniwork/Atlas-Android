@@ -175,7 +175,8 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     cal.set(Calendar.MINUTE, 0);
                     cal.set(Calendar.SECOND, 0);
                     long todayMidnight = cal.getTimeInMillis();
-                    long yesterMidnight = todayMidnight - (24 * 60 * 60 * 1000); // 24h less
+                    long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
+                    long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
                     Date sentAt = cell.messagePart.getMessage().getSentAt();
                     if (sentAt == null) sentAt = new Date();
                     
@@ -185,6 +186,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                         timeBarDayText = "Today"; 
                     } else if (sentAt.getTime() > yesterMidnight) {
                         timeBarDayText = "Yesterday";
+                    } else if (sentAt.getTime() > weekAgoMidnight) {
+                        cal.setTime(sentAt);
+                        timeBarDayText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
                     } else {
                         timeBarDayText = Tools.sdfDayOfWeek.format(sentAt);
                     }
@@ -616,15 +620,15 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             Object imageId = messagePart.getId();
             Bitmap bmp = imageLoader.getBitmapFromCache(imageId);
             if (bmp != null) {
-                if (debug) Log.w(TAG, "geo.onBind() bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
+                if (debug) Log.d(TAG, "geo.onBind() bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
                 geoImage.setImageBitmap(bmp);
             } else {
-                if (debug) Log.w(TAG, "geo.onBind() spec: " + spec);
+                if (debug) Log.d(TAG, "geo.onBind() spec: " + spec);
                 geoImage.setImageDrawable(EMPTY_DRAWABLE);
                 // schedule image
                 File tileFile = getTileFile();
                 if (tileFile.exists()) {
-                    if (debug) Log.w(TAG, "geo.onBind() decodeImage: " + tileFile);
+                    if (debug) Log.d(TAG, "geo.onBind() decodeImage: " + tileFile);
                     // request decoding
                     spec = imageLoader.requestBitmap(imageId
                             , new ImageLoader.FileStreamProvider(tileFile)
@@ -646,7 +650,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     
                     downloadQueue.schedule(url, tileFile, this);
                     
-                    if (debug) Log.w(TAG, "geo.onBind() show as text and download image: " + tileFile);
+                    if (debug) Log.d(TAG, "geo.onBind() show stub and download image: " + tileFile);
                 }
             }
             

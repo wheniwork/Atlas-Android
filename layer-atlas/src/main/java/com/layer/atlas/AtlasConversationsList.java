@@ -21,6 +21,7 @@ import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import android.content.Context;
@@ -42,6 +43,7 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.layer.atlas.Atlas.Participant;
 import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
@@ -153,17 +155,28 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                     avatarSingle.setVisibility(View.VISIBLE);
                     avatarMulti.setVisibility(View.GONE);
                 } else {
+                    Participant leftParticipant = null;
+                    Participant rightParticipant = null;
+                    for (Iterator<String> itUserId = allButMe.iterator(); itUserId.hasNext();) {
+                        String userId = itUserId.next();
+                        Participant p = participantProvider.getParticipant(userId);
+                        if (p == null) continue;
+                        
+                        if (leftParticipant == null) {
+                            leftParticipant = p;
+                        } else {
+                            rightParticipant = p;
+                            break;
+                        }
+                    }
+                    
                     TextView textInitialsLeft = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi_left);
-                    String leftUserId = allButMe.get(0);
-                    Atlas.Participant participant = participantProvider.getParticipant(leftUserId);
-                    textInitialsLeft.setText(participant == null ? null : Atlas.getInitials(participant));
+                    textInitialsLeft.setText(leftParticipant == null ? "?" : Atlas.getInitials(leftParticipant));
                     textInitialsLeft.setTextColor(avatarTextColor);
                     ((GradientDrawable) textInitialsLeft.getBackground()).setColor(avatarBackgroundColor);
                     
                     TextView textInitialsRight = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi_right);
-                    String rightUserId = allButMe.get(1);
-                    participant = participantProvider.getParticipant(rightUserId);
-                    textInitialsRight.setText(participant == null ? null : Atlas.getInitials(participant));
+                    textInitialsRight.setText(rightParticipant == null ? "?" : Atlas.getInitials(rightParticipant));
                     textInitialsRight.setTextColor(avatarTextColor);
                     ((GradientDrawable) textInitialsRight.getBackground()).setColor(avatarBackgroundColor);
                     
@@ -199,6 +212,7 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                         convertView.setBackgroundColor(cellBackgroundColor);
                     }
                 } else {
+                    timeView.setText("...");
                     textLastMessage.setText("");
                     textTitle.setTextColor(titleTextColor);
                     textTitle.setTypeface(titleTextTypeface, titleTextStyle);
@@ -276,14 +290,15 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                 conversations.add(conv);
             }
             
+            // the bigger .time the highest in the list
             Collections.sort(conversations, new Comparator<Conversation>() {
                 public int compare(Conversation lhs, Conversation rhs) {
-                    long leftSentAt = Long.MAX_VALUE;
+                    long leftSentAt = 0;
                     Message leftLastMessage = lhs.getLastMessage();
                     if (leftLastMessage != null && leftLastMessage.getSentAt() != null) {
                         leftSentAt = leftLastMessage.getSentAt().getTime();
                     }
-                    long rightSentAt = Long.MAX_VALUE;
+                    long rightSentAt = 0;
                     Message rightLastMessage = rhs.getLastMessage();
                     if (rightLastMessage != null && rightLastMessage.getSentAt() != null) {
                         rightSentAt = rightLastMessage.getSentAt().getTime();
@@ -338,13 +353,17 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
         long todayMidnight = cal.getTimeInMillis();
-        long yesterMidnight = todayMidnight - (24 * 60 * 60 * 1000); // 24h less
+        long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
+        long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
         
         String timeText = null;
         if (sentAt.getTime() > todayMidnight) {
             timeText = timeFormat.format(sentAt.getTime()); 
         } else if (sentAt.getTime() > yesterMidnight) {
             timeText = "Yesterday";
+        } else if (sentAt.getTime() > weekAgoMidnight){
+            cal.setTime(sentAt);
+            timeText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
         } else {
             timeText = dateFormat.format(sentAt);
         }

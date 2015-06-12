@@ -90,15 +90,19 @@ public class AtlasMessagesScreen extends Activity {
     private Handler uiHandler;
     
     private AtlasMessagesList messagesList;
+    private AtlasMessageComposer messageComposer;
+    private AtlasParticipantPicker participantsPicker;
     private AtlasTypingIndicator typingIndicator;
+    
+    private MessengerApp app;
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         this.uiHandler = new Handler();
+        this.app = (MessengerApp) getApplication();
         
         setContentView(R.layout.atlas_screen_messages);
-        final MessengerApp app = (MessengerApp) getApplication();
 
         boolean convIsNew = getIntent().getBooleanExtra(EXTRA_CONVERSATION_IS_NEW, false);
         String convUri = getIntent().getStringExtra(EXTRA_CONVERSATION_URI);
@@ -108,58 +112,44 @@ public class AtlasMessagesScreen extends Activity {
             ((NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE)).cancel(convUri.hashCode()); // Clear notifications for this Conversation
         }
 
-        final AtlasParticipantPicker participantsPicker = (AtlasParticipantPicker) findViewById(R.id.atlas_screen_messages_participants_picker);
+        participantsPicker = (AtlasParticipantPicker) findViewById(R.id.atlas_screen_messages_participants_picker);
         participantsPicker.init(new String[]{app.getLayerClient().getAuthenticatedUserId()}, app.getParticipantProvider());
         if (convIsNew) {
             participantsPicker.setVisibility(View.VISIBLE);
         }
         
-        final AtlasMessageComposer messageComposer = (AtlasMessageComposer) findViewById(R.id.atlas_screen_messages_message_composer);
+        messageComposer = (AtlasMessageComposer) findViewById(R.id.atlas_screen_messages_message_composer);
         messageComposer.init(app.getLayerClient(), conv);
         messageComposer.setListener(new AtlasMessageComposer.Listener() {
             public boolean beforeSend(Message message) {
-                if (conv == null) { // create new one
-                    String[] userIds = participantsPicker.getSelectedUserIds();
-                    conv = app.getLayerClient().newConversation(userIds);
-                    participantsPicker.setVisibility(View.GONE);
-                    messageComposer.setConversation(conv);
-                    messagesList.setConversation(conv);
-                    typingIndicator.setConversation(conv);
-                    updateValues();
-                }
+                boolean conversationReady = ensureConversationReady();
+                if (!conversationReady) return false;
 
                 // push
-                Participant myParticipant = app.getParticipantProvider().getParticipant(app.getLayerClient().getAuthenticatedUserId());
-                String senderName = Atlas.getFullName(myParticipant);
-                Map<String, String> metadata = new HashMap<String, String>();
-                String text = Atlas.Tools.toString(message);
-                if (!text.isEmpty()) {
-                    if (senderName != null && !senderName.isEmpty()) {
-                        metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), senderName + ": " + text);
-                    } else {
-                        metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), text);
-                    }
-                    message.setMetadata(metadata);
-                }
+                preparePushMetadata(message);
                 return true;
             }
+
         });
         
         messageComposer.registerMenuItem("Photo", new OnClickListener() {
             public void onClick(View v) {
+                if (!ensureConversationReady()) return;
+                
                 Intent cameraIntent = new Intent(android.provider.MediaStore.ACTION_IMAGE_CAPTURE);
                 String fileName = "cameraOutput" + System.currentTimeMillis() + ".jpg";
                 photoFile = new File(getExternalFilesDir(android.os.Environment.DIRECTORY_PICTURES), fileName);
                 final Uri outputUri = Uri.fromFile(photoFile);
                 cameraIntent.putExtra(MediaStore.EXTRA_OUTPUT, outputUri);
-                if (debug)
-                    Log.w(TAG, "onClick() requesting photo to file: " + fileName + ", uri: " + outputUri);
+                if (debug) Log.w(TAG, "onClick() requesting photo to file: " + fileName + ", uri: " + outputUri);
                 startActivityForResult(cameraIntent, REQUEST_CODE_CAMERA);
             }
         });
 
         messageComposer.registerMenuItem("Image", new OnClickListener() {
             public void onClick(View v) {
+                if (!ensureConversationReady()) return;
+                
                 // in onCreate or any event where your want the user to select a file
                 Intent intent = new Intent();
                 intent.setType("image/*");
@@ -170,10 +160,8 @@ public class AtlasMessagesScreen extends Activity {
         
         messageComposer.registerMenuItem("Location", new OnClickListener() {
             public void onClick(View v) {
-                if (conv == null) {
-                    Toast.makeText(v.getContext(), "Inserting Location: Conversation is not created yet", Toast.LENGTH_SHORT).show();
-                    return;
-                }
+                if (!ensureConversationReady()) return;
+                
                 if (lastKnownLocation == null) {
                     Toast.makeText(v.getContext(), "Inserting Location: Location is unknown yet", Toast.LENGTH_SHORT).show();
                     return;
@@ -181,6 +169,8 @@ public class AtlasMessagesScreen extends Activity {
                 String locationString = "{\"lat\":" + lastKnownLocation.getLatitude() + ", \"lon\":" + lastKnownLocation.getLongitude() + "}";
                 MessagePart part = app.getLayerClient().newMessagePart(Atlas.MIME_TYPE_ATLAS_LOCATION, locationString.getBytes());
                 Message message = app.getLayerClient().newMessage(Arrays.asList(part));
+                
+                preparePushMetadata(message);
                 conv.send(message);
 
                 if (debug) Log.w(TAG, "onSendLocation() loc:  " + locationString);
@@ -226,8 +216,6 @@ public class AtlasMessagesScreen extends Activity {
     }
     
     private void updateValues() {
-        MessengerApp app = (MessengerApp) getApplication();
-        
         if (conv == null) {
             Log.e(TAG, "updateValues() no conversation set");
             return;
@@ -238,6 +226,43 @@ public class AtlasMessagesScreen extends Activity {
         TextView titleText = (TextView) findViewById(R.id.atlas_actionbar_title_text);
         titleText.setText(Atlas.getTitle(conv, app.getParticipantProvider(), app.getLayerClient().getAuthenticatedUserId()));
     }
+    
+    private boolean ensureConversationReady() {
+        if (conv != null) return true;
+        
+        // create new one
+        String[] userIds = participantsPicker.getSelectedUserIds();
+        
+        // no people, no conversation
+        if (userIds.length == 0) {          
+            Toast.makeText(this, "Conversation cannot be created without participants", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+        
+        conv = app.getLayerClient().newConversation(userIds);
+        participantsPicker.setVisibility(View.GONE);
+        messageComposer.setConversation(conv);
+        messagesList.setConversation(conv);
+        typingIndicator.setConversation(conv);
+        updateValues();
+        return true;
+    }
+    
+    private void preparePushMetadata(Message message) {
+        Participant me = app.getParticipantProvider().getParticipant(app.getLayerClient().getAuthenticatedUserId());
+        String senderName = Atlas.getFullName(me);
+        Map<String, String> metadata = new HashMap<String, String>();
+        String text = Atlas.Tools.toString(message);
+        if (!text.isEmpty()) {
+            if (senderName != null && !senderName.isEmpty()) {
+                metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), senderName + ": " + text);
+            } else {
+                metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), text);
+            }
+            message.setMetadata(metadata);
+        }
+    }
+
     
     /** used to take photos from camera */
     private File photoFile = null; 
@@ -289,6 +314,7 @@ public class AtlasMessagesScreen extends Activity {
                     }
                     Message msg = layerClient.newMessage(originalPart, previewAndSize[0], previewAndSize[1]);
                     if (debug) Log.w(TAG, "onActivityResult() sending photo... ");
+                    preparePushMetadata(msg);
                     conv.send(msg);
                 } catch (Exception e) {
                     Log.e(TAG, "onActivityResult() cannot insert photo" + e);
@@ -354,6 +380,7 @@ public class AtlasMessagesScreen extends Activity {
                         }
                         Message msg = layerClient.newMessage(originalPart, previewAndSize[0], previewAndSize[1]);
                         if (debug) Log.w(TAG, "onActivityResult() uploaded " + originalFile.length() + " bytes");
+                        preparePushMetadata(msg);
                         conv.send(msg);
                     } catch (Exception e) {
                         Log.e(TAG, "onActivityResult() cannot upload file: " + resultFileName, e);
@@ -472,7 +499,6 @@ public class AtlasMessagesScreen extends Activity {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, requestLocationTimeout, distance, locationTracker);
         }
         
-        MessengerApp app = (MessengerApp) getApplication();
         app.getLayerClient().registerEventListener(messagesList).registerTypingIndicator(typingIndicator.clear());
     }
     
@@ -499,7 +525,7 @@ public class AtlasMessagesScreen extends Activity {
         super.onPause();
         
         locationManager.removeUpdates(locationTracker);
-        MessengerApp app = (MessengerApp) getApplication();
+        
         app.getLayerClient().unregisterEventListener(messagesList).unregisterTypingIndicator(typingIndicator.clear());
     }
 
