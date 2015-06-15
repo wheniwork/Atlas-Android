@@ -116,7 +116,7 @@ public class Atlas {
         public static final int TIME_HOURS_24 = 24 * 60 * 60 * 1000;
         // TODO: localization required to all time based constants below
         public static final SimpleDateFormat sdf = new SimpleDateFormat("HH:mm a"); 
-        public static final SimpleDateFormat sdfDayOfWeek = new SimpleDateFormat("EEEE, LLL dd,");
+        public static final SimpleDateFormat sdfDayOfWeek = new SimpleDateFormat("EEE, LLL dd,");
         /** Ensure you decrease value returned by Calendar.get(Calendar.DAY_OF_WEEK) by 1. Calendar's days starts from 1. */
         public static final String[] TIME_WEEKDAYS_NAMES = new String[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
         
@@ -199,9 +199,9 @@ public class Atlas {
 
         public static String toStringSpec(int measureSpec) {
             switch (MeasureSpec.getMode(measureSpec)) {
-                case MeasureSpec.AT_MOST : return "[At_Most: " + MeasureSpec.getSize(measureSpec) + "]";  
-                case MeasureSpec.EXACTLY : return "[Exactly: " + MeasureSpec.getSize(measureSpec) + "]";
-                default                  : return "[UnSpeci: " + MeasureSpec.getSize(measureSpec) + "]";
+                case MeasureSpec.AT_MOST : return "" + MeasureSpec.getSize(measureSpec) + ":A";  
+                case MeasureSpec.EXACTLY : return "" + MeasureSpec.getSize(measureSpec) + ":E";
+                default                  : return "" + MeasureSpec.getSize(measureSpec) + ":U";
             }
         }
     }

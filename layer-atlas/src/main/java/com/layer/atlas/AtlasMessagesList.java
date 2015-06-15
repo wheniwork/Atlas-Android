@@ -138,7 +138,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     public void init(final LayerClient layerClient, final Atlas.ParticipantProvider participantProvider) {
         if (layerClient == null) throw new IllegalArgumentException("LayerClient cannot be null");
         if (participantProvider == null) throw new IllegalArgumentException("ParticipantProvider cannot be null");
-        
+        if (messagesList != null) throw new IllegalStateException("AtlasMessagesList is already initialized!");
         
         this.client = layerClient;
         LayoutInflater.from(getContext()).inflate(R.layout.atlas_messages_list, this);

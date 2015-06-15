@@ -102,6 +102,7 @@ public class AtlasMessageComposer extends FrameLayout {
      */
     public void init(LayerClient client, Conversation conversation) {
         if (client == null) throw new IllegalArgumentException("LayerClient cannot be null");
+        if (messageText != null) throw new IllegalStateException("AtlasMessageComposer is already initialized!");
         
         this.layerClient = client;
         this.conv = conversation;

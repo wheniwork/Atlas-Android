@@ -118,6 +118,7 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     public void init(final LayerClient layerClient, final Atlas.ParticipantProvider participantProvider) {
         if (layerClient == null) throw new IllegalArgumentException("LayerClient cannot be null");
         if (participantProvider == null) throw new IllegalArgumentException("ParticipantProvider cannot be null");
+        if (conversationsList != null) throw new IllegalStateException("AtlasConversationList is already initialized!");
         
         this.layerClient = layerClient;
         

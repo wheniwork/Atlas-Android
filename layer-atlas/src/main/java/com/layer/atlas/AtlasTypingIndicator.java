@@ -75,9 +75,10 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
      */
     public AtlasTypingIndicator init(Conversation conversation, Callback callback) {
         if (callback == null) throw new IllegalArgumentException("Callback cannot be null");
+        if (mTextView != null) throw new IllegalStateException("AtlasTypingIndicator is already initialized!");
         mConversation = conversation;
         this.mCallback = callback;
-        mTextView = new TextView(getContext());
+        this.mTextView = new TextView(getContext());
         addView(mTextView);
         applyStyle();
         return this;
