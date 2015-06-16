@@ -499,7 +499,8 @@ public class AtlasMessagesScreen extends Activity {
             locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, requestLocationTimeout, distance, locationTracker);
         }
         
-        app.getLayerClient().registerEventListener(messagesList).registerTypingIndicator(typingIndicator.clear());
+        app.getLayerClient().registerEventListener(messagesList);
+        app.getLayerClient().registerTypingIndicator(typingIndicator.clear());
     }
     
     private static final int LOCATION_EXPIRATION_TIME = 60 * 1000; // 1 minute 
@@ -526,7 +527,8 @@ public class AtlasMessagesScreen extends Activity {
         
         locationManager.removeUpdates(locationTracker);
         
-        app.getLayerClient().unregisterEventListener(messagesList).unregisterTypingIndicator(typingIndicator.clear());
+        app.getLayerClient().unregisterEventListener(messagesList);
+        app.getLayerClient().unregisterTypingIndicator(typingIndicator.clear());
     }
 
     @Override

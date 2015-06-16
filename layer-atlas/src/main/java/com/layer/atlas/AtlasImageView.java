@@ -1,11 +1,14 @@
 package com.layer.atlas;
 
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.RectF;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -14,13 +17,19 @@ import com.layer.sdk.internal.utils.Log;
 
 /**
  * @author Oleg Orlov
- * @since  09 Jun 2015
+ * @since  15 Jun 2015
  */
-public class AtlasProgressView extends View {
-    private static final String TAG = AtlasProgressView.class.getSimpleName();
-    private static final boolean debug = false;
+public class AtlasImageView extends View {
+    private static final String TAG = AtlasImageView.class.getSimpleName();
+    private static final boolean debug = true;
 
-    private float progress;
+    public Drawable drawable;
+    
+    public int width;
+    public int height;
+    public int orientation;
+    
+    private float progress = 0.6f;
     private int colorMain = Color.argb(0xA0, 0xFF, 0xFF, 0xFF);
     
     private float pieRadiusDp = 20;
@@ -34,44 +43,21 @@ public class AtlasProgressView extends View {
     private float defaultHeightDp = defaultWidthDp;
     
     //----------------------------------------------------------------------------
-    public AtlasProgressView(Context context, AttributeSet attrs, int defStyle) {
+    public AtlasImageView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         setupPaints();
     }
 
-    public AtlasProgressView(Context context, AttributeSet attrs) {
+    public AtlasImageView(Context context, AttributeSet attrs) {
         super(context, attrs);
         setupPaints();
     }
 
-    public AtlasProgressView(Context context) {
+    public AtlasImageView(Context context) {
         super(context);
         setupPaints();
     }
     
-    /*
-     * Android's [match_parent;match_parent] behaves weird - it will finally pass you [parent_width;0]
-     * Non-zero results comes from minWidth/minHeight and background's padding, but not from parent. 
-     * So if spec is UNSPECIFIED, we should never tell Android that [0;0] is OK for us
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; parent_height]
-     *      view2 [match_parent; match_parent]  ->  [parent_width; parent_height]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent] + min[30dp; 30dp]  ->  [parent_width; 30dp]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
-     *      view2 [30dp; 30dp]                  ->  [30dp; 30dp]
-     * 
-     * FrameLayout 
-     *      view1 [30dp; 30dp]                  ->  [30dp; 30dp]
-     *      view2 [match_parent; match_parent]  ->  [parent_width; 0]
-     */
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int mWidthBefore  = getMeasuredWidth();
         int mHeightBefore = getMeasuredHeight();
@@ -150,8 +136,14 @@ public class AtlasProgressView extends View {
         
         canvas.drawCircle(viewWidth / 2, viewHeight / 2, ringRadiusPx, ringPaint);
         
-        if (debug) Log.w(TAG, "onDraw() out_R: " + outerRadiusPx + ", in_R: " + innerRadiusPx + ", ring_R: " + ringRadiusPx + ", strokeWidth: " + strokeWidth +", progress: " + progress);
-        
+        if (debug) Log.w(TAG, 
+                    "onDraw() instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight()
+                + "\n                min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
+                + "\n             bounds: " + drawable.getBounds());
+        int saved = canvas.save();
+        canvas.rotate(90 * orientation);
+        drawable.draw(canvas);
+        canvas.restoreToCount(saved);
     }
 
     public void setProgress(float progress) {
@@ -161,5 +153,15 @@ public class AtlasProgressView extends View {
 
     public float getProgress() {
         return progress;
+    }
+
+    public void setImageBitmap(Bitmap bmp) {
+        this.drawable = new BitmapDrawable(bmp);
+        invalidate();
+    }
+
+    public void setImageDrawable(Drawable drawable) {
+        this.drawable = drawable;
+        invalidate();
     }
 }

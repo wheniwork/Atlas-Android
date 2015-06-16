@@ -137,6 +137,11 @@ public class Atlas {
 
         public static float[] getRoundRectRadii(float[] cornerRadiusDp, final DisplayMetrics displayMetrics) {
             float[] result = new float[8];
+            return getRoundRectRadii(cornerRadiusDp, displayMetrics, result);
+        }
+
+        public static float[] getRoundRectRadii(float[] cornerRadiusDp, final DisplayMetrics displayMetrics, float[] result) {
+            if (result.length < cornerRadiusDp.length * 2) throw new IllegalArgumentException("result[] is shorter than required. result: " + result.length + ", required: " + cornerRadiusDp.length * 2);
             for (int i = 0; i < cornerRadiusDp.length; i++) {
                 result[i * 2] = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, cornerRadiusDp[i], displayMetrics);
                 result[i * 2 + 1] = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, cornerRadiusDp[i], displayMetrics);
@@ -199,9 +204,9 @@ public class Atlas {
 
         public static String toStringSpec(int measureSpec) {
             switch (MeasureSpec.getMode(measureSpec)) {
-                case MeasureSpec.AT_MOST : return "" + MeasureSpec.getSize(measureSpec) + ":A";  
-                case MeasureSpec.EXACTLY : return "" + MeasureSpec.getSize(measureSpec) + ":E";
-                default                  : return "" + MeasureSpec.getSize(measureSpec) + ":U";
+                case MeasureSpec.AT_MOST : return "" + MeasureSpec.getSize(measureSpec) + "'A";  
+                case MeasureSpec.EXACTLY : return "" + MeasureSpec.getSize(measureSpec) + "'E";
+                default                  : return "" + MeasureSpec.getSize(measureSpec) + "'U";
             }
         }
     }

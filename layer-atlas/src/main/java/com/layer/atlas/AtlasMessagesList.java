@@ -957,9 +957,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             
             View imageContainerMy = rootView.findViewById(R.id.atlas_view_messages_cell_image_container_my);
             View imageContainerTheir = rootView.findViewById(R.id.atlas_view_messages_cell_image_container_their);
-            ImageView imageViewMy = (ImageView) imageContainerMy.findViewById(R.id.atlas_view_messages_cell_image_my);
-            ImageView imageViewTheir = (ImageView) imageContainerTheir.findViewById(R.id.atlas_view_messages_cell_image_their);
-            ImageView imageView = myMessage ? imageViewMy : imageViewTheir;
+            AtlasImageView imageViewMy = (AtlasImageView) imageContainerMy.findViewById(R.id.atlas_view_messages_cell_image_my);
+            AtlasImageView imageViewTheir = (AtlasImageView) imageContainerTheir.findViewById(R.id.atlas_view_messages_cell_image_their);
+            AtlasImageView imageView = myMessage ? imageViewMy : imageViewTheir;
             View imageContainer = myMessage ? imageContainerMy : imageContainerTheir;
             
             if (myMessage) {

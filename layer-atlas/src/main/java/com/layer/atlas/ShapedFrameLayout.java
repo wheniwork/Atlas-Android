@@ -24,6 +24,8 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.widget.FrameLayout;
 
+import com.layer.atlas.Atlas.Tools;
+
 
 /**
  * @author Oleg Orlov
@@ -32,7 +34,7 @@ import android.widget.FrameLayout;
 public class ShapedFrameLayout extends FrameLayout {
 
     private static final String TAG = ShapedFrameLayout.class.getSimpleName();
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     
     private float[] corners = new float[] { 0, 0, 0, 0 };
     private boolean refreshShape = true;
@@ -81,11 +83,14 @@ public class ShapedFrameLayout extends FrameLayout {
         int width = getMeasuredWidth();
         int height = getMeasuredHeight();
         
-        if (debug)  Log.d(TAG, "dispatchDraw() size: " + width + "x" + height);
+        if (debug)  Log.d(TAG, "dispatchDraw() drawSize: " + width + "x" + height 
+                + ", measuredSize: " + getMeasuredWidth() + "x" + getMeasuredHeight()
+                + ", size: " + getWidth() + "x" + getHeight()
+                + ", resetShape: " + refreshShape);
         
-        if (refreshShape) {
+        if (refreshShape || true) {
             shaper.reset();
-            pathRect = new RectF(0, 0, width, height);
+            pathRect.set(0, 0, width, height);
             float[] roundRectRadii = Atlas.Tools.getRoundRectRadii(corners, getResources().getDisplayMetrics());
             shaper.addRoundRect(pathRect, roundRectRadii,  Direction.CW);
             
@@ -105,5 +110,33 @@ public class ShapedFrameLayout extends FrameLayout {
         super.onSizeChanged(w, h, oldw, oldh);
         refreshShape = true;
     }
+    
+    
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int mWidthBefore  = getMeasuredWidth();
+        int mHeightBefore = getMeasuredHeight();
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        
+        int mWidthAfter = getMeasuredWidth();
+        int mHeightAfter = getMeasuredHeight();
+        
+        int measuredWidth = getMeasuredWidth();
+        
+//        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredWidth == 0) {
+//            measuredWidth = (int) Tools.getPxFromDp(defaultWidthDp, getContext());
+//        }
+//        int measuredHeight = getMeasuredHeight();
+//        if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredHeight == 0) {
+//            measuredHeight = (int) Tools.getPxFromDp(defaultHeightDp, getContext());
+//        }
+//
+//        setMeasuredDimension(measuredWidth, measuredHeight);
+        if (debug) Log.w(TAG, "onMeasure() before: " + mWidthBefore + "x" + mHeightBefore
+                + ", spec: " + Tools.toStringSpec(widthMeasureSpec) + "x" + Tools.toStringSpec(heightMeasureSpec)
+                + ", after: " + mWidthAfter + "x" + mHeightAfter
+//                + ", final: " + getMeasuredWidth() + "x" + getMeasuredHeight()
+                );
+    }
+
 
 }
