@@ -153,6 +153,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 String userId = part.getMessage().getSender().getUserId();
 
                 boolean myMessage = client.getAuthenticatedUserId().equals(userId);
+                boolean showTheirDecor = conv.getParticipants().size() > 2;
                 
                 if (convertView == null) { 
                     convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.atlas_view_messages_convert, parent, false);
@@ -199,17 +200,32 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     timeBar.setVisibility(View.GONE);
                 }
                 
+                View avatarContainer = convertView.findViewById(R.id.atlas_view_messages_convert_avatar_container);
                 TextView textAvatar = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_initials);
                 View spacerRight = convertView.findViewById(R.id.atlas_view_messages_convert_spacer_right);
+                TextView userNameHeader = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_user_name);
                 if (myMessage) {
                     spacerRight.setVisibility(View.GONE);
                     textAvatar.setVisibility(View.INVISIBLE);
+                    userNameHeader.setVisibility(View.GONE);
                 } else {
                     spacerRight.setVisibility(View.VISIBLE);
                     Atlas.Participant participant = participantProvider.getParticipant(userId);
-                    String displayText = participant != null ? Atlas.getInitials(participant) : "";
-                    textAvatar.setText(displayText);
-                    textAvatar.setVisibility(View.VISIBLE);
+                    if (cell.firstUserMsg && showTheirDecor) {
+                        userNameHeader.setVisibility(View.VISIBLE);
+                        String fullName = participant == null ? "Unknown User" : participant.getFirstName() + " " + participant.getLastName();
+                        userNameHeader.setText(fullName);
+                    } else {
+                        userNameHeader.setVisibility(View.GONE);
+                    }
+                    
+                    if (cell.lastUserMsg && participant != null) {
+                        textAvatar.setVisibility(View.VISIBLE);
+                        textAvatar.setText(Atlas.getInitials(participant));
+                    } else {
+                        textAvatar.setVisibility(View.INVISIBLE);
+                    }
+                    avatarContainer.setVisibility(showTheirDecor ? View.VISIBLE : View.GONE);
                 }
                 
                 // mark unsent messages
@@ -417,6 +433,12 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 if (i > 0) cells.get(i - 1).clusterTail = true;
             }
             
+            // last message from user
+            if ( ! item.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
+                item.firstUserMsg = true;
+                if (i > 0) cells.get(i - 1).lastUserMsg = true;
+            }
+            
             // check time header is needed
             if (sentAt.getTime() - lastMessageTime > oneHourSpan) {
                 item.timeHeader = true;
@@ -434,7 +456,8 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             calLastMessage.setTime(sentAt);
             if (false && debug) Log.d(TAG, "updateValues() item: " + item);
         }
-            cells.get(cells.size() - 1).clusterTail = true; // last one is always a tail
+        
+        cells.get(cells.size() - 1).clusterTail = true; // last one is always a tail
 
         if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started));
         messagesAdapter.notifyDataSetChanged();
@@ -901,12 +924,16 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     private static final BitmapDrawable EMPTY_DRAWABLE = new BitmapDrawable(Bitmap.createBitmap(new int[] { Color.TRANSPARENT }, 1, 1, Bitmap.Config.ALPHA_8));
     
     private class ImageCell extends Cell implements LayerProgressListener {
+        
         MessagePart previewPart;
         MessagePart fullPart;
         int width;
         int height;
         ImageLoader.ImageSpec imageSpec;
-
+        
+        /** if more than 0 - download is in progress */
+        volatile long downloadProgressBytes = -1; 
+        
         private ImageCell(MessagePart fullImagePart) {
             super(fullImagePart);
             this.fullPart = fullImagePart;
@@ -929,24 +956,25 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             boolean myMessage = client.getAuthenticatedUserId().equals(cell.messagePart.getMessage().getSender().getUserId());
             
             View imageContainerMy = rootView.findViewById(R.id.atlas_view_messages_cell_image_container_my);
-            View imageContainerOther = rootView.findViewById(R.id.atlas_view_messages_cell_image_container_their);
+            View imageContainerTheir = rootView.findViewById(R.id.atlas_view_messages_cell_image_container_their);
             ImageView imageViewMy = (ImageView) imageContainerMy.findViewById(R.id.atlas_view_messages_cell_image_my);
-            ImageView imageViewOther = (ImageView) imageContainerOther.findViewById(R.id.atlas_view_messages_cell_image_their);
-            ImageView imageView = myMessage ? imageViewMy : imageViewOther;
-            View imageContainer = myMessage ? imageContainerMy : imageContainerOther;
+            ImageView imageViewTheir = (ImageView) imageContainerTheir.findViewById(R.id.atlas_view_messages_cell_image_their);
+            ImageView imageView = myMessage ? imageViewMy : imageViewTheir;
+            View imageContainer = myMessage ? imageContainerMy : imageContainerTheir;
             
             if (myMessage) {
                 imageContainerMy.setVisibility(View.VISIBLE);
-                imageContainerOther.setVisibility(View.GONE);
+                imageContainerTheir.setVisibility(View.GONE);
             } else {
                 imageContainerMy.setVisibility(View.GONE);
-                imageContainerOther.setVisibility(View.VISIBLE);
+                imageContainerTheir.setVisibility(View.VISIBLE);
             }
 
             // get BitmapDrawable
             
             int requiredWidth = /*imageContainer.getWidth() > 0 ? imageContainer.getWidth() :*/ messagesList.getWidth();
             int requiredHeight = /*imageContainer.getHeight() > 0 ? imageContainer.getHeight() : */messagesList.getHeight();
+            
             MessagePart workingPart = previewPart != null ? previewPart : fullPart;
             Bitmap bmp = imageLoader.getBitmapFromCache(workingPart.getId());
             
@@ -994,12 +1022,25 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 final MessagePartStreamProvider streamProvider = new MessagePartStreamProvider(workingPart);
                 if (workingPart.isContentReady()) {
                     imageSpec = imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, BITMAP_LOAD_LISTENER);
-                } else {
+                } else if (downloadProgressBytes == -1){
                     workingPart.download(this);
                 }
             }
             
-            ShapedFrameLayout cellCustom = (ShapedFrameLayout) (myMessage ? imageContainerMy : imageContainerOther);
+            AtlasProgressView progressMy = (AtlasProgressView) rootView.findViewById(R.id.atlas_view_messages_cell_image_my_progress);
+            AtlasProgressView progressTheir = (AtlasProgressView) rootView.findViewById(R.id.atlas_view_messages_cell_image_their_progress);
+            AtlasProgressView progressView = myMessage ? progressMy : progressTheir;
+            if (downloadProgressBytes > 0) {
+                float progress = 1.0f * downloadProgressBytes / workingPart.getSize();
+                if (debug) Log.w(TAG, "img.onBind() showing progress: " + progress);
+                progressView.setVisibility(View.VISIBLE);
+                progressView.setProgress(progress);
+            } else {
+                if (debug) Log.w(TAG, "img.onBind() no progressView. bytes: " + downloadProgressBytes);
+                progressView.setVisibility(View.GONE);
+            }
+            
+            ShapedFrameLayout cellCustom = (ShapedFrameLayout) (myMessage ? imageContainerMy : imageContainerTheir);
             // clustering
             cellCustom.setCornerRadiusDp(16, 16, 16, 16);
             if (!CLUSTERED_BUBBLES) return rootView;
@@ -1027,10 +1068,17 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         public void onProgressStart(MessagePart part, Operation operation) {
         }
         public void onProgressUpdate(MessagePart part, Operation operation, long transferredBytes) {
+            MessagePart workingPart = previewPart != null ? previewPart : fullPart;
+            if (debug) Log.w(TAG, "onProgressUpdate() transferred: " + transferredBytes + " of " + workingPart.getSize() + ", progress: " + (1.0f * transferredBytes / workingPart.getSize()));
+            downloadProgressBytes = transferredBytes;
+            postViewRefresh();
         }
         public void onProgressError(MessagePart part, Operation operation, Throwable cause) {
+            downloadProgressBytes = -1;
+            postViewRefresh();
         }
         public void onProgressComplete(MessagePart part, Operation operation) {
+            downloadProgressBytes = -1;
             postViewRefresh();
         }
     }
@@ -1060,6 +1108,11 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         private int clusterItemId;
         private boolean clusterTail;
         private boolean timeHeader;
+        
+        /** if true, than previous message was from different user*/
+        private boolean firstUserMsg;
+        /** if true, than next message is from different user */
+        private boolean lastUserMsg; 
         
         public Cell(MessagePart messagePart) {
             this.messagePart = messagePart;

@@ -35,7 +35,17 @@
             android:layout_width="192dp"
             android:layout_height="192dp"
             android:background="@color/atlas_background_gray"
-            />    
+            />
+        <com.layer.atlas.AtlasProgressView 
+            android:id="@+id/atlas_view_messages_cell_image_my_progress"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+        <!-- spacer to force FrameLayout set all child with match_parent spec proper width in height -->
+        <View 
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
     </com.layer.atlas.ShapedFrameLayout>
 
     <com.layer.atlas.ShapedFrameLayout
@@ -50,6 +60,16 @@
             android:layout_height="192dp"
             android:layout_gravity="left|center_horizontal"
             android:background="@color/atlas_background_gray"
+            />
+        <com.layer.atlas.AtlasProgressView 
+            android:id="@+id/atlas_view_messages_cell_image_their_progress"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            />
+        <!-- spacer to force FrameLayout set all child with match_parent spec proper width in height -->
+        <View 
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
             />
     </com.layer.atlas.ShapedFrameLayout>
     
