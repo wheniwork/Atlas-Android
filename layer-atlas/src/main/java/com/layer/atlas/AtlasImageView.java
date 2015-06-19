@@ -17,7 +17,9 @@ package com.layer.atlas;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
+import android.graphics.Movie;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -32,7 +34,7 @@ import com.layer.sdk.internal.utils.Log;
  */
 public class AtlasImageView extends View {
     private static final String TAG = AtlasImageView.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     public static final int ORIENTATION_NORMAL = 0;
     public static final int ORIENTATION_90_CW = 1;
@@ -40,6 +42,7 @@ public class AtlasImageView extends View {
     public static final int ORIENTATION_90_CCW = 3;
     
     public Drawable drawable;
+    public Movie    movie;
     
     private int contentWidth;
     private int contentHeight;
@@ -180,6 +183,14 @@ public class AtlasImageView extends View {
     }
 
     public void setImageBitmap(Bitmap bmp) {
+        this.drawable = new BitmapDrawable(bmp);
+        invalidate();
+    }
+    
+    public void setGifMovie(Movie gif) {
+        Bitmap bmp = Bitmap.createBitmap(gif.width(), gif.height(), Config.ARGB_8888);
+        Canvas cnv = new Canvas(bmp);
+        gif.draw(cnv, 0, 0);
         this.drawable = new BitmapDrawable(bmp);
         invalidate();
     }

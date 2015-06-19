@@ -37,6 +37,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.graphics.Movie;
 import android.graphics.Typeface;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -78,7 +79,7 @@ import com.layer.sdk.messaging.MessagePart;
  */
 public class AtlasMessagesList extends FrameLayout implements LayerChangeEventListener.MainThread {
     private static final String TAG = AtlasMessagesList.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     private static final boolean CLUSTERED_BUBBLES = false;
     
@@ -343,7 +344,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             final MessagePart part = parts.get(partNo);
             final String mimeType = part.getMimeType();
             
-            if (Atlas.MIME_TYPE_IMAGE_PNG.equals(mimeType) || Atlas.MIME_TYPE_IMAGE_JPEG.equals(mimeType)) {
+            if (Atlas.MIME_TYPE_IMAGE_PNG.equals(mimeType) 
+                    || Atlas.MIME_TYPE_IMAGE_JPEG.equals(mimeType)
+                    || Atlas.MIME_TYPE_IMAGE_GIF.equals(mimeType)
+                    ) {
                     
                 // 3 parts image support
                 if ((partNo + 2 < parts.size()) && Atlas.MIME_TYPE_IMAGE_DIMENSIONS.equals(parts.get(partNo + 2).getMimeType())) {
@@ -457,6 +461,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             if (false && debug) Log.d(TAG, "updateValues() item: " + item);
         }
         
+        cells.get(cells.size() - 1).lastUserMsg = true; // last one is always a last message from user
         cells.get(cells.size() - 1).clusterTail = true; // last one is always a tail
 
         if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started));
@@ -642,7 +647,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             ShapedFrameLayout cellCustom = (ShapedFrameLayout) (myMessage ? containerMy : containerTheir);
             
             Object imageId = messagePart.getId();
-            Bitmap bmp = imageLoader.getBitmapFromCache(imageId);
+            Bitmap bmp = (Bitmap) imageLoader.getBitmapFromCache(imageId);
             if (bmp != null) {
                 if (debug) Log.d(TAG, "geo.onBind() bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
                 geoImage.setImageBitmap(bmp);
@@ -657,7 +662,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     spec = imageLoader.requestBitmap(imageId
                             , new ImageLoader.FileStreamProvider(tileFile)
                             , (int)Tools.getPxFromDp(150, getContext())
-                            , (int)Tools.getPxFromDp(150, getContext()), BITMAP_LOAD_LISTENER);
+                            , (int)Tools.getPxFromDp(150, getContext()), false, BITMAP_LOAD_LISTENER);
                 } else {
                     int width = 300;
                     int height = 300;
@@ -974,8 +979,24 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             }
 
             MessagePart workingPart = previewPart != null ? previewPart : fullPart;
-            Bitmap bmp = imageLoader.getBitmapFromCache(workingPart.getId());
-            
+            Object bmpOrMovie = imageLoader.getBitmapFromCache(workingPart.getId());
+            Bitmap bmp1 = null;
+            Movie  mov =  null;
+            int bmpWidth = -1;
+            int bmpHeight = -1;
+            int bmpBytesCount = -1;
+            if (bmpOrMovie instanceof Bitmap) {
+                bmp1 = (Bitmap) bmpOrMovie;
+                bmpWidth = bmp1.getWidth();
+                bmpHeight = bmp1.getHeight();
+                bmpBytesCount = -1;
+            } else if (bmpOrMovie instanceof Movie) {
+                mov  =  (Movie) bmpOrMovie;
+                bmpWidth =  mov.width();
+                bmpHeight = mov.height();
+                bmpBytesCount = 0;
+            }
+                 
             // understanging image's dimensions
             int imgWidth  = this.declaredWidth;
             int imgHeight = this.declaredHeight;
@@ -985,10 +1006,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 imgWidth  = imageSpec.originalWidth;
                 imgHeight = imageSpec.originalHeight;
             }
-            if ((imgWidth == 0 || imgHeight == 0) && bmp != null) {
-                if (debug) Log.w(TAG, "img.onBind() using imgSize from bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
-                imgWidth  = bmp.getWidth();
-                imgHeight = bmp.getHeight();
+            if ((imgWidth == 0 || imgHeight == 0) && bmpOrMovie != null) {
+                if (debug) Log.w(TAG, "img.onBind() using imgSize from bitmap: " + bmpWidth + "x" + bmpHeight);
+                imgWidth  = bmpWidth;
+                imgHeight = bmpHeight;
             }
 
             // calculate appropriate View size
@@ -1037,19 +1058,24 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             imageView.setContentDimensions(viewWidth, viewHeight);
             imageView.orientation = orientation;
 
+            // TODO: calculate properly with rotation
             int requiredWidth  = messagesList.getWidth();
             int requiredHeight = messagesList.getHeight();
 
-            if (bmp != null) {
-                imageView.setImageBitmap(bmp);
-                if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() 
-                        + " " + bmp.getByteCount() + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
+            if (bmp1 != null) {
+                imageView.setImageBitmap(bmp1);
+                if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmpWidth + "x" + bmpHeight 
+                        + " " + bmpBytesCount + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
+            } else if (mov != null){
+                imageView.setGifMovie(mov);
+                if (debug) Log.i(TAG, "img.onBind() returned from cache! GIF: " + mov.width() + "x" + mov.height() + "@" + mov.duration() 
+                        + ", req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
             } else {
                 imageView.setImageDrawable(EMPTY_DRAWABLE);
                 final Uri id = workingPart.getId();
                 final MessagePartStreamProvider streamProvider = new MessagePartStreamProvider(workingPart);
                 if (workingPart.isContentReady()) {
-                    imageSpec = imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, BITMAP_LOAD_LISTENER);
+                    imageSpec = imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, false, BITMAP_LOAD_LISTENER);
                 } else if (downloadProgressBytes == -1){
                     workingPart.download(this);
                 }

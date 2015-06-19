@@ -34,7 +34,7 @@ import com.layer.atlas.Atlas.Tools;
 public class ShapedFrameLayout extends FrameLayout {
 
     private static final String TAG = ShapedFrameLayout.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     private float[] corners = new float[] { 0, 0, 0, 0 };
     private boolean refreshShape = true;

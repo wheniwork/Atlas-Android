@@ -30,6 +30,7 @@ import java.util.Map;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Movie;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -55,6 +56,8 @@ public class Atlas {
     public static final String MIME_TYPE_IMAGE_JPEG_PREVIEW = "image/jpeg+preview";
     public static final String MIME_TYPE_IMAGE_PNG = "image/png";
     public static final String MIME_TYPE_IMAGE_PNG_PREVIEW = "image/png+preview";
+    public static final String MIME_TYPE_IMAGE_GIF = "image/gif";
+    public static final String MIME_TYPE_IMAGE_GIF_PREVIEW = "image/gif+preview";
     public static final String MIME_TYPE_IMAGE_DIMENSIONS = "application/json+imageSize";
 
     public static String getInitials(Participant p) {
@@ -126,7 +129,7 @@ public class Atlas {
                 if (MIME_TYPE_TEXT.equals(mp.getMimeType())) {
                     sb.append(new String(mp.getData()));
                 } else if (MIME_TYPE_ATLAS_LOCATION.equals(mp.getMimeType())){
-                    sb.append("Attachemnt: Location");
+                    sb.append("Attachment: Location");
                 } else {
                     sb.append("Attachment: Image");
                     break;
@@ -311,9 +314,10 @@ public class Atlas {
         private final Object lock = new Object();
         private final ArrayList<ImageSpec> queue = new ArrayList<ImageSpec>();
         
-        private LinkedHashMap<Object, Bitmap> cache = new LinkedHashMap<Object, Bitmap>(40, 1f, true) {
+        /** image_id -> Bitmap | Movie */
+        private LinkedHashMap<Object, Object> cache = new LinkedHashMap<Object, Object>(40, 1f, true) {
             private static final long serialVersionUID = 1L;
-            protected boolean removeEldestEntry(Entry<Object, Bitmap> eldest) {
+            protected boolean removeEldestEntry(Entry<Object, Object> eldest) {
                 // calculate available memory
                 long maxMemory = Runtime.getRuntime().maxMemory();
                 long usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
@@ -358,6 +362,17 @@ public class Atlas {
                                 }
                             } catch (InterruptedException e) {}
                         }
+                    }
+                    
+                    if (spec.gif) {
+                        InputStream is = spec.inputStreamProvider.getInputStream();
+                        Movie result = Movie.decodeStream(is);
+                        Tools.closeQuietly(is);
+                        synchronized (lock) {
+                            cache.put(spec.id, result);
+                        }
+                        if (spec.listener != null) spec.listener.onBitmapLoaded(spec);
+                        return;
                     }
    
                     // decoding bitmap
@@ -421,7 +436,7 @@ public class Atlas {
             }
         }
     
-        public Bitmap getBitmapFromCache(Object id) {
+        public Object getBitmapFromCache(Object id) {
             return cache.get(id);
         }
                 
@@ -431,11 +446,12 @@ public class Atlas {
         private int removeEldest() {
             synchronized (lock) {
                 if (cache.size() > 0) {
-                    Map.Entry<Object, Bitmap> entry = cache.entrySet().iterator().next();
-                    Bitmap bmp = entry.getValue();
+                    Map.Entry<Object, Object> entry = cache.entrySet().iterator().next();
+                    Object bmp = entry.getValue();
                     cache.remove(entry.getKey());
-                    if (debug) Log.w(TAG, "removeEldest() id: " + entry.getKey() + ", bytes: " + bmp.getByteCount());
-                    return bmp.getByteCount();
+                    int releasedBytes = (bmp instanceof Bitmap) ? ((Bitmap) bmp).getByteCount() : 0; /*((Movie)bmp).byteCount(); */
+                    if (debug) Log.w(TAG, "removeEldest() id: " + entry.getKey() + ", bytes: " + releasedBytes);
+                    return releasedBytes;
                 } else {
                     if (debug) Log.w(TAG, "removeEldest() nothing to remove...");
                     return -1;
@@ -443,7 +459,7 @@ public class Atlas {
             }
         }
                 
-        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, ImageLoader.BitmapLoadListener loadListener) {
+        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, boolean gif, ImageLoader.BitmapLoadListener loadListener) {
             ImageSpec spec = null;
             synchronized (lock) {
                 for (int i = 0; i < queue.size(); i++) {
@@ -474,6 +490,7 @@ public class Atlas {
             public int requiredHeight;
             public int originalWidth;
             public int originalHeight;
+            public boolean gif;
             public int downloadProgress;
             public int retries = 0;
             public ImageLoader.BitmapLoadListener listener;
