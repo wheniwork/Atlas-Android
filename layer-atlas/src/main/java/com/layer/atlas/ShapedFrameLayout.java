@@ -115,27 +115,15 @@ public class ShapedFrameLayout extends FrameLayout {
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int mWidthBefore  = getMeasuredWidth();
         int mHeightBefore = getMeasuredHeight();
+        if (debug) Log.w(TAG, "onMeasure() before: " + mWidthBefore + "x" + mHeightBefore
+                + ", spec: " + Tools.toStringSpec(widthMeasureSpec) + "|" + Tools.toStringSpec(heightMeasureSpec));
+        
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
         
         int mWidthAfter = getMeasuredWidth();
         int mHeightAfter = getMeasuredHeight();
         
-        int measuredWidth = getMeasuredWidth();
-        
-//        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredWidth == 0) {
-//            measuredWidth = (int) Tools.getPxFromDp(defaultWidthDp, getContext());
-//        }
-//        int measuredHeight = getMeasuredHeight();
-//        if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredHeight == 0) {
-//            measuredHeight = (int) Tools.getPxFromDp(defaultHeightDp, getContext());
-//        }
-//
-//        setMeasuredDimension(measuredWidth, measuredHeight);
-        if (debug) Log.w(TAG, "onMeasure() before: " + mWidthBefore + "x" + mHeightBefore
-                + ", spec: " + Tools.toStringSpec(widthMeasureSpec) + "x" + Tools.toStringSpec(heightMeasureSpec)
-                + ", after: " + mWidthAfter + "x" + mHeightAfter
-//                + ", final: " + getMeasuredWidth() + "x" + getMeasuredHeight()
-                );
+        if (debug) Log.w(TAG, "onMeasure() after: " + mWidthAfter + "x" + mHeightAfter);
     }
 
 

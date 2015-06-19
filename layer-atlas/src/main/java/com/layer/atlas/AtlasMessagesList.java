@@ -78,7 +78,7 @@ import com.layer.sdk.messaging.MessagePart;
  */
 public class AtlasMessagesList extends FrameLayout implements LayerChangeEventListener.MainThread {
     private static final String TAG = AtlasMessagesList.class.getSimpleName();
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     
     private static final boolean CLUSTERED_BUBBLES = false;
     
@@ -357,9 +357,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                             width = jo.getInt("height");
                             height = jo.getInt("width");
                         }
-                        Cell imageCell = new ImageCell(part, parts.get(partNo + 1), width, height);
+                        Cell imageCell = new ImageCell(part, parts.get(partNo + 1), width, height, orientation);
                         destination.add(imageCell);
-                        if (debug) Log.w(TAG, "cellForMessage() 3-image part found at partNo: " + partNo);
+                        if (debug) Log.w(TAG, "cellForMessage() 3-image part found at partNo: " + partNo + ", " + width + "x" + height + "@" + orientation);
                         partNo++; // skip preview
                         partNo++; // skip dimensions part
                     } catch (JSONException e) {
@@ -545,15 +545,16 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         for (LayerChange change : event.getChanges()) {
             if (change.getObjectType() == LayerObject.Type.MESSAGE) {
                 Message msg = (Message) change.getObject();
-                if (msg.getConversation().getId().equals(conv.getId())) {
+                if ( ! msg.getConversation().getId().equals(conv.getId())) continue;
+                
+                if (change.getChangeType() == Type.UPDATE && "recipientStatus".equals(change.getAttributeName())) {
+                    updateDeliveryStatus = true;
+                } 
+                
+                if (change.getChangeType() == Type.DELETE || change.getChangeType() == Type.INSERT) {
                     updateValues = true;
-                    if (change.getChangeType() == Type.DELETE || change.getChangeType() == Type.INSERT) {
-                        jumpToBottom = true;
-                    }
+                    jumpToBottom = true;
                 }
-            }
-            if (change.getChangeType() == Type.UPDATE && "recipientStatus".equals(change.getAttributeName())) {
-                updateDeliveryStatus = true;
             }
         }
         
@@ -927,8 +928,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         
         MessagePart previewPart;
         MessagePart fullPart;
-        int width;
-        int height;
+        int declaredWidth;
+        int declaredHeight;
+        int orientation;
         ImageLoader.ImageSpec imageSpec;
         
         /** if more than 0 - download is in progress */
@@ -938,12 +940,13 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             super(fullImagePart);
             this.fullPart = fullImagePart;
         }
-        private ImageCell(MessagePart fullImagePart, MessagePart previewImagePart, int width, int height) {
+        private ImageCell(MessagePart fullImagePart, MessagePart previewImagePart, int width, int height, int orientation) {
             super(fullImagePart);
             this.fullPart = fullImagePart;
             this.previewPart = previewImagePart;
-            this.width = width;
-            this.height = height;
+            this.declaredWidth = width;
+            this.declaredHeight = height;
+            this.orientation = orientation;
         }
         @Override
         public View onBind(final ViewGroup cellContainer) {
@@ -970,52 +973,77 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 imageContainerTheir.setVisibility(View.VISIBLE);
             }
 
-            // get BitmapDrawable
-            
-            int requiredWidth = /*imageContainer.getWidth() > 0 ? imageContainer.getWidth() :*/ messagesList.getWidth();
-            int requiredHeight = /*imageContainer.getHeight() > 0 ? imageContainer.getHeight() : */messagesList.getHeight();
-            
             MessagePart workingPart = previewPart != null ? previewPart : fullPart;
             Bitmap bmp = imageLoader.getBitmapFromCache(workingPart.getId());
             
-            //adjust width/height
-            int width = this.width;
-            int height = this.height;
-            if ((width == 0 || height == 0) && imageSpec != null && imageSpec.originalWidth != 0) {
-                if (debug) Log.w(TAG, "img.onBind() size from spec:   " + imageSpec.originalWidth + "x" + imageSpec.originalHeight);
-                width = imageSpec.originalWidth;
-                height = imageSpec.originalHeight;
+            // understanging image's dimensions
+            int imgWidth  = this.declaredWidth;
+            int imgHeight = this.declaredHeight;
+            if (debug) Log.w(TAG, "img.onBind() declared image: " + declaredWidth + "x" + declaredHeight);
+            if ((imgWidth == 0 || imgHeight == 0) && imageSpec != null && imageSpec.originalWidth != 0) {
+                if (debug) Log.w(TAG, "img.onBind() using imgSize from spec:   " + imageSpec.originalWidth + "x" + imageSpec.originalHeight);
+                imgWidth  = imageSpec.originalWidth;
+                imgHeight = imageSpec.originalHeight;
             }
-            if ((width == 0 || height == 0) && bmp != null) {
-                width = bmp.getWidth();
-                height = bmp.getHeight();
-                if (debug) Log.w(TAG, "img.onBind() size from bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
+            if ((imgWidth == 0 || imgHeight == 0) && bmp != null) {
+                if (debug) Log.w(TAG, "img.onBind() using imgSize from bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
+                imgWidth  = bmp.getWidth();
+                imgHeight = bmp.getHeight();
             }
-                
-            int viewWidth  = (int) (width  != 0 ? width  : Tools.getPxFromDp(48 * 4, imageContainer.getContext()));
-            int viewHeight = (int) (height != 0 ? height : Tools.getPxFromDp(48 * 4, imageContainer.getContext()));
-            int widthToFit = 0; imageContainer.getWidth();
-            if (widthToFit == 0) widthToFit = cellContainer.getWidth();
-            if (widthToFit == 0) widthToFit = messagesList.getWidth();
+
+            // calculate appropriate View size
+            // if image dimensions are unknown, use default size 192dp
+            int viewWidth  = (int) (imgWidth  != 0 ? imgWidth  : Tools.getPxFromDp(192, imageContainer.getContext()));
+            int viewHeight = (int) (imgHeight != 0 ? imgHeight : Tools.getPxFromDp(192, imageContainer.getContext()));
+            if (orientation == AtlasImageView.ORIENTATION_90_CW || orientation == AtlasImageView.ORIENTATION_90_CCW) {
+                 int oldWidth = viewWidth;
+                 viewWidth = viewHeight;
+                 viewHeight = oldWidth;
+            }
+            
+            if (debug) Log.w(TAG, "img.onBind() image: " + imgWidth + "x" + imgHeight + " into view: " + viewWidth + "x" + viewHeight + ", orientation: " + orientation
+                    + ", container: " + (myMessage ? "my " : "their ") + imageContainer.getWidth() + "x" + imageContainer.getHeight() 
+                    + ", cell: " + cellContainer.getWidth() + "x" + cellContainer.getHeight());
+            
+            int widthToFit;
+            if (cellContainer.getWidth() != 0) {
+                if (debug) Log.w(TAG, "img.onBind() widthToFit from cellContainer: " + cellContainer.getWidth());
+                widthToFit = cellContainer.getWidth();
+            } else {
+                if (debug) Log.w(TAG, "img.onBind() widthToFit from  messagesList:  " + messagesList.getWidth());
+                widthToFit = messagesList.getWidth();
+            }
+            
             if (viewWidth > widthToFit) {
+                int oldWidth  = viewWidth;
+                int oldHeight = viewHeight;
                 viewHeight = (int) (1.0 * viewHeight * widthToFit / viewWidth);
                 viewWidth = widthToFit;
+                if (debug) Log.w(TAG, "img.onBind() viewWidth > widthToFit: " + oldWidth + " > " + widthToFit + " -> view: " + viewWidth + "x" + viewHeight);
             }
+            
             if (viewHeight > messagesList.getHeight() && messagesList.getHeight() > 0) {
+                int oldWidth  = viewWidth;
+                int oldHeight = viewHeight;
                 viewWidth = (int)(1.0 * viewWidth * messagesList.getHeight() / viewHeight);
                 viewHeight = messagesList.getHeight();
+                if (debug) Log.w(TAG, "img.onBind() viewHeight > messagesList.height: " + oldHeight + " > " + messagesList.getHeight() + " -> view: " + viewWidth + "x" + viewHeight);
             }
-            if (debug) Log.w(TAG, "img.onBind() view size: " + viewWidth + "x" + viewHeight 
-                    + ", container: " + (myMessage ? "my " : "their ") + imageContainer.getWidth() + "x" + imageContainer.getHeight() 
-                    + ", cell: " + cellContainer.getWidth() + "x" + cellContainer.getHeight() 
-                    + ", image: " + width + "x" + height);
             
-            imageView.getLayoutParams().width = viewWidth;
-            imageView.getLayoutParams().height = viewHeight;
+            if (debug) Log.w(TAG, "img.onBind() image: " + imgWidth + "x" + imgHeight + " set"
+                    + "  view: " + viewWidth + "x" + viewHeight + ", h/w: " + (1.0f * viewHeight / viewWidth) 
+                    );
+            
+            imageView.setContentDimensions(viewWidth, viewHeight);
+            imageView.orientation = orientation;
+
+            int requiredWidth  = messagesList.getWidth();
+            int requiredHeight = messagesList.getHeight();
 
             if (bmp != null) {
                 imageView.setImageBitmap(bmp);
-                if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() + " " + bmp.getByteCount() + " bytes" + " req: " + requiredWidth + "x" + requiredHeight + " for " + messagePart.getId());
+                if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() 
+                        + " " + bmp.getByteCount() + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
             } else {
                 imageView.setImageDrawable(EMPTY_DRAWABLE);
                 final Uri id = workingPart.getId();

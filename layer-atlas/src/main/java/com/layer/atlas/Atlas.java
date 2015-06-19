@@ -204,10 +204,14 @@ public class Atlas {
 
         public static String toStringSpec(int measureSpec) {
             switch (MeasureSpec.getMode(measureSpec)) {
-                case MeasureSpec.AT_MOST : return "" + MeasureSpec.getSize(measureSpec) + "'A";  
-                case MeasureSpec.EXACTLY : return "" + MeasureSpec.getSize(measureSpec) + "'E";
-                default                  : return "" + MeasureSpec.getSize(measureSpec) + "'U";
+                case MeasureSpec.AT_MOST : return "" + MeasureSpec.getSize(measureSpec) + ".A";  
+                case MeasureSpec.EXACTLY : return "" + MeasureSpec.getSize(measureSpec) + ".E";
+                default                  : return "" + MeasureSpec.getSize(measureSpec) + ".U";
             }
+        }
+        
+        public static String toStringSpec(int widthSpec, int heightSpec) {
+            return toStringSpec(widthSpec) + "|" + toStringSpec(heightSpec);
         }
     }
 
