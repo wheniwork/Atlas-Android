@@ -42,7 +42,6 @@ public class AtlasImageView extends View {
     public static final int ORIENTATION_90_CCW = 3;
     
     public Drawable drawable;
-    public Movie    movie;
     
     private int contentWidth;
     private int contentHeight;

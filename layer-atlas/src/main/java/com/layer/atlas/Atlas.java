@@ -18,19 +18,29 @@ package com.layer.atlas;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.Movie;
+import android.graphics.drawable.BitmapDrawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -47,6 +57,9 @@ import com.layer.sdk.messaging.MessagePart;
  * @since 12 May 2015
  */
 public class Atlas {
+    
+    private static final String TAG = Atlas.class.getSimpleName();
+    private static final boolean debug = true;
 
     public static final String METADATA_KEY_CONVERSATION_TITLE = "conversationName";
     
@@ -59,6 +72,10 @@ public class Atlas {
     public static final String MIME_TYPE_IMAGE_GIF = "image/gif";
     public static final String MIME_TYPE_IMAGE_GIF_PREVIEW = "image/gif+preview";
     public static final String MIME_TYPE_IMAGE_DIMENSIONS = "application/json+imageSize";
+
+    public static final ImageLoader imageLoader = new ImageLoader();
+
+    public static final Atlas.DownloadQueue downloadQueue = new DownloadQueue();
 
     public static String getInitials(Participant p) {
         StringBuilder sb = new StringBuilder();
@@ -122,6 +139,7 @@ public class Atlas {
         public static final SimpleDateFormat sdfDayOfWeek = new SimpleDateFormat("EEE, LLL dd,");
         /** Ensure you decrease value returned by Calendar.get(Calendar.DAY_OF_WEEK) by 1. Calendar's days starts from 1. */
         public static final String[] TIME_WEEKDAYS_NAMES = new String[] {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
+        public static final BitmapDrawable EMPTY_DRAWABLE = new BitmapDrawable(Bitmap.createBitmap(new int[] { Color.TRANSPARENT }, 1, 1, Bitmap.Config.ALPHA_8));
         
         public static String toString(Message msg) {
             StringBuilder sb = new StringBuilder();
@@ -215,6 +233,52 @@ public class Atlas {
         
         public static String toStringSpec(int widthSpec, int heightSpec) {
             return toStringSpec(widthSpec) + "|" + toStringSpec(heightSpec);
+        }
+
+        public static boolean downloadHttpToFile(String url, File file) {
+            HttpGet get = new HttpGet(url);
+            HttpResponse response;
+            try {
+                response = (new DefaultHttpClient()).execute(get);
+                if (HttpStatus.SC_OK != response.getStatusLine().getStatusCode()) {
+                    Log.e(TAG, String.format("Expected status 200, but got %d", response.getStatusLine().getStatusCode()));
+                    return false;
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "downloadToFile() cannot execute http request: " + url, e);
+                return false;
+            }
+        
+            File dir = file.getParentFile();
+            if (!dir.exists() && !dir.mkdirs()) {
+                Log.e(TAG, String.format("Could not create directories for `%s`", dir.getAbsolutePath()));
+                return false;
+            }
+            
+            File tempFile = new File(file.getAbsolutePath() + ".tmp");
+            
+            try {
+                streamCopyAndClose(response.getEntity().getContent(), new FileOutputStream(tempFile, false));
+                response.getEntity().consumeContent();
+            } catch (IOException e) {
+                if (debug) Log.e(TAG, "downloadToFile() cannot extract content from http response: " + url, e);
+            }
+        
+            if (tempFile.length() != response.getEntity().getContentLength()) {
+                tempFile.delete();
+                Log.e(TAG, String.format("downloadToFile() File size mismatch for `%s` (%d vs %d)", tempFile.getAbsolutePath(), tempFile.length(), response.getEntity().getContentLength()));
+                return false;
+            }
+            
+            // last step
+            if (tempFile.renameTo(file)) {
+                if (debug) Log.w(TAG, "downloadToFile() Successfully downloaded file: " + file.getAbsolutePath());
+                return true;
+            } else {
+                Log.e(TAG, "downloadToFile() Could not rename temp file: " + tempFile.getAbsolutePath() + " to: " + file.getAbsolutePath());
+                return false;
+            }
+            
         }
     }
 
@@ -496,8 +560,8 @@ public class Atlas {
             public ImageLoader.BitmapLoadListener listener;
         }
 
-        public static abstract class BitmapLoadListener {
-            public abstract void onBitmapLoaded(ImageSpec spec);
+        public interface BitmapLoadListener {
+            public void onBitmapLoaded(ImageSpec spec);
         }
         
         public static abstract class StreamProvider {
@@ -538,6 +602,83 @@ public class Atlas {
                 if (debug) Log.w(TAG, "ready() FileStreamProvider, file ready: " + file.getAbsolutePath());
                 return true;
             }
+        }
+    }
+
+    public static class DownloadQueue {
+        private static final String TAG = DownloadQueue.class.getSimpleName();
+        
+        final ArrayList<Entry> queue = new ArrayList<Atlas.DownloadQueue.Entry>();
+        final HashMap<String, Entry> url2Entry = new HashMap<String, Entry>();
+        private volatile Entry inProgress = null;
+        
+        public DownloadQueue() {
+            workingThread.setDaemon(true);
+            workingThread.setName("Atlas-HttpDownloadQueue"); 
+            workingThread.start();
+        }
+        
+        public void schedule(String url, File to, CompleteListener onComplete) {
+            if (inProgress != null && inProgress.url.equals(url)){
+                return;
+            }
+            synchronized (queue) {
+                Entry existing = url2Entry.get(url);
+                if (existing != null) {
+                    queue.remove(existing);
+                    queue.add(existing);
+                } else {
+                    Entry toSchedule = new Entry(url, to, onComplete);
+                    queue.add(toSchedule);
+                    url2Entry.put(toSchedule.url, toSchedule);
+                }
+                queue.notifyAll();
+            }
+        }
+        
+        private Thread workingThread = new Thread(new Runnable() {
+            public void run() {
+                while (true) {
+                    Entry next = null;
+                    synchronized (queue) {
+                        while (queue.size() == 0) {
+                            try {
+                                queue.wait();
+                            } catch (InterruptedException ignored) {}
+                        }
+                        next = queue.remove(queue.size() - 1); // get last
+                        url2Entry.remove(next.url);
+                        inProgress = next;
+                    }
+                    try {
+                        if (Tools.downloadHttpToFile(next.url, next.file)) {
+                            if (next.completeListener != null) {
+                                next.completeListener.onDownloadComplete(next.url, next.file);
+                            }
+                        };
+                    } catch (Throwable e) {
+                        Log.e(TAG, "onComplete() thrown an exception for: " + next.url, e);
+                    }
+                    inProgress = null;
+                }
+            }
+        });
+        
+        private static class Entry {
+            String url;
+            File file;
+            CompleteListener completeListener;
+            public Entry(String url, File file, CompleteListener listener) {
+                if (url == null) throw new IllegalArgumentException("url cannot be null");
+                if (file == null) throw new IllegalArgumentException("file cannot be null");
+                this.url = url;
+                this.file = file;
+                this.completeListener = listener;
+            }
+        }
+        
+        public interface CompleteListener {
+            public void onDownloadComplete(String url, File file);
         }
     }
     
