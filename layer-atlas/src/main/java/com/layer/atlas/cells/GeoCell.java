@@ -44,7 +44,7 @@ import com.layer.sdk.messaging.MessagePart;
  */
 public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListener, ImageLoader.BitmapLoadListener {
     private static final String TAG = GeoCell.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     double lon;
     double lat;
@@ -106,7 +106,7 @@ public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListene
                 if (debug) Log.d(TAG, "geo.onBind() decodeImage: " + tileFile);
                 // request decoding
                 spec = Atlas.imageLoader.requestBitmap(imageId
-                        , new ImageLoader.FileStreamProvider(tileFile)
+                        , new Atlas.FileStreamProvider(tileFile)
                         , (int)Tools.getPxFromDp(150, cellContainer.getContext())
                         , (int)Tools.getPxFromDp(150, cellContainer.getContext()), false, this);
             } else {

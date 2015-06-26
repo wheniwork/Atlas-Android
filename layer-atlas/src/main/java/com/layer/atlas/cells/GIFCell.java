@@ -15,9 +15,8 @@
  */
 package com.layer.atlas.cells;
 
-import android.graphics.Bitmap;
+import android.graphics.Movie;
 import android.net.Uri;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,24 +24,27 @@ import android.view.ViewGroup;
 import com.layer.atlas.Atlas;
 import com.layer.atlas.Atlas.ImageLoader;
 import com.layer.atlas.Atlas.ImageLoader.ImageSpec;
-import com.layer.atlas.Atlas.MessagePartStreamProvider;
+import com.layer.atlas.Atlas.ImageLoader.StreamProvider;
+import com.layer.atlas.Atlas.MessagePartBufferedStreamProvider;
 import com.layer.atlas.Atlas.Tools;
 import com.layer.atlas.AtlasImageView;
 import com.layer.atlas.AtlasMessagesList;
 import com.layer.atlas.AtlasMessagesList.Cell;
 import com.layer.atlas.AtlasProgressView;
+import com.layer.atlas.GIFDrawable;
 import com.layer.atlas.R;
 import com.layer.atlas.ShapedFrameLayout;
+import com.layer.sdk.internal.utils.Log;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.MessagePart;
 
 /**
- * 
  * @author Oleg Orlov
- * @since  13 May 2015
+ * @since  21 Jun 2015
  */
-public class ImageCell extends Cell implements LayerProgressListener, ImageLoader.BitmapLoadListener {
-    private static final String TAG = ImageCell.class.getSimpleName();
+public class GIFCell extends Cell implements ImageLoader.BitmapLoadListener, LayerProgressListener {
+
+    private static final String TAG = GIFCell.class.getSimpleName();
     private static final boolean debug = false;
     
     MessagePart previewPart;
@@ -56,13 +58,15 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
     volatile long downloadProgressBytes = -1;
     
     final AtlasMessagesList messagesList;
+    final static long createdAt = System.currentTimeMillis();
     
-    public ImageCell(MessagePart fullImagePart, AtlasMessagesList messagesList) {
+    public GIFCell(MessagePart fullImagePart, AtlasMessagesList messagesList) {
         super(fullImagePart);
         this.fullPart = fullImagePart;
         this.messagesList = messagesList;
+        if (debug) Log.w(TAG, "GIFCell() created from full part: " + fullImagePart.getId());
     }
-    public ImageCell(MessagePart fullImagePart, MessagePart previewImagePart, int width, int height, int orientation, AtlasMessagesList messagesList) {
+    public GIFCell(MessagePart fullImagePart, MessagePart previewImagePart, int width, int height, int orientation, AtlasMessagesList messagesList) {
         super(fullImagePart);
         this.fullPart = fullImagePart;
         this.previewPart = previewImagePart;
@@ -70,6 +74,7 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         this.declaredHeight = height;
         this.orientation = orientation;
         this.messagesList = messagesList;
+        if (debug) Log.w(TAG, "GIFCell() created from 3-part: " + width + "x" + height + "@" + orientation + ", id: " + fullImagePart.getId() + ", preview: " + previewImagePart.getId() );
     }
     @Override
     public View onBind(final ViewGroup cellContainer) {
@@ -95,29 +100,28 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
             imageContainerTheir.setVisibility(View.VISIBLE);
         }
 
-        MessagePart workingPart = previewPart != null ? previewPart : fullPart;
-        Bitmap bmp = (Bitmap) Atlas.imageLoader.getBitmapFromCache(workingPart.getId());
+        MessagePart workingPart = fullPart;
+        if (debug) Log.w(TAG, "onBind() GIF part: " + workingPart.getMimeType() + ", id: " + workingPart.getId());
+        
+        Movie img  = (Movie) Atlas.imageLoader.getBitmapFromCache(workingPart.getId());
              
         // understanging image's dimensions
         int imgWidth  = this.declaredWidth;
         int imgHeight = this.declaredHeight;
-        if (debug) Log.w(TAG, "img.onBind() declared image: " + declaredWidth + "x" + declaredHeight);
-        
-        // no declared dimensions? go to imageSpec!
+        if (debug) Log.w(TAG, "gif.onBind() declared image: " + declaredWidth + "x" + declaredHeight);
         if ((imgWidth == 0 || imgHeight == 0) && imageSpec != null && imageSpec.originalWidth != 0) {
-            if (debug) Log.w(TAG, "img.onBind() using imgSize from spec:   " + imageSpec.originalWidth + "x" + imageSpec.originalHeight);
+            if (debug) Log.w(TAG, "gif.onBind() using imgSize from spec:   " + imageSpec.originalWidth + "x" + imageSpec.originalHeight);
             imgWidth  = imageSpec.originalWidth;
             imgHeight = imageSpec.originalHeight;
         }
-        
-        // still no size known? fallback to bitmap's size
-        if ((imgWidth == 0 || imgHeight == 0) && bmp != null) {
-            if (debug) Log.w(TAG, "img.onBind() using imgSize from bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
-            imgWidth  = bmp.getWidth();
-            imgHeight = bmp.getHeight();
+        if ((imgWidth == 0 || imgHeight == 0) && img != null) {
+            if (debug) Log.w(TAG, "gif.onBind() using imgSize from bitmap: " + img.width()+ "x" + img.height());
+            imgWidth  = img.width();
+            imgHeight = img.height();
         }
 
-        // calculate appropriate View size. If image dimensions are unknown, use default size 192dp
+        // calculate appropriate View size
+        // if image dimensions are unknown, use default size 192dp
         int viewWidth  = (int) (imgWidth  != 0 ? imgWidth  : Tools.getPxFromDp(192, imageContainer.getContext()));
         int viewHeight = (int) (imgHeight != 0 ? imgHeight : Tools.getPxFromDp(192, imageContainer.getContext()));
         if (orientation == AtlasImageView.ORIENTATION_90_CW || orientation == AtlasImageView.ORIENTATION_90_CCW) {
@@ -126,16 +130,16 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
              viewHeight = oldWidth;
         }
         
-        if (debug) Log.w(TAG, "img.onBind() image: " + imgWidth + "x" + imgHeight + " into view: " + viewWidth + "x" + viewHeight + ", orientation: " + orientation
+        if (debug) Log.w(TAG, "gif.onBind() image: " + imgWidth + "x" + imgHeight + " into view: " + viewWidth + "x" + viewHeight + ", orientation: " + orientation
                 + ", container: " + (myMessage ? "my " : "their ") + imageContainer.getWidth() + "x" + imageContainer.getHeight() 
                 + ", cell: " + cellContainer.getWidth() + "x" + cellContainer.getHeight());
         
         int widthToFit;
         if (cellContainer.getWidth() != 0) {
-            if (debug) Log.w(TAG, "img.onBind() widthToFit from cellContainer: " + cellContainer.getWidth());
+            if (debug) Log.w(TAG, "gif.onBind() widthToFit from cellContainer: " + cellContainer.getWidth());
             widthToFit = cellContainer.getWidth();
         } else {
-            if (debug) Log.w(TAG, "img.onBind() widthToFit from  messagesList:  " + messagesList.getWidth());
+            if (debug) Log.w(TAG, "gif.onBind() widthToFit from  messagesList:  " + messagesList.getWidth());
             widthToFit = messagesList.getWidth();
         }
         
@@ -143,17 +147,17 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
             int oldWidth  = viewWidth;
             viewHeight = (int) (1.0 * viewHeight * widthToFit / viewWidth);
             viewWidth = widthToFit;
-            if (debug) Log.w(TAG, "img.onBind() viewWidth > widthToFit: " + oldWidth + " > " + widthToFit + " -> view: " + viewWidth + "x" + viewHeight);
+            if (debug) Log.w(TAG, "gif.onBind() viewWidth > widthToFit: " + oldWidth + " > " + widthToFit + " -> view: " + viewWidth + "x" + viewHeight);
         }
         
         if (viewHeight > messagesList.getHeight() && messagesList.getHeight() > 0) {
             int oldHeight = viewHeight;
             viewWidth = (int)(1.0 * viewWidth * messagesList.getHeight() / viewHeight);
             viewHeight = messagesList.getHeight();
-            if (debug) Log.w(TAG, "img.onBind() viewHeight > messagesList.height: " + oldHeight + " > " + messagesList.getHeight() + " -> view: " + viewWidth + "x" + viewHeight);
+            if (debug) Log.w(TAG, "gif.onBind() viewHeight > messagesList.height: " + oldHeight + " > " + messagesList.getHeight() + " -> view: " + viewWidth + "x" + viewHeight);
         }
         
-        if (debug) Log.w(TAG, "img.onBind() image: " + imgWidth + "x" + imgHeight + " set"
+        if (debug) Log.w(TAG, "gif.onBind() image: " + imgWidth + "x" + imgHeight + " set"
                 + "  view: " + viewWidth + "x" + viewHeight + ", h/w: " + (1.0f * viewHeight / viewWidth) 
                 );
         
@@ -164,16 +168,17 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         int requiredWidth  = messagesList.getWidth();
         int requiredHeight = messagesList.getHeight();
 
-        if (bmp != null) {
-            imageView.setBitmap(bmp);
-            if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() 
-                    + " " + bmp.getByteCount() + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
+        if (img != null){
+            GIFDrawable gifDrawable = new GIFDrawable(img, createdAt);
+            imageView.setDrawable(gifDrawable);
+            if (debug) Log.i(TAG, "gif.onBind() returned from cache! GIF: " + img.width() + "x" + img.height() + "@" + img.duration() 
+                    + ", req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
         } else {
             imageView.setDrawable(Tools.EMPTY_DRAWABLE);
             final Uri id = workingPart.getId();
-            final MessagePartStreamProvider streamProvider = new MessagePartStreamProvider(workingPart);
+            StreamProvider streamProvider = new MessagePartBufferedStreamProvider(workingPart);
             if (workingPart.isContentReady()) {
-                imageSpec = Atlas.imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, false, this);
+                imageSpec = Atlas.imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, true, this);
             } else if (downloadProgressBytes == -1){
                 workingPart.download(this);
             }
@@ -184,11 +189,11 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         AtlasProgressView progressView = myMessage ? progressMy : progressTheir;
         if (downloadProgressBytes > 0) {
             float progress = 1.0f * downloadProgressBytes / workingPart.getSize();
-            if (debug) Log.w(TAG, "img.onBind() showing progress: " + progress);
+            if (debug) Log.w(TAG, "gif.onBind() showing progress: " + progress);
             progressView.setVisibility(View.VISIBLE);
             progressView.setProgress(progress);
         } else {
-            if (debug) Log.w(TAG, "img.onBind() no progressView. bytes: " + downloadProgressBytes);
+            if (debug) Log.w(TAG, "gif.onBind() no progressView. bytes: " + downloadProgressBytes);
             progressView.setVisibility(View.GONE);
         }
         

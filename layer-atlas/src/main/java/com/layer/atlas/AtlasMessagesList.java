@@ -43,6 +43,7 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas.Tools;
+import com.layer.atlas.cells.GIFCell;
 import com.layer.atlas.cells.GeoCell;
 import com.layer.atlas.cells.ImageCell;
 import com.layer.sdk.LayerClient;
@@ -344,7 +345,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                             width = jo.getInt("height");
                             height = jo.getInt("width");
                         }
-                        Cell imageCell = new ImageCell(part, parts.get(partNo + 1), width, height, orientation, this);
+                        Cell imageCell = mimeType.equals(Atlas.MIME_TYPE_IMAGE_GIF)  
+                                ? new GIFCell(part, parts.get(partNo + 1), width, height, orientation, this)
+                                : new ImageCell(part, parts.get(partNo + 1), width, height, orientation, this);
                         destination.add(imageCell);
                         if (debug) Log.w(TAG, "cellForMessage() 3-image part found at partNo: " + partNo + ", " + width + "x" + height + "@" + orientation);
                         partNo++; // skip preview
@@ -354,7 +357,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     }
                 } else {
                     // regular image
-                    destination.add(new ImageCell(part, this));
+                    Cell cell = mimeType.equals(Atlas.MIME_TYPE_IMAGE_GIF) 
+                            ? new GIFCell(part, this)
+                            : new ImageCell(part, this);
+                    destination.add(cell);
                     if (debug) Log.w(TAG, "cellForMessage() single-image part found at partNo: " + partNo);
                 }
             

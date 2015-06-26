@@ -45,8 +45,6 @@ public class AtlasProgressView extends View {
     private Paint ringPaint;
     private Paint piePaint;
     private RectF pieBounds = new RectF();
-    private float defaultWidthDp = pieRadiusDp * 2 + spacingWidthDp * 2;
-    private float defaultHeightDp = defaultWidthDp;
     
     //----------------------------------------------------------------------------
     public AtlasProgressView(Context context, AttributeSet attrs, int defStyle) {
@@ -64,29 +62,7 @@ public class AtlasProgressView extends View {
         setupPaints();
     }
     
-    /*
-     * Android's [match_parent;match_parent] behaves weird - it will finally pass you [parent_width;0]
-     * Non-zero results comes from minWidth/minHeight and background's padding, but not from parent. 
-     * So if spec is UNSPECIFIED, we should never tell Android that [0;0] is OK for us
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; parent_height]
-     *      view2 [match_parent; match_parent]  ->  [parent_width; parent_height]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent] + min[30dp; 30dp]  ->  [parent_width; 30dp]
-     * 
-     * FrameLayout 
-     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
-     *      view2 [30dp; 30dp]                  ->  [30dp; 30dp]
-     * 
-     * FrameLayout 
-     *      view1 [30dp; 30dp]                  ->  [30dp; 30dp]
-     *      view2 [match_parent; match_parent]  ->  [parent_width; 0]
-     */
+    @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int mWidthBefore  = getMeasuredWidth();
         int mHeightBefore = getMeasuredHeight();
@@ -95,17 +71,17 @@ public class AtlasProgressView extends View {
         int mWidthAfter = getMeasuredWidth();
         int mHeightAfter = getMeasuredHeight();
         
-        int measuredWidth = getMeasuredWidth();
-        
-        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredWidth == 0) {
-            measuredWidth = (int) Tools.getPxFromDp(defaultWidthDp, getContext());
-        }
-        int measuredHeight = getMeasuredHeight();
-        if (MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.UNSPECIFIED && measuredHeight == 0) {
-            measuredHeight = (int) Tools.getPxFromDp(defaultHeightDp, getContext());
-        }
+        int w = MeasureSpec.getSize(widthMeasureSpec);
+        int h = MeasureSpec.getSize(heightMeasureSpec);
+        int defaultWidth =  (int) Tools.getPxFromDp(getDefaultWidthDp(), getContext());
+        int defaultHeight = (int) Tools.getPxFromDp(getDefaultHeightDp(), getContext());
 
-        setMeasuredDimension(measuredWidth, measuredHeight);
+        if (MeasureSpec.getMode(widthMeasureSpec) == MeasureSpec.EXACTLY && MeasureSpec.getMode(heightMeasureSpec) == MeasureSpec.EXACTLY) {
+            setMeasuredDimension(w, h);
+        } else {
+            setMeasuredDimension(defaultWidth, defaultHeight);
+        }
+        
         if (debug) Log.w(TAG, "onMeasure() before: " + mWidthBefore + "x" + mHeightBefore
                 + ", spec: " + Tools.toStringSpec(widthMeasureSpec) + "x" + Tools.toStringSpec(heightMeasureSpec)
                 + ", after: " + mWidthAfter + "x" + mHeightAfter
@@ -121,6 +97,14 @@ public class AtlasProgressView extends View {
         super.onSizeChanged(w, h, oldw, oldh);
         if (debug) Log.w(TAG, "onSizeChanged() w: " + w + " h: " + h+ " oldw: " + oldw+ " oldh: " + oldh);
     }
+
+    private float getDefaultWidthDp() {
+        return pieRadiusDp * 2 + spacingWidthDp * 2;
+    };
+
+    private float getDefaultHeightDp() {
+        return pieRadiusDp * 2 + spacingWidthDp * 2;
+    };
 
     private void setupPaints() {
         ringPaint = new Paint();

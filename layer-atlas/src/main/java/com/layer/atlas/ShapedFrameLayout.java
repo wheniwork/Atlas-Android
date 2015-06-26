@@ -15,13 +15,17 @@
  */
 package com.layer.atlas;
 
+import java.util.ArrayList;
+
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Path;
 import android.graphics.Path.Direction;
 import android.graphics.RectF;
+import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.View;
 import android.widget.FrameLayout;
 
 import com.layer.atlas.Atlas.Tools;
@@ -29,7 +33,7 @@ import com.layer.atlas.Atlas.Tools;
 
 /**
  * @author Oleg Orlov
- * @since 8 May 2015
+ * @since  8 May 2015
  */
 public class ShapedFrameLayout extends FrameLayout {
 
@@ -111,20 +115,160 @@ public class ShapedFrameLayout extends FrameLayout {
         refreshShape = true;
     }
     
-    
+    /**
+     * Android's [match_parent;match_parent] behaves weird - it will finally pass you [parent_width;0]
+     * Non-zero results comes from minWidth/minHeight and background's padding, but not from parent. 
+     * So if spec is UNSPECIFIED, we should never tell Android that [0;0] is OK for us
+     * <pre>
+     * FrameLayout 
+     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
+     * 
+     * FrameLayout 
+     *      view1 [match_parent; match_parent]  ->  [parent_width; parent_height]
+     *      view2 [match_parent; match_parent]  ->  [parent_width; parent_height]
+     * 
+     * FrameLayout 
+     *      view1 [match_parent; match_parent] + min[30dp; 30dp]  ->  [parent_width; 30dp]
+     * 
+     * FrameLayout 
+     *      view1 [match_parent; match_parent]  ->  [parent_width; 0]
+     *      view2 [30dp; 30dp]                  ->  [30dp; 30dp]
+     * 
+     * FrameLayout 
+     *      view1 [30dp; 30dp]                  ->  [30dp; 30dp]
+     *      view2 [match_parent; match_parent]  ->  [parent_width; 0]
+     * </pre>
+     *
+     * <p>
+     * Caused by        <a href="https://code.google.com/p/android/issues/detail?id=77225">bug in FrameLayout</a><br>
+     * 
+     * Commit:          <a href="https://android.googlesource.com/platform/frameworks/base/+/a174d7a0d5475dbae2b48f7359abf1637a882896%5E%21/#F0">https://android.googlesource.com/platform/frameworks/base/+/a174d7a0d5475dbae2b48f7359abf1637a882896%5E%21/#F0</a> <br>
+     * Duplicate issue: <a href="https://code.google.com/p/android/issues/detail?id=136131">https://code.google.com/p/android/issues/detail?id=136131</a> 
+     */
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         int mWidthBefore  = getMeasuredWidth();
         int mHeightBefore = getMeasuredHeight();
         if (debug) Log.w(TAG, "onMeasure() before: " + mWidthBefore + "x" + mHeightBefore
-                + ", spec: " + Tools.toStringSpec(widthMeasureSpec) + "|" + Tools.toStringSpec(heightMeasureSpec));
+                + ", spec: " + Tools.toStringSpec(widthMeasureSpec, heightMeasureSpec));
         
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        //super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        superMeasure(widthMeasureSpec, heightMeasureSpec);
         
         int mWidthAfter = getMeasuredWidth();
         int mHeightAfter = getMeasuredHeight();
+        int maxChildWidth = 0;
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            if (child.getMeasuredWidth() > maxChildWidth) {
+                if (debug) Log.w(TAG, "onMeasure() child: " + i + ", width: " + child.getMeasuredWidth() + " > maxWidth: " + maxChildWidth + ", visibility: " + child.getVisibility() + ", " + child);
+                maxChildWidth = child.getMeasuredWidth();
+            }
+        }
         
         if (debug) Log.w(TAG, "onMeasure() after: " + mWidthAfter + "x" + mHeightAfter);
     }
+    
+    private final ArrayList<View> mMatchParentChildren = new ArrayList<View>(1);
+    
+    private void superMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int count = getChildCount();
 
+        final boolean measureMatchParentChildren =
+                MeasureSpec.getMode(widthMeasureSpec) != MeasureSpec.EXACTLY ||
+                MeasureSpec.getMode(heightMeasureSpec) != MeasureSpec.EXACTLY;
+        mMatchParentChildren.clear();
+
+        int maxHeight = 0;
+        int maxWidth = 0;
+        int childState = 0;
+        
+        boolean mMeasureAllChildren = false;
+        
+        for (int i = 0; i < count; i++) {
+            final View child = getChildAt(i);
+            if (mMeasureAllChildren || child.getVisibility() != GONE) {
+                measureChildWithMargins(child, widthMeasureSpec, 0, heightMeasureSpec, 0);
+                final LayoutParams lp = (LayoutParams) child.getLayoutParams();
+                maxWidth  = Math.max(maxWidth,  child.getMeasuredWidth()  + lp.leftMargin + lp.rightMargin);
+                maxHeight = Math.max(maxHeight, child.getMeasuredHeight() + lp.topMargin  + lp.bottomMargin);
+                childState = combineMeasuredStates(childState, child.getMeasuredState());
+                if (measureMatchParentChildren) {
+                    if (lp.width == LayoutParams.MATCH_PARENT || lp.height == LayoutParams.MATCH_PARENT) {
+                        mMatchParentChildren.add(child);
+                    }
+                }
+            }
+        }
+
+        // Account for padding too
+        maxWidth += getPaddingLeftWithForeground() + getPaddingRightWithForeground();
+        maxHeight += getPaddingTopWithForeground() + getPaddingBottomWithForeground();
+
+        // Check against our minimum height and width
+        maxHeight = Math.max(maxHeight, getSuggestedMinimumHeight());
+        maxWidth = Math.max(maxWidth, getSuggestedMinimumWidth());
+
+        // Check against our foreground's minimum height and width
+        final Drawable drawable = getForeground();
+        if (drawable != null) {
+            maxHeight = Math.max(maxHeight, drawable.getMinimumHeight());
+            maxWidth = Math.max(maxWidth, drawable.getMinimumWidth());
+        }
+
+        setMeasuredDimension(
+                resolveSizeAndState(maxWidth, widthMeasureSpec, childState),
+                resolveSizeAndState(maxHeight, heightMeasureSpec, childState << MEASURED_HEIGHT_STATE_SHIFT));
+
+        count = mMatchParentChildren.size();
+        for (int i = 0; i < count; i++) {
+            final View child = mMatchParentChildren.get(i);
+
+            final MarginLayoutParams lp = (MarginLayoutParams) child.getLayoutParams();
+            int childWidthMeasureSpec;
+            int childHeightMeasureSpec;
+            
+            if (lp.width == LayoutParams.MATCH_PARENT) {
+                childWidthMeasureSpec = MeasureSpec.makeMeasureSpec(getMeasuredWidth() -
+                        getPaddingLeftWithForeground() - getPaddingRightWithForeground() -
+                        lp.leftMargin - lp.rightMargin,
+                        MeasureSpec.EXACTLY);
+            } else {
+                childWidthMeasureSpec = getChildMeasureSpec(widthMeasureSpec,
+                        getPaddingLeftWithForeground() + getPaddingRightWithForeground() +
+                        lp.leftMargin + lp.rightMargin,
+                        lp.width);
+            }
+            
+            if (lp.height == LayoutParams.MATCH_PARENT) {
+                childHeightMeasureSpec = MeasureSpec.makeMeasureSpec(getMeasuredHeight() -
+                        getPaddingTopWithForeground() - getPaddingBottomWithForeground() -
+                        lp.topMargin - lp.bottomMargin,
+                        MeasureSpec.EXACTLY);
+            } else {
+                childHeightMeasureSpec = getChildMeasureSpec(heightMeasureSpec,
+                        getPaddingTopWithForeground() + getPaddingBottomWithForeground() +
+                        lp.topMargin + lp.bottomMargin,
+                        lp.height);
+            }
+
+            child.measure(childWidthMeasureSpec, childHeightMeasureSpec);
+        }
+    }
+
+    private int getPaddingBottomWithForeground() {
+        return 0;
+    }
+
+    private int getPaddingTopWithForeground() {
+        return 0;
+    }
+
+    private int getPaddingRightWithForeground() {
+        return 0;
+    }
+
+    private int getPaddingLeftWithForeground() {
+        return 0;
+    }
 
 }

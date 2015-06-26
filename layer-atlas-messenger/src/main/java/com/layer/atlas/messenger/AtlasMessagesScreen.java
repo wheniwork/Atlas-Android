@@ -340,6 +340,7 @@ public class AtlasMessagesScreen extends Activity {
                 if (resultFileName != null) {
                     String mimeType = Atlas.MIME_TYPE_IMAGE_JPEG;
                     if (resultFileName.endsWith(".png")) mimeType = Atlas.MIME_TYPE_IMAGE_PNG;
+                    if (resultFileName.endsWith(".gif")) mimeType = Atlas.MIME_TYPE_IMAGE_GIF;
                     
                     // test file copy locally
                     try {
@@ -430,7 +431,7 @@ public class AtlasMessagesScreen extends Activity {
         Bitmap bmp = Bitmap.createScaledBitmap(decodedBmp, previewWidth, previewHeight, false);
         if (debug) Log.w(TAG, "buildPreviewAndSize() preview bitmap: " + bmp.getWidth() + "x" + bmp.getHeight() + ", " + bmp.getByteCount() + " bytes ");
         
-        String fileName = "cameraPreview" + System.currentTimeMillis() + ".jpg";
+        String fileName = "atlasPreview" + System.currentTimeMillis() + ".jpg";
         final File previewFile = new File(getCacheDir(), fileName); 
         FileOutputStream fos = new FileOutputStream(previewFile);
         bmp.compress(Bitmap.CompressFormat.JPEG, 50, fos);

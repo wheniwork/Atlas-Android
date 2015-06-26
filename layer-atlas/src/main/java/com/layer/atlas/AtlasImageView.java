@@ -17,9 +17,7 @@ package com.layer.atlas;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
-import android.graphics.Movie;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -93,10 +91,14 @@ public class AtlasImageView extends View {
             if (debug) Log.w(TAG, "onMeasure() first pass, skipping " + Tools.toStringSpec(widthSpec, heightSpec));
         } else if (heightMode == MeasureSpec.UNSPECIFIED) {
             if (widthMode == MeasureSpec.EXACTLY) {
-                setMeasuredDimension(w, (int)(w * (1.0 * contentHeight / contentWidth)));
+                setMeasuredDimension(w, (int)(1.0 * w * contentHeight / contentWidth));
             }
             if (widthMode == MeasureSpec.AT_MOST) {
-                setMeasuredDimension(w, (int)(w * (1.0 * contentHeight / contentWidth)));
+                if (contentWidth >= w) {
+                    setMeasuredDimension(w, (int)(1.0 * w * contentHeight / contentWidth));
+                } else {
+                    setMeasuredDimension(contentWidth, contentHeight);
+                }
             }
         } else {
             if (debug) Log.w(TAG, "onMeasure() unchanged. " + Tools.toStringSpec(widthSpec, heightSpec));
@@ -180,22 +182,24 @@ public class AtlasImageView extends View {
         drawable.draw(canvas);
         canvas.restoreToCount(saved);
     }
+    
+    @Override
+    protected boolean verifyDrawable(Drawable who) {
+        boolean result = super.verifyDrawable(who);
+        if (who == this.drawable) result = true;
+        return result;
+    }
 
-    public void setImageBitmap(Bitmap bmp) {
-        this.drawable = new BitmapDrawable(bmp);
-        invalidate();
+    public void setBitmap(Bitmap bmp) {
+        setDrawable(new BitmapDrawable(bmp));
     }
     
-    public void setGifMovie(Movie gif) {
-        Bitmap bmp = Bitmap.createBitmap(gif.width(), gif.height(), Config.ARGB_8888);
-        Canvas cnv = new Canvas(bmp);
-        gif.draw(cnv, 0, 0);
-        this.drawable = new BitmapDrawable(bmp);
-        invalidate();
-    }
-
-    public void setImageDrawable(Drawable drawable) {
+    public void setDrawable(Drawable drawable) {
+        if (this.drawable != null) {
+            this.drawable.setCallback(null);
+        }
         this.drawable = drawable;
+        this.drawable.setCallback(this);
         invalidate();
     }
     

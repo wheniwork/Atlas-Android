@@ -15,6 +15,7 @@
  */
 package com.layer.atlas;
 
+import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -36,18 +37,17 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.graphics.Bitmap.Config;
 import android.graphics.BitmapFactory;
 import android.graphics.Color;
 import android.graphics.Movie;
 import android.graphics.drawable.BitmapDrawable;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.util.TypedValue;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
 
+import com.layer.sdk.internal.utils.Log;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
@@ -59,7 +59,7 @@ import com.layer.sdk.messaging.MessagePart;
 public class Atlas {
     
     private static final String TAG = Atlas.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
 
     public static final String METADATA_KEY_CONVERSATION_TITLE = "conversationName";
     
@@ -280,6 +280,24 @@ public class Atlas {
             }
             
         }
+        
+        /** 
+         * @param dumpPathPrefix - final path is constructed as <code>dumpPathPrefix + path from partId</code> 
+         */
+        public static void dumpPart(MessagePart part, String dumpPathPrefix) {
+            try {
+                String path = dumpPathPrefix + escapePath(part.getId().toString());
+                if (debug) Log.w(TAG, "onProgressComplete() dumping part into " + path + ", " + part.getMimeType() + ", id: " + part.getId());
+                Tools.streamCopyAndClose(part.getDataStream(), new FileOutputStream(path));
+            } catch (Exception e) {
+                Log.e(TAG, "onProgressComplete() cannot dump part: " + part.getMimeType() + ", id: " + part.getId(), e);
+            }
+        }
+        
+        /** escape characters of part.id if they are invalid for filePath */
+        public static String escapePath(String partId) {
+            return partId.replaceAll("[:/\\+]", "_");
+        }
     }
 
     /**
@@ -428,65 +446,64 @@ public class Atlas {
                         }
                     }
                     
+                    Object result = null;
                     if (spec.gif) {
                         InputStream is = spec.inputStreamProvider.getInputStream();
-                        Movie result = Movie.decodeStream(is);
+                        Movie mov = Movie.decodeStream(is);
+                        if (debug) Log.w(TAG, "decodeImage() decoded GIF " + mov.width() + "x" + mov.height() + ":" + mov.duration() + "ms");
                         Tools.closeQuietly(is);
-                        synchronized (lock) {
-                            cache.put(spec.id, result);
-                        }
-                        if (spec.listener != null) spec.listener.onBitmapLoaded(spec);
-                        return;
-                    }
-   
-                    // decoding bitmap
-                    int requiredWidth = spec.requiredWidth;
-                    int requiredHeight = spec.requiredHeight;
-                    // load
-                    long started = System.currentTimeMillis();
-                    InputStream streamForBounds = spec.inputStreamProvider.getInputStream();
-                    if (streamForBounds == null) { 
-                        Log.e(TAG, "decodeImage() stream is null! Request cancelled. Spec: " + spec.id + ", provider: " + spec.inputStreamProvider.getClass().getSimpleName()); return; 
-                    }
-                    BitmapFactory.Options originalOpts = new BitmapFactory.Options();
-                    originalOpts.inJustDecodeBounds = true;
-                    BitmapFactory.decodeStream(streamForBounds, null, originalOpts);
-                    Tools.closeQuietly(streamForBounds);
-                    // update spec if width and height are unknown
-                    spec.originalWidth = originalOpts.outWidth;
-                    spec.originalHeight = originalOpts.outHeight;
-                    int sampleSize = 1;
-                    while (originalOpts.outWidth / (sampleSize * 2) > requiredWidth) {
-                        sampleSize *= 2;
-                    }
-                    BitmapFactory.Options decodeOpts = new BitmapFactory.Options();
-                    decodeOpts.inSampleSize = sampleSize;
-                    Bitmap bmp = null;
-                    InputStream streamForBitmap = spec.inputStreamProvider.getInputStream();
-                    try {
-                        bmp = BitmapFactory.decodeStream(streamForBitmap, null, decodeOpts);
-                    } catch (OutOfMemoryError e) {
-                        if (debug) Log.w(TAG, "decodeImage() out of memory. remove eldest");
-                        removeEldest();
-                        System.gc();
-                    }
-                    Tools.closeQuietly(streamForBitmap);
-                    if (bmp != null) {
-                        if (debug) Log.d(TAG, "decodeImage() decoded " + bmp.getWidth() + "x" + bmp.getHeight() 
-                                + " " + bmp.getByteCount() + " bytes" 
-                                + " req: " + requiredWidth + "x" + requiredHeight 
-                                                + " original: " + originalOpts.outWidth + "x" + originalOpts.outHeight 
-                                + " sampleSize: " + sampleSize
-                                + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                        result = mov;
                     } else {
-                        if (debug) Log.d(TAG, "decodeImage() not decoded " + " req: " + requiredWidth + "x" + requiredHeight 
-                                + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                        // decoding bitmap
+                        int requiredWidth = spec.requiredWidth;
+                        int requiredHeight = spec.requiredHeight;
+                        // load
+                        long started = System.currentTimeMillis();
+                        InputStream streamForBounds = spec.inputStreamProvider.getInputStream();
+                        if (streamForBounds == null) { 
+                            Log.e(TAG, "decodeImage() stream is null! Request cancelled. Spec: " + spec.id + ", provider: " + spec.inputStreamProvider.getClass().getSimpleName()); return; 
+                        }
+                        BitmapFactory.Options originalOpts = new BitmapFactory.Options();
+                        originalOpts.inJustDecodeBounds = true;
+                        BitmapFactory.decodeStream(streamForBounds, null, originalOpts);
+                        Tools.closeQuietly(streamForBounds);
+                        // update spec if width and height are unknown
+                        spec.originalWidth = originalOpts.outWidth;
+                        spec.originalHeight = originalOpts.outHeight;
+                        int sampleSize = 1;
+                        while (originalOpts.outWidth / (sampleSize * 2) > requiredWidth) {
+                            sampleSize *= 2;
+                        }
+                        BitmapFactory.Options decodeOpts = new BitmapFactory.Options();
+                        decodeOpts.inSampleSize = sampleSize;
+                        Bitmap bmp = null;
+                        InputStream streamForBitmap = spec.inputStreamProvider.getInputStream();
+                        try {
+                            bmp = BitmapFactory.decodeStream(streamForBitmap, null, decodeOpts);
+                        } catch (OutOfMemoryError e) {
+                            if (debug) Log.w(TAG, "decodeImage() out of memory. remove eldest");
+                            removeEldest();
+                            System.gc();
+                        }
+                        Tools.closeQuietly(streamForBitmap);
+                        if (bmp != null) {
+                            if (debug) Log.d(TAG, "decodeImage() decoded " + bmp.getWidth() + "x" + bmp.getHeight() 
+                                    + " " + bmp.getByteCount() + " bytes" 
+                                    + " req: " + requiredWidth + "x" + requiredHeight 
+                                    + " original: " + originalOpts.outWidth + "x" + originalOpts.outHeight 
+                                    + " sampleSize: " + sampleSize
+                                    + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                        } else {
+                            if (debug) Log.d(TAG, "decodeImage() not decoded " + " req: " + requiredWidth + "x" + requiredHeight 
+                                    + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
+                        }
+                        result = bmp;
                     }
    
                     // decoded
                     synchronized (lock) {
-                        if (bmp != null) {
-                            cache.put(spec.id, bmp);
+                        if (result != null) {
+                            cache.put(spec.id, result);
                             if (spec.listener != null) spec.listener.onBitmapLoaded(spec);
                         } else if (spec.retries < BITMAP_DECODE_RETRIES) {
                             spec.retries++;
@@ -539,6 +556,7 @@ public class Atlas {
                     spec.requiredHeight = requiredHeight;
                     spec.requiredWidth = requiredWidth;
                     spec.listener = loadListener;
+                    spec.gif = gif;
                 }
                 queue.add(0, spec);
                 lock.notifyAll();
@@ -567,41 +585,6 @@ public class Atlas {
         public static abstract class StreamProvider {
             public abstract InputStream getInputStream();
             public abstract boolean ready();
-        }
-        
-        public static class MessagePartStreamProvider extends StreamProvider {
-            public final MessagePart part;
-            public MessagePartStreamProvider(MessagePart part) {
-                if (part == null) throw new IllegalStateException("MessagePart cannot be null");
-                this.part = part;
-            }
-            public InputStream getInputStream() {
-                return part.getDataStream();
-            }
-            public boolean ready() {
-                return part.isContentReady();
-            }
-        }
-        
-        public static class FileStreamProvider extends StreamProvider {
-            final File file;
-            public FileStreamProvider(File file) {
-                if (file == null) throw new IllegalStateException("File cannot be null");
-                if (!file.exists()) throw new IllegalStateException("File must exist!");
-                this.file = file;
-            }
-            public InputStream getInputStream() {
-                try {
-                    return new FileInputStream(file);
-                } catch (FileNotFoundException e) {
-                    Log.e(TAG, "FileStreamProvider.getStream() cannot open file. file: " + file, e);
-                    return null;
-                }
-            }
-            public boolean ready() {
-                if (debug) Log.w(TAG, "ready() FileStreamProvider, file ready: " + file.getAbsolutePath());
-                return true;
-            }
         }
     }
 
@@ -679,6 +662,63 @@ public class Atlas {
         
         public interface CompleteListener {
             public void onDownloadComplete(String url, File file);
+        }
+    }
+
+    public static class MessagePartStreamProvider extends ImageLoader.StreamProvider {
+        public final MessagePart part;
+        public MessagePartStreamProvider(MessagePart part) {
+            if (part == null) throw new IllegalStateException("MessagePart cannot be null");
+            this.part = part;
+        }
+        public InputStream getInputStream() {
+            return part.getDataStream();
+        }
+        public boolean ready() {
+            return part.isContentReady();
+        }
+    }
+    
+    /** 
+     * Provides BufferedInputStream on top of messagePart.dataStream, with 16k buffer 
+     * and mark set to 0 with 16k read limit. <p>
+     * 
+     * Used for GIF purposes, because it calls <code>.reset()</code> stream during execution
+     */
+    public static class MessagePartBufferedStreamProvider extends ImageLoader.StreamProvider {
+        public final MessagePart part;
+        public MessagePartBufferedStreamProvider(MessagePart part) {
+            if (part == null) throw new IllegalStateException("MessagePart cannot be null");
+            this.part = part;
+        }
+        public InputStream getInputStream() {
+            BufferedInputStream stream = new BufferedInputStream(part.getDataStream(), 16 * 1024);
+            stream.mark(16 * 1024);
+            return stream;
+        }
+        public boolean ready() {
+            return part.isContentReady();
+        }
+    }
+
+    public static class FileStreamProvider extends ImageLoader.StreamProvider {
+        final File file;
+        public FileStreamProvider(File file) {
+            if (file == null) throw new IllegalStateException("File cannot be null");
+            if (!file.exists()) throw new IllegalStateException("File must exist!");
+            this.file = file;
+        }
+        public InputStream getInputStream() {
+            try {
+                return new FileInputStream(file);
+            } catch (FileNotFoundException e) {
+                Log.e(ImageLoader.TAG, "FileStreamProvider.getStream() cannot open file. file: " + file, e);
+                return null;
+            }
+        }
+        public boolean ready() {
+            if (ImageLoader.debug) Log.w(ImageLoader.TAG, "ready() FileStreamProvider, file ready: " + file.getAbsolutePath());
+            return true;
         }
     }
     

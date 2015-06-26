@@ -41,11 +41,6 @@
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             />
-        <!-- spacer to force FrameLayout set all child with match_parent spec proper width in height -->
-        <View 
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            />
     </com.layer.atlas.ShapedFrameLayout>
 
     <com.layer.atlas.ShapedFrameLayout
@@ -63,11 +58,6 @@
             />
         <com.layer.atlas.AtlasProgressView 
             android:id="@+id/atlas_view_messages_cell_image_their_progress"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            />
-        <!-- spacer to force FrameLayout set all child with match_parent spec proper width in height -->
-        <View 
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             />
