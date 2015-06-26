@@ -45,6 +45,7 @@ public class GIFDrawable extends Drawable {
 
     @Override
     public void draw(Canvas canvas) {
+        if (debug) Log.w(TAG, "draw() gif: " + gif.width() + "x" + gif.height() + " @" + gif.duration());
         long time = 0;
         if (gif.duration() > 0) {
             time = (System.currentTimeMillis() - createdAt) % gif.duration();

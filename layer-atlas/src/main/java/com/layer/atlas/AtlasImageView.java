@@ -39,7 +39,9 @@ public class AtlasImageView extends View {
     public static final int ORIENTATION_180 = 2;
     public static final int ORIENTATION_90_CCW = 3;
     
-    public Drawable drawable;
+    private int defaultLayerType;
+    
+    private Drawable drawable;
     
     private int contentWidth;
     private int contentHeight;
@@ -118,6 +120,7 @@ public class AtlasImageView extends View {
     }
 
     private void setupPaints() {
+        this.defaultLayerType = getLayerType();
     }
     
     protected void onDraw(Canvas canvas) {
@@ -200,6 +203,11 @@ public class AtlasImageView extends View {
         }
         this.drawable = drawable;
         this.drawable.setCallback(this);
+        if (drawable instanceof GIFDrawable) {
+            setLayerType(LAYER_TYPE_SOFTWARE, null);
+        } else {
+            setLayerType(defaultLayerType, null);
+        }
         invalidate();
     }
     
