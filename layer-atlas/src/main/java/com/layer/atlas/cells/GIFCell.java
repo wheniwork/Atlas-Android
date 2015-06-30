@@ -17,6 +17,7 @@ package com.layer.atlas.cells;
 
 import android.graphics.Movie;
 import android.net.Uri;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -34,7 +35,6 @@ import com.layer.atlas.AtlasProgressView;
 import com.layer.atlas.GIFDrawable;
 import com.layer.atlas.R;
 import com.layer.atlas.ShapedFrameLayout;
-import com.layer.sdk.internal.utils.Log;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.MessagePart;
 

@@ -49,10 +49,9 @@ public class MessengerApp extends Application implements AppIdCallback {
     private static final String GCM_SENDER_ID = "748607264448"; // Set your GCM Sender ID
 
     //==============================================================================================
-
     
     private static final String TAG = MessengerApp.class.getSimpleName();
-    private static final boolean DEBUG = true;
+    private static final boolean debug = false;
 
     private LayerClient layerClient;
     private IdentityProvider identityProvider;
@@ -95,17 +94,17 @@ public class MessengerApp extends Application implements AppIdCallback {
         final LayerClient client = LayerClient.newInstance(this, localAppId, new Options()
                 .broadcastPushInForeground(false)
                 .googleCloudMessagingSenderId(GCM_SENDER_ID));
-        if (DEBUG) Log.w(TAG, "onCreate() client created");
+        if (debug) Log.w(TAG, "onCreate() client created");
 
         setAppId(localAppId);
         layerClient = client;
 
         if (!client.isAuthenticated()) client.authenticate();
         else if (!client.isConnected()) client.connect();
-        if (DEBUG) Log.w(TAG, "onCreate() Layer launched");
+        if (debug) Log.w(TAG, "onCreate() Layer launched");
 
         if (getParticipantProvider() instanceof ParticipantProvider) {
-            if (DEBUG) Log.d(TAG, "onCreate() Refreshing Contacts");
+            if (debug) Log.d(TAG, "onCreate() Refreshing Contacts");
             ((ParticipantProvider)getParticipantProvider()).refresh();
         }
         return layerClient;

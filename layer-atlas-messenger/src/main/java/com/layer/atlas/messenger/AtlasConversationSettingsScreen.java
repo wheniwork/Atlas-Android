@@ -42,7 +42,7 @@ import com.layer.sdk.messaging.Conversation;
  */
 public class AtlasConversationSettingsScreen extends Activity {
     private static final String TAG = AtlasConversationSettingsScreen.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
 
     private static final int REQUEST_CODE_ADD_PARTICIPANT = 999;
     

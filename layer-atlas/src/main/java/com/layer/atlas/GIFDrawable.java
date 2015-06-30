@@ -20,8 +20,7 @@ import android.graphics.ColorFilter;
 import android.graphics.Movie;
 import android.graphics.PixelFormat;
 import android.graphics.drawable.Drawable;
-
-import com.layer.sdk.internal.utils.Log;
+import android.util.Log;
 
 /**
  * @author Oleg Orlov

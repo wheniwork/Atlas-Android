@@ -33,6 +33,9 @@ import com.layer.atlas.AtlasConversationsList;
 import com.layer.atlas.AtlasConversationsList.ConversationClickListener;
 import com.layer.atlas.AtlasConversationsList.ConversationLongClickListener;
 import com.layer.sdk.messaging.Conversation;
+import com.layer.sdk.query.Predicate;
+import com.layer.sdk.query.Query;
+import com.layer.sdk.query.SortDescriptor;
 
 /**
  * @author Oleg Orlov
@@ -44,6 +47,9 @@ public class AtlasConversationsScreen extends Activity {
 
     private static final int REQUEST_CODE_LOGIN_SCREEN = 191;
     private static final int REQUEST_CODE_SETTINGS_SCREEN = 192;
+    
+    /** Switch it to <code>true</code> to see {@link #AtlasConversationsScreen} Query support in action */
+    private static final boolean USE_QUERY = true;
 
     private MessengerApp app;
 
@@ -80,6 +86,16 @@ public class AtlasConversationsScreen extends Activity {
 //                    Toast.makeText(AtlasConversationsScreen.this, "Deleted: " + conversation, Toast.LENGTH_SHORT).show();
                 }
             });
+            if (USE_QUERY) {
+                long monthBeforeMs = System.currentTimeMillis() - (1L * 30 * 24 * 3600 * 1000);
+                Query<Conversation> query = Query.builder(Conversation.class)
+                        .predicate(new Predicate(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, Predicate.Operator.GREATER_THAN, monthBeforeMs))
+                        .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, SortDescriptor.Order.DESCENDING))
+                        .build();
+                conversationsList.setQuery(query);
+            } else {
+                conversationsList.setQuery(null);
+            }
 
             btnNewConversation = findViewById(R.id.atlas_conversation_screen_new_conversation);
             btnNewConversation.setOnClickListener(new OnClickListener() {

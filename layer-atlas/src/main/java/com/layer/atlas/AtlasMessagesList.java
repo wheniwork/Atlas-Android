@@ -19,8 +19,11 @@ import java.text.DateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -29,6 +32,7 @@ import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
+import android.net.Uri;
 import android.os.Handler;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -56,6 +60,7 @@ import com.layer.sdk.messaging.LayerObject;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.Message.RecipientStatus;
 import com.layer.sdk.messaging.MessagePart;
+import com.layer.sdk.query.Query;
 
 /**
  * @author Oleg Orlov
@@ -76,10 +81,33 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     private ListView messagesList;
     private BaseAdapter messagesAdapter;
 
+    /** 
+     * Message Data main container. Holds messagesData for AtlasMessagesList. 
+     * Particular MessageData could accessed by message.id   
+     */
+    private HashMap<Uri, MessageData> messagesData = new HashMap<Uri, MessageData>();
+    
+    /** 
+     * Ordered list of messages from Query/Conversation (used to calculate delivery status) 
+     */
+    private ArrayList<MessageData> messagesOrder = new ArrayList<AtlasMessagesList.MessageData>();
+    
+    /** 
+     *  Collects ids of messages that was changed to rebuild cells at next {@link #updateValues()} <p>
+     * (see {@link #onEventMainThread(LayerChangeEvent)} 
+     * */
+    private HashSet<Uri> messagesToUpdate = new HashSet<Uri>();
+    
+    /**
+     * Cells to render messages (generated in {@link #updateValues()}
+     */
     private ArrayList<Cell> cells = new ArrayList<Cell>();
     
     private LayerClient client;
     private Conversation conv;
+    private Query<Message> query;
+    /** if query is set instead of conversation - participants needs to be precalculated somewhere else */
+    private final Set<String> participants = new HashSet<String>(); 
     
     private Message latestReadMessage = null;
     private Message latestDeliveredMessage = null;
@@ -138,7 +166,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 String userId = part.getMessage().getSender().getUserId();
 
                 boolean myMessage = client.getAuthenticatedUserId().equals(userId);
-                boolean showTheirDecor = conv.getParticipants().size() > 2;
+                boolean showTheirDecor = participants.size() > 2;
                 
                 if (convertView == null) { 
                     convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.atlas_view_messages_convert, parent, false);
@@ -320,7 +348,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         messagesAdapter.notifyDataSetChanged();
     }
 
-    protected void buildCellForMessage(Message msg, ArrayList<Cell> destination) {
+    protected void buildCellForMessage(Message msg, List<Cell> destination) {
         
         final ArrayList<MessagePart> parts = new ArrayList<MessagePart>(msg.getMessageParts());
         
@@ -372,32 +400,78 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 destination.add(cellData);
             }
         }
-        
     }
     
     public void updateValues() {
-        if (conv == null) return;
-        
         long started = System.currentTimeMillis();
         
-        List<Message> messages = client.getMessages(conv);
+        // cells are just order keeper. order is going to be changed while new info arrives 
         cells.clear();
-        if (messages.isEmpty()) return;
+        messagesOrder.clear();
         
-        latestReadMessage = null;
-        latestDeliveredMessage = null;
-
-        ArrayList<Cell> messageItems = new ArrayList<AtlasMessagesList.Cell>();
-        for (Message message : messages) {
-            // System messages have `null` user ID
-            if (message.getSender().getUserId() == null) continue;  
-
-            messageItems.clear();
-            buildCellForMessage(message, messageItems);
-            cells.addAll(messageItems);
+        List<Uri> msgIds = null;
+        if (conv != null) {
+            msgIds = client.getMessageIds(conv);
+        } else if (query != null) {
+            msgIds = client.executeQueryForIds(query);
         }
         
-        updateDeliveryStatus(messages);
+        if (msgIds == null || msgIds.size() == 0) {
+            this.messagesData.clear();
+            this.participants.clear();
+            this.messagesAdapter.notifyDataSetChanged();
+            return;
+        };
+        
+        // check last message is added
+        boolean jumpToTheEnd = false;
+        Uri lastMessageId = msgIds.get(msgIds.size() - 1);
+        if ( ! messagesData.containsKey(lastMessageId) ) {
+            jumpToTheEnd = true;
+        }
+        if (debug) Log.w(TAG, "updateValues() jump: " + jumpToTheEnd + ", lastMessage: " + lastMessageId);
+        
+        // consider each cached messageData to remove
+        HashSet<Uri> ids2Delete = new HashSet<Uri>(messagesData.keySet());
+        
+        ArrayList<Message> messagesUpdated = new ArrayList<Message>();
+        // rebuild messageOrder and cells with cached data
+        for (Uri msgId : msgIds) {
+            MessageData msgData = messagesData.get(msgId);
+            // rebuild messageData if new or updated
+            if (msgData == null || messagesToUpdate.contains(msgId)) {
+                Message msg = client.getMessage(msgId);
+                msgData = new MessageData(msg);
+                buildCellForMessage(msg, msgData.cells);
+                messagesData.put(msgId, msgData);
+                messagesUpdated.add(msg);
+            }
+            
+            if (msgData.msg.getSender().getUserId() == null) continue;
+            
+            messagesOrder.add(msgData);
+            cells.addAll(msgData.cells);
+            // message appears in query results? Keep them in cache
+            ids2Delete.remove(msgId);
+        }
+        
+        // remove all cached messages that absents in current query results
+        messagesData.keySet().removeAll(ids2Delete);
+        messagesToUpdate.clear();
+        if (debug) Log.w(TAG, "updateValues() change applied in: " + (System.currentTimeMillis() - started) + "ms, messageData removed: " + ids2Delete.size());
+        
+        // rebuild participants list (for conv - pick from conversation, from query - scan for everyone)
+        participants.clear();
+        if (conv != null) {
+            participants.addAll(conv.getParticipants());
+        } else { /* query != null */
+            for (MessageData msgData : messagesOrder) {
+                String userId = msgData.msg.getSender().getUserId();
+                if (userId != null) participants.add(userId);
+            }
+        }
+
+        updateDeliveryStatus(messagesOrder);
         
         // calculate heads/tails
         int currentItem = 0;
@@ -409,12 +483,13 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         long clusterTimeSpan = 60 * 1000; // 1 minute
         long oneHourSpan = 60 * 60 * 1000; // 1 hour
         for (int i = 0; i < cells.size(); i++) {
-            Cell item = cells.get(i);
+            Cell cell = cells.get(i);
+            cell.reset();
             boolean newCluster = false;
-            if (!item.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
+            if (!cell.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
                 newCluster = true;
             }
-            Date sentAt = item.messagePart.getMessage().getSentAt();
+            Date sentAt = cell.messagePart.getMessage().getSentAt();
             if (sentAt == null) sentAt = new Date();
             
             if (sentAt.getTime() - lastMessageTime > clusterTimeSpan) {
@@ -427,47 +502,49 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             }
             
             // last message from user
-            if ( ! item.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
-                item.firstUserMsg = true;
+            if ( ! cell.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
+                cell.firstUserMsg = true;
                 if (i > 0) cells.get(i - 1).lastUserMsg = true;
             }
             
             // check time header is needed
             if (sentAt.getTime() - lastMessageTime > oneHourSpan) {
-                item.timeHeader = true;
+                cell.timeHeader = true;
             }
             calCurrent.setTime(sentAt);
             if (calCurrent.get(Calendar.DAY_OF_YEAR) != calLastMessage.get(Calendar.DAY_OF_YEAR)) {
-                item.timeHeader = true;
+                cell.timeHeader = true;
             }
             
-            item.clusterHeadItemId = clusterId;
-            item.clusterItemId = currentItem++;
+            cell.clusterHeadItemId = clusterId;
+            cell.clusterItemId = currentItem++;
             
-            currentUser = item.messagePart.getMessage().getSender().getUserId();
+            currentUser = cell.messagePart.getMessage().getSender().getUserId();
             lastMessageTime = sentAt.getTime();
             calLastMessage.setTime(sentAt);
-            if (false && debug) Log.d(TAG, "updateValues() item: " + item);
+            if (false && debug) Log.d(TAG, "updateValues() item: " + cell);
         }
         
         cells.get(cells.size() - 1).lastUserMsg = true; // last one is always a last message from user
         cells.get(cells.size() - 1).clusterTail = true; // last one is always a tail
 
-        if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started));
+        if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started) + "msju");
         messagesAdapter.notifyDataSetChanged();
-
+        
+        if (jumpToTheEnd) jumpToLastMessage();
     }
-    
-    private boolean updateDeliveryStatus(List<Message> messages) {
-        if (debug) Log.w(TAG, "updateDeliveryStatus() checking messages:   " + messages.size());
+
+    private boolean updateDeliveryStatus(List<MessageData> messagesData) {
+        if (debug) Log.w(TAG, "updateDeliveryStatus() checking messages:   " + messagesData.size());
         Message oldLatestDeliveredMessage = latestDeliveredMessage;
         Message oldLatestReadMessage = latestReadMessage;
         // reset before scan
         latestDeliveredMessage = null;
         latestReadMessage = null;
         
-        for (Message message : messages) {
+        for (MessageData msgData : messagesData) {
             // only our messages
+            Message message = msgData.msg;
             if (client.getAuthenticatedUserId().equals(message.getSender().getUserId())){
                 if (!message.isSent()) continue;
                 Map<String, RecipientStatus> statuses = message.getRecipientStatus();
@@ -514,17 +591,16 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 if (msg.arg1 == MESSAGE_REFRESH_UPDATE_ALL) {
                     updateValues();
                 } else if (msg.arg1 == MESSAGE_REFRESH_UPDATE_DELIVERY) {
-                    LayerClient client = (LayerClient) msg.obj;
-                    boolean changed = updateDeliveryStatus(client.getMessages(conv));
+                    boolean changed = updateDeliveryStatus(messagesOrder);
                     if (changed) messagesAdapter.notifyDataSetInvalidated();
                     if (debug) Log.w(TAG, "refreshHandler() delivery status changed: " + changed);
                 }
                 if (msg.arg2 > 0) {
-                    messagesList.smoothScrollToPosition(messagesAdapter.getCount() - 1);
+                    jumpToLastMessage();
                 }
             }
             final long currentTimeMillis = System.currentTimeMillis();
-            if (debug) Log.w(TAG, "handleMessage() delay: " + (currentTimeMillis - messageUpdateSentAt) + "ms, handled in: " + (currentTimeMillis - started) + "ms"); 
+            if (debug) Log.w(TAG, "refreshHandler() delay: " + (currentTimeMillis - messageUpdateSentAt) + "ms, handled in: " + (currentTimeMillis - started) + "ms"); 
             messageUpdateSentAt = 0;
         }
         
@@ -532,36 +608,64 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     
     @Override
     public void onEventMainThread(LayerChangeEvent event) {
-        if (conv == null) return;
         boolean updateValues = false;
         boolean jumpToBottom = false;
         boolean updateDeliveryStatus = false;
+        
         for (LayerChange change : event.getChanges()) {
+            
             if (change.getObjectType() == LayerObject.Type.MESSAGE) {
                 Message msg = (Message) change.getObject();
-                if ( ! msg.getConversation().getId().equals(conv.getId())) continue;
-                
-                if (change.getChangeType() == Type.UPDATE && "recipientStatus".equals(change.getAttributeName())) {
-                    updateDeliveryStatus = true;
-                } 
-                
-                if (change.getChangeType() == Type.DELETE || change.getChangeType() == Type.INSERT) {
-                    updateValues = true;
-                    jumpToBottom = true;
-                }
+                messagesToUpdate.add(msg.getId());
+            } else if (change.getObjectType() == LayerObject.Type.MESSAGE_PART) {
+                MessagePart part = (MessagePart) change.getObject();
+                messagesToUpdate.add(part.getMessage().getId());
             }
+            
+            if (query != null) {
+                updateValues = true;
+                
+            } else if (conv != null) {
+                if (change.getObjectType() == LayerObject.Type.MESSAGE) {
+                    Message msg = (Message) change.getObject();
+                    if ( ! msg.getConversation().getId().equals(conv.getId())) continue;
+                    
+                    if (change.getChangeType() == Type.UPDATE && "recipientStatus".equals(change.getAttributeName())) {
+                        updateDeliveryStatus = true;
+                    }
+                    
+                    if (change.getChangeType() == Type.DELETE || change.getChangeType() == Type.INSERT) {
+                        updateValues = true;
+                        jumpToBottom = true;
+                    }
+                }
+            }  
         }
         
         if (updateValues || updateDeliveryStatus) {
-            if (messageUpdateSentAt == 0) messageUpdateSentAt = System.currentTimeMillis();
-            refreshHandler.removeMessages(MESSAGE_TYPE_UPDATE_VALUES);
-            final android.os.Message message = refreshHandler.obtainMessage();
-            message.arg1 = updateValues ? MESSAGE_REFRESH_UPDATE_ALL : MESSAGE_REFRESH_UPDATE_DELIVERY;
-            message.arg2 = jumpToBottom ? 1 : 0; 
-            message.obj  = event.getClient();
-            refreshHandler.sendMessage(message);
+            requestRefreshValues(updateValues, jumpToBottom);
         }
     }
+    
+    public void requestRefreshValues(boolean updateValues, boolean jumpToBottom) {
+        if (messageUpdateSentAt == 0) messageUpdateSentAt = System.currentTimeMillis();
+        refreshHandler.removeMessages(MESSAGE_TYPE_UPDATE_VALUES);
+        final android.os.Message message = refreshHandler.obtainMessage();
+        message.arg1 = updateValues ? MESSAGE_REFRESH_UPDATE_ALL : MESSAGE_REFRESH_UPDATE_DELIVERY;
+        message.arg2 = jumpToBottom ? 1 : 0; 
+        message.obj  = client;
+        refreshHandler.sendMessage(message);
+    }
+    
+    public void requestRefresh() {
+        messagesList.post(INVALIDATE_VIEW);
+    }
+    
+    private final Runnable INVALIDATE_VIEW = new Runnable() {
+        public void run() {
+            messagesList.invalidateViews();
+        }
+    }; 
     
     @Override
     protected void onDetachedFromWindow() {
@@ -583,6 +687,19 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
 
     public void setConversation(Conversation conv) {
         this.conv = conv;
+        this.query = null;
+        updateValues();
+        jumpToLastMessage();
+    }
+    
+    public void setQuery(Query<Message> query) {
+        // check
+        if ( ! Message.class.equals(query.getQueryClass())) {
+            throw new IllegalArgumentException("Query must return Message object. Actual class: " + query.getQueryClass());
+        }
+        // 
+        this.query = query;
+        this.conv = null;
         updateValues();
         jumpToLastMessage();
     }
@@ -594,6 +711,17 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     
     public void setItemClickListener(ItemClickListener clickListener) {
         this.clickListener = clickListener;
+    }
+    
+    /** Cells per message container */
+    private static class MessageData {
+        final Message msg;
+        final List<Cell> cells;
+        public MessageData(Message msg) {
+            if (msg == null) throw new IllegalArgumentException("Message cannot be null");
+            this.msg = msg;
+            this.cells = new ArrayList<Cell>();
+        }
     }
     
     private class TextCell extends Cell {
@@ -673,16 +801,6 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         }
     }
     
-    public void requestRefresh() {
-        messagesList.post(INVALIDATE_VIEW);
-    }
-    
-    private final Runnable INVALIDATE_VIEW = new Runnable() {
-        public void run() {
-            messagesList.invalidateViews();
-        }
-    }; 
-    
     public static abstract class Cell {
         public final MessagePart messagePart;
         protected int clusterHeadItemId;
@@ -710,6 +828,15 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 .append(", clusterTail: ").append(clusterTail)
                 .append(", timeHeader: ").append(timeHeader).append(" ]");
             return builder.toString();
+        }
+        
+        private void reset() {
+            clusterHeadItemId = 0;
+            clusterItemId     = 0;
+            clusterTail       = false;
+            timeHeader        = false; 
+            firstUserMsg      = false;
+            lastUserMsg       = false; 
         }
 
         public abstract View onBind(ViewGroup cellContainer);

@@ -55,6 +55,7 @@ import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.LayerObject;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.Message.RecipientStatus;
+import com.layer.sdk.query.Query;
 
 /**
  * @author Oleg Orlov
@@ -71,6 +72,7 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     private ArrayList<Conversation> conversations = new ArrayList<Conversation>();
     
     private LayerClient layerClient;
+    private Query<Conversation> query;
     
     private ConversationClickListener clickListener;
     private ConversationLongClickListener longClickListener;
@@ -269,17 +271,22 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     }
     
     public void updateValues() {
-        if (conversationsAdapter == null) {                 // never initialized
-            return;
-        }
+        if (conversationsAdapter == null) return;           // never initialized
         
         conversations.clear();                              // always clean, rebuild if authenticated 
         conversationsAdapter.notifyDataSetChanged();
         
-        if (layerClient.isAuthenticated()) {
+        if ( ! layerClient.isAuthenticated()) return;
             
-            List<Conversation> convs = layerClient.getConversations();
+        List<Conversation> convs = null;
+        if (query != null) {
+            convs = (List<Conversation>) layerClient.executeQueryForObjects(query);
+            if (debug) Log.d(TAG, "updateValues() conv from query: " + convs.size());
+            conversations.addAll(convs);
+        } else {
+            convs = layerClient.getConversations();
             if (debug) Log.d(TAG, "updateValues() conv: " + convs.size());
+            
             for (Conversation conv : convs) {
                 // no participants means we are removed from conversation (disconnected conversation)
                 if (conv.getParticipants().size() == 0) continue;
@@ -310,6 +317,17 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                 }
             });
         }
+    }
+    
+    public void setQuery(Query<Conversation> query) {
+        if (debug) Log.w(TAG, "setQuery() query: " + query);
+        // check
+        if ( ! Conversation.class.equals(query.getQueryClass())) {
+            throw new IllegalArgumentException("Query must return Conversation object. Actual class: " + query.getQueryClass());
+        }
+        // 
+        this.query = query;
+        updateValues();
     }
 
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {

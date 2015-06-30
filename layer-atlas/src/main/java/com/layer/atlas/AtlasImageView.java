@@ -21,10 +21,10 @@ import android.graphics.Canvas;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import com.layer.atlas.Atlas.Tools;
-import com.layer.sdk.internal.utils.Log;
 
 /**
  * @author Oleg Orlov

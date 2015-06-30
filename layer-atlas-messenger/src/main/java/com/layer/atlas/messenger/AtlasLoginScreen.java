@@ -39,7 +39,7 @@ import com.layer.sdk.listeners.LayerAuthenticationListener;
  */
 public class AtlasLoginScreen extends Activity {
     private static final String TAG = AtlasLoginScreen.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     private volatile boolean inProgress = false;
     private EditText loginText;

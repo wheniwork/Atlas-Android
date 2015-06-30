@@ -66,6 +66,9 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
+import com.layer.sdk.query.Predicate;
+import com.layer.sdk.query.Query;
+import com.layer.sdk.query.SortDescriptor;
 
 /**
  * @author Oleg Orlov
@@ -82,6 +85,9 @@ public class AtlasMessagesScreen extends Activity {
     public static final int REQUEST_CODE_SETTINGS = 101;
     public static final int REQUEST_CODE_GALLERY  = 111;
     public static final int REQUEST_CODE_CAMERA   = 112;
+    
+    /** Switch it to <code>true</code> to see {@link #AtlasMessagesScreen()} Query support in action */
+    private static final boolean USE_QUERY = false;
         
     private volatile Conversation conv;
     
@@ -179,7 +185,16 @@ public class AtlasMessagesScreen extends Activity {
         
         messagesList = (AtlasMessagesList) findViewById(R.id.atlas_screen_messages_messages_list);
         messagesList.init(app.getLayerClient(), app.getParticipantProvider());
-        messagesList.setConversation(conv);
+        if (USE_QUERY) {
+            Query<Message> query = Query.builder(Message.class)
+                    .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conv))
+                    .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING))
+                    .build();
+            messagesList.setQuery(query);
+        } else {
+            messagesList.setConversation(conv);
+        }
+        
         messagesList.setItemClickListener(new ItemClickListener() {
             public void onItemClick(Cell item) {
                 if (Atlas.MIME_TYPE_ATLAS_LOCATION.equals(item.messagePart.getMimeType())) {

@@ -22,10 +22,10 @@ import android.graphics.Paint;
 import android.graphics.Paint.Style;
 import android.graphics.RectF;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.View;
 
 import com.layer.atlas.Atlas.Tools;
-import com.layer.sdk.internal.utils.Log;
 
 /**
  * @author Oleg Orlov
