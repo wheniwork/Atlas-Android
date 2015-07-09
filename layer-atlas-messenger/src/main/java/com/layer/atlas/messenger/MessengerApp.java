@@ -16,9 +16,11 @@
 package com.layer.atlas.messenger;
 
 import java.lang.reflect.Method;
+import java.util.HashMap;
 import java.util.Iterator;
 
 import android.app.Application;
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Window;
@@ -170,4 +172,25 @@ public class MessengerApp extends Application implements AppIdCallback {
             }
         } catch (Exception ignored) {}
     }
+    
+    //==============================================================================================
+    private static final String EXTRA_PARAM_ID = "MessengerApp.param.id";
+    private static int nextParamId = 0;
+    private final HashMap<Integer, Object> paramMap = new HashMap<Integer, Object>();
+    
+    public void setParam(Intent to, Object what) {
+        synchronized (paramMap) {
+            int paramId = nextParamId++;
+            paramMap.put(paramId, what);
+            to.putExtra(EXTRA_PARAM_ID, paramId);
+        }
+    }
+    public Object getParam(Intent from) {
+        synchronized (paramMap) {
+            int paramId = from.getIntExtra(EXTRA_PARAM_ID, -1);
+            Object result = paramId != -1 ? paramMap.get(Integer.valueOf(paramId)) : null;
+            return result;
+        }
+    }
+    
 }

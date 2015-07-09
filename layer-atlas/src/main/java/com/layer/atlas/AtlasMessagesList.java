@@ -68,7 +68,7 @@ import com.layer.sdk.query.Query;
  */
 public class AtlasMessagesList extends FrameLayout implements LayerChangeEventListener.MainThread {
     private static final String TAG = AtlasMessagesList.class.getSimpleName();
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     
     public static final boolean CLUSTERED_BUBBLES = false;
     
@@ -458,7 +458,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         // remove all cached messages that absents in current query results
         messagesData.keySet().removeAll(ids2Delete);
         messagesToUpdate.clear();
-        if (debug) Log.w(TAG, "updateValues() change applied in: " + (System.currentTimeMillis() - started) + "ms, messageData removed: " + ids2Delete.size());
+        if (debug) Log.w(TAG, "updateValues() change applied in: " + (System.currentTimeMillis() - started) + " ms, messageData removed: " + ids2Delete.size());
         
         // rebuild participants list (for conv - pick from conversation, from query - scan for everyone)
         participants.clear();
@@ -528,7 +528,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         cells.get(cells.size() - 1).lastUserMsg = true; // last one is always a last message from user
         cells.get(cells.size() - 1).clusterTail = true; // last one is always a tail
 
-        if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started) + "msju");
+        if (debug) Log.d(TAG, "updateValues() parts finished in: " + (System.currentTimeMillis() - started) + " ms");
         messagesAdapter.notifyDataSetChanged();
         
         if (jumpToTheEnd) jumpToLastMessage();
@@ -600,7 +600,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 }
             }
             final long currentTimeMillis = System.currentTimeMillis();
-            if (debug) Log.w(TAG, "refreshHandler() delay: " + (currentTimeMillis - messageUpdateSentAt) + "ms, handled in: " + (currentTimeMillis - started) + "ms"); 
+            if (debug) Log.w(TAG, "refreshHandler() delay: " + (currentTimeMillis - messageUpdateSentAt) + " ms, handled in: " + (currentTimeMillis - started) + "ms"); 
             messageUpdateSentAt = 0;
         }
         

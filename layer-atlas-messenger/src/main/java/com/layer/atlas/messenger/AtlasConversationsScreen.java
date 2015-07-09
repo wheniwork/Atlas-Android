@@ -49,7 +49,7 @@ public class AtlasConversationsScreen extends Activity {
     private static final int REQUEST_CODE_SETTINGS_SCREEN = 192;
     
     /** Switch it to <code>true</code> to see {@link #AtlasConversationsScreen} Query support in action */
-    private static final boolean USE_QUERY = true;
+    private static final boolean USE_QUERY = false;
 
     private MessengerApp app;
 

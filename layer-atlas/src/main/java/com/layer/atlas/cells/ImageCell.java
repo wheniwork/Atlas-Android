@@ -41,27 +41,35 @@ import com.layer.sdk.messaging.MessagePart;
  * @author Oleg Orlov
  * @since  13 May 2015
  */
-public class ImageCell extends Cell implements LayerProgressListener, ImageLoader.BitmapLoadListener {
+public class ImageCell extends Cell implements LayerProgressListener, ImageLoader.ImageLoadListener {
     private static final String TAG = ImageCell.class.getSimpleName();
     private static final boolean debug = false;
     
-    MessagePart previewPart;
-    MessagePart fullPart;
-    int declaredWidth;
-    int declaredHeight;
-    int orientation;
-    ImageLoader.ImageSpec imageSpec;
+    public final MessagePart previewPart;
+    public final MessagePart fullPart;
+    public final int declaredWidth;
+    public final int declaredHeight;
+    public final int orientation;
+    private ImageLoader.ImageSpec imageSpec;
     
     /** if more than 0 - download is in progress */
     volatile long downloadProgressBytes = -1;
     
     final AtlasMessagesList messagesList;
     
+    /** Raw bitmap: as needed (0deg). Dimensions: respect bitmap: cell: 3264x2448@0, bitmap: 1632x1224 */
+    public static final int ORIENTATION_NORMAL = 0;
+    /** Raw bitmap: upside-down (180deg).   Dimensions: flipped: cell: 2448x3264@1, bitmap: 1632x1224 */
+    public static final int ORIENTATION_1_CW_180 = 1;
+    /** Raw bitmap: rotated (90 clockwise). Dimensions: flipped: cell: 2448x3264@2, bitmap: 1632x1224 */
+    public static final int ORIENTATION_2_CW_90 = 2;
+    /** Raw bitmap: rotated (90 Counter-clockwise). Dimensions: respect. cell: 3264x2448@3, bitmap: 1632x1224 */
+    public static final int ORIENTATION_3_CCW_90 = 3;
+    
     public ImageCell(MessagePart fullImagePart, AtlasMessagesList messagesList) {
-        super(fullImagePart);
-        this.fullPart = fullImagePart;
-        this.messagesList = messagesList;
+        this(fullImagePart, null, 0, 0, 0, messagesList);
     }
+    
     public ImageCell(MessagePart fullImagePart, MessagePart previewImagePart, int width, int height, int orientation, AtlasMessagesList messagesList) {
         super(fullImagePart);
         this.fullPart = fullImagePart;
@@ -120,7 +128,7 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         // calculate appropriate View size. If image dimensions are unknown, use default size 192dp
         int viewWidth  = (int) (imgWidth  != 0 ? imgWidth  : Tools.getPxFromDp(192, imageContainer.getContext()));
         int viewHeight = (int) (imgHeight != 0 ? imgHeight : Tools.getPxFromDp(192, imageContainer.getContext()));
-        if (orientation == AtlasImageView.ORIENTATION_90_CW || orientation == AtlasImageView.ORIENTATION_90_CCW) {
+        if (orientation == ImageCell.ORIENTATION_1_CW_180 || orientation == ImageCell.ORIENTATION_3_CCW_90) {
              int oldWidth = viewWidth;
              viewWidth = viewHeight;
              viewHeight = oldWidth;
@@ -235,7 +243,13 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
     }
     
     @Override
-    public void onBitmapLoaded(ImageSpec spec) {
+    public void onImageLoaded(ImageSpec spec) {
         messagesList.requestRefresh();
     }
+
+    @Override
+    public String toString() {
+        return "size: " + declaredWidth + "x" + declaredHeight + "@" + orientation + ", " + super.toString();
+    }
+    
 }

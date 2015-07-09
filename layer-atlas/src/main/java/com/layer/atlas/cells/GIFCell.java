@@ -42,7 +42,7 @@ import com.layer.sdk.messaging.MessagePart;
  * @author Oleg Orlov
  * @since  21 Jun 2015
  */
-public class GIFCell extends Cell implements ImageLoader.BitmapLoadListener, LayerProgressListener {
+public class GIFCell extends Cell implements ImageLoader.ImageLoadListener, LayerProgressListener {
 
     private static final String TAG = GIFCell.class.getSimpleName();
     private static final boolean debug = false;
@@ -124,7 +124,7 @@ public class GIFCell extends Cell implements ImageLoader.BitmapLoadListener, Lay
         // if image dimensions are unknown, use default size 192dp
         int viewWidth  = (int) (imgWidth  != 0 ? imgWidth  : Tools.getPxFromDp(192, imageContainer.getContext()));
         int viewHeight = (int) (imgHeight != 0 ? imgHeight : Tools.getPxFromDp(192, imageContainer.getContext()));
-        if (orientation == AtlasImageView.ORIENTATION_90_CW || orientation == AtlasImageView.ORIENTATION_90_CCW) {
+        if (orientation == ImageCell.ORIENTATION_1_CW_180 || orientation == ImageCell.ORIENTATION_3_CCW_90) {
              int oldWidth = viewWidth;
              viewWidth = viewHeight;
              viewHeight = oldWidth;
@@ -240,7 +240,7 @@ public class GIFCell extends Cell implements ImageLoader.BitmapLoadListener, Lay
     }
     
     @Override
-    public void onBitmapLoaded(ImageSpec spec) {
+    public void onImageLoaded(ImageSpec spec) {
         messagesList.requestRefresh();
     }
 }

@@ -190,6 +190,7 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
         private final Atlas.ParticipantProvider mParticipantProvider;
 
         public DefaultTypingIndicatorCallback(Atlas.ParticipantProvider participantProvider) {
+            if (participantProvider == null) throw new IllegalArgumentException("ParticipantProvider cannot be null");
             mParticipantProvider = participantProvider;
         }
 

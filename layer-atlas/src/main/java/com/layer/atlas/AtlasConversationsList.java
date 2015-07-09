@@ -322,7 +322,7 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     public void setQuery(Query<Conversation> query) {
         if (debug) Log.w(TAG, "setQuery() query: " + query);
         // check
-        if ( ! Conversation.class.equals(query.getQueryClass())) {
+        if ( query != null && ! Conversation.class.equals(query.getQueryClass())) {
             throw new IllegalArgumentException("Query must return Conversation object. Actual class: " + query.getQueryClass());
         }
         // 

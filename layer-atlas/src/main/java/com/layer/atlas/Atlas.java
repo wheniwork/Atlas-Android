@@ -44,6 +44,7 @@ import android.graphics.drawable.BitmapDrawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
@@ -153,6 +154,22 @@ public class Atlas {
                     break;
                 }
             }
+            return sb.toString();
+        }
+
+        public static String toString(MotionEvent me) {
+            StringBuilder sb = new StringBuilder();
+            
+            sb.append(me.getX()).append("x").append(me.getY());
+            sb.append(", action: ");
+            switch (me.getAction()) {
+                case MotionEvent.ACTION_DOWN    : sb.append("DOWN"); break; 
+                case MotionEvent.ACTION_UP      : sb.append("UP"); break; 
+                case MotionEvent.ACTION_MOVE    : sb.append("MOVE"); break; 
+                case MotionEvent.ACTION_SCROLL  : sb.append("SCROLL"); break; 
+                default                         : sb.append(me.getAction()); break; 
+            }
+            sb.append(", pts: ").append(me.getPointerCount());
             return sb.toString();
         }
 
@@ -298,6 +315,7 @@ public class Atlas {
         public static String escapePath(String partId) {
             return partId.replaceAll("[:/\\+]", "_");
         }
+
     }
 
     /**
@@ -386,7 +404,7 @@ public class Atlas {
      */
     public static class ImageLoader {
         private static final String TAG = Atlas.ImageLoader.class.getSimpleName();
-        private static final boolean debug = false;
+        private static final boolean debug = true;
         
         private static final int BITMAP_DECODE_RETRIES = 10;
         private static final double MEMORY_THRESHOLD = 0.7;
@@ -454,10 +472,7 @@ public class Atlas {
                         Tools.closeQuietly(is);
                         result = mov;
                     } else {
-                        // decoding bitmap
-                        int requiredWidth = spec.requiredWidth;
-                        int requiredHeight = spec.requiredHeight;
-                        // load
+                        // decode dimensions
                         long started = System.currentTimeMillis();
                         InputStream streamForBounds = spec.inputStreamProvider.getInputStream();
                         if (streamForBounds == null) { 
@@ -470,10 +485,18 @@ public class Atlas {
                         // update spec if width and height are unknown
                         spec.originalWidth = originalOpts.outWidth;
                         spec.originalHeight = originalOpts.outHeight;
+                        
+                        // if required dimensions are not defined or bigger than original - use original dimensions
+                        int requiredWidth  = spec.requiredWidth  > 0 ? Math.min(spec.requiredWidth,  originalOpts.outWidth)  : originalOpts.outWidth;
+                        int requiredHeight = spec.requiredHeight > 0 ? Math.min(spec.requiredHeight, originalOpts.outHeight) : originalOpts.outHeight;
                         int sampleSize = 1;
-                        while (originalOpts.outWidth / (sampleSize * 2) > requiredWidth) {
-                            sampleSize *= 2;
-                        }
+                        // Use dimension with higher quality to meet both requirements
+                        float widthSampleSize  = sampleSize(originalOpts.outWidth,  requiredWidth);
+                        float heightSampleSize = sampleSize(originalOpts.outHeight, requiredHeight);
+                        sampleSize = (int)Math.min(widthSampleSize, heightSampleSize);
+                        if (debug) Log.w(TAG, "decodeImage() sampleSize: " + sampleSize + ", original: " + spec.originalWidth + "x" + spec.originalHeight
+                                + " required: " + spec.requiredWidth + "x" + spec.requiredHeight);
+                        
                         BitmapFactory.Options decodeOpts = new BitmapFactory.Options();
                         decodeOpts.inSampleSize = sampleSize;
                         Bitmap bmp = null;
@@ -489,7 +512,7 @@ public class Atlas {
                         if (bmp != null) {
                             if (debug) Log.d(TAG, "decodeImage() decoded " + bmp.getWidth() + "x" + bmp.getHeight() 
                                     + " " + bmp.getByteCount() + " bytes" 
-                                    + " req: " + requiredWidth + "x" + requiredHeight 
+                                    + " req: " + spec.requiredWidth + "x" + spec.requiredHeight 
                                     + " original: " + originalOpts.outWidth + "x" + originalOpts.outHeight 
                                     + " sampleSize: " + sampleSize
                                     + " in " +(System.currentTimeMillis() - started) + "ms from: " + spec.id);
@@ -504,7 +527,7 @@ public class Atlas {
                     synchronized (lock) {
                         if (result != null) {
                             cache.put(spec.id, result);
-                            if (spec.listener != null) spec.listener.onBitmapLoaded(spec);
+                            if (spec.listener != null) spec.listener.onImageLoaded(spec);
                         } else if (spec.retries < BITMAP_DECODE_RETRIES) {
                             spec.retries++;
                             queue.add(0, spec);         // schedule retry
@@ -515,6 +538,29 @@ public class Atlas {
                     if (debug) Log.w(TAG, "decodeImage()   cache: " + cache.size() + ", queue: " + queue.size() + ", id: " + spec.id);
                 }
             }
+        }
+        
+        /**
+         *
+         * Return maximum possible sampleSize to decode bitmap with dimensions >= minRequired
+         * 
+         * <p>
+         * Despite {@link BitmapFactory.Options#inSampleSize} documentation, sampleSize 
+         * handles properly only 2^n values. Other values are handled as nearest lower 2^n.<p> 
+         * I.e. result bitmap with <br>
+         * <code> 
+         *      opts.sampleSize = 3 is the same as opts.sampleSize = 2<br>
+         *      opts.sampleSize = 5 is the same as opts.sampleSize = 4 
+         * </code>
+         * 
+         * @return bitmap sampleSize values [1, 2, 4, 8, .. 2^n]
+         */
+        private static int sampleSize(int originalDimension, int minRequiredDimension) {
+            int sampleSize = 1;
+            while (originalDimension / (sampleSize * 2) > minRequiredDimension) {
+                sampleSize *= 2;
+            }
+            return sampleSize;
         }
     
         public Object getBitmapFromCache(Object id) {
@@ -540,7 +586,22 @@ public class Atlas {
             }
         }
                 
-        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, boolean gif, ImageLoader.BitmapLoadListener loadListener) {
+        /**
+         * @see #requestBitmap(Object, StreamProvider, int, int, boolean, ImageLoadListener) 
+         */
+        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, ImageLoader.ImageLoadListener loadListener) {
+            return requestBitmap(id, streamProvider, 0, 0, false, loadListener);
+        }
+        
+        /** 
+         * @param id                - something you will use to get image from cache later
+         * @param streamProvider    - something that provides raw bytes. See {@link Atlas.FileStreamProvider} or {@link Atlas.MessagePartStreamProvider}
+         * @param requiredWidth     - 
+         * @param requiredHeight    - provide image dimensions you need to save memory if original dimensions are bigger
+         * @param gif               - android.graphics.Movie would be decoded instead of Bitmap. <b>Warning!</b> {@link Atlas.MessagePartBufferedStreamProvider} must be used 
+         * @param loadListener      - something you can use to be notified when image is loaded
+         */
+        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, boolean gif, ImageLoader.ImageLoadListener loadListener) {
             ImageSpec spec = null;
             synchronized (lock) {
                 for (int i = 0; i < queue.size(); i++) {
@@ -561,7 +622,7 @@ public class Atlas {
                 queue.add(0, spec);
                 lock.notifyAll();
             }
-            if (debug) Log.w(TAG, "requestBitmap() cache: " + cache.size() + ", queue: " + queue.size() + ", id: " + id);
+            if (debug) Log.w(TAG, "requestBitmap() cache: " + cache.size() + ", queue: " + queue.size() + ", id: " + id + ", reqs: " + requiredWidth + "x" + requiredHeight);
             return spec;
         }
 
@@ -575,11 +636,11 @@ public class Atlas {
             public boolean gif;
             public int downloadProgress;
             public int retries = 0;
-            public ImageLoader.BitmapLoadListener listener;
+            public ImageLoader.ImageLoadListener listener;
         }
 
-        public interface BitmapLoadListener {
-            public void onBitmapLoaded(ImageSpec spec);
+        public interface ImageLoadListener {
+            public void onImageLoaded(ImageSpec spec);
         }
         
         public static abstract class StreamProvider {

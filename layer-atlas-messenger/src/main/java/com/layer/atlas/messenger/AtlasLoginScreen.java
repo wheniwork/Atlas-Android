@@ -129,7 +129,7 @@ public class AtlasLoginScreen extends Activity {
                                 ((ParticipantProvider)app.getParticipantProvider()).set(result.participants);
                             }
                         } catch (Exception e) {
-                            e.printStackTrace();
+                            Log.e(TAG, "onAuthenticationChallenge() Unexpected error. ", e);
                         }
                     }
                 }).start();

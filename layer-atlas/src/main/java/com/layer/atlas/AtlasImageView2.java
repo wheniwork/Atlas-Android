@@ -17,7 +17,11 @@ package com.layer.atlas;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.PorterDuff.Mode;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.util.AttributeSet;
@@ -26,15 +30,19 @@ import android.view.MotionEvent;
 import android.view.View;
 
 import com.layer.atlas.Atlas.Tools;
-import com.layer.atlas.cells.ImageCell;
 
 /**
  * @author Oleg Orlov
  * @since  15 Jun 2015
  */
-public class AtlasImageView extends View {
-    private static final String TAG = AtlasImageView.class.getSimpleName();
-    private static final boolean debug = false;
+public class AtlasImageView2 extends View {
+    private static final String TAG = AtlasImageView2.class.getSimpleName();
+    private static final boolean debug = true;
+    
+    public static final int ORIENTATION_NORMAL = 0;
+    public static final int ORIENTATION_90_CW = 1;
+    public static final int ORIENTATION_180 = 2;
+    public static final int ORIENTATION_90_CCW = 3;
     
     private int defaultLayerType;
     
@@ -43,7 +51,7 @@ public class AtlasImageView extends View {
     private int contentWidth;
     private int contentHeight;
     public int orientation;
-    public float angle;
+    private float angle;
     
     // TODO: 
     // - support contentDimensions: 0x0
@@ -51,17 +59,17 @@ public class AtlasImageView extends View {
     // - support boundaries + drawable instead of contentDimensions + drawable 
     
     //----------------------------------------------------------------------------
-    public AtlasImageView(Context context, AttributeSet attrs, int defStyle) {
+    public AtlasImageView2(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         setupPaints();
     }
 
-    public AtlasImageView(Context context, AttributeSet attrs) {
+    public AtlasImageView2(Context context, AttributeSet attrs) {
         super(context, attrs);
         setupPaints();
     }
 
-    public AtlasImageView(Context context) {
+    public AtlasImageView2(Context context) {
         super(context);
         setupPaints();
     }
@@ -85,7 +93,7 @@ public class AtlasImageView extends View {
         int h = MeasureSpec.getSize(heightSpec);
         
         if (widthMode == MeasureSpec.EXACTLY && heightMode == MeasureSpec.EXACTLY) {
-            if (debug) Log.w(TAG, "onMeasure() exact dimenstions, skipping " + Tools.toStringSpec(widthSpec, heightSpec)); 
+            if (debug) Log.w(TAG, "onMeasure() exact dimensions, skipping " + Tools.toStringSpec(widthSpec, heightSpec)); 
         } else if (widthMode == MeasureSpec.UNSPECIFIED && heightMode == MeasureSpec.UNSPECIFIED) {
             if (debug) Log.w(TAG, "onMeasure() first pass, skipping " + Tools.toStringSpec(widthSpec, heightSpec));
         } else if (heightMode == MeasureSpec.UNSPECIFIED) {
@@ -120,7 +128,7 @@ public class AtlasImageView extends View {
         this.defaultLayerType = getLayerType();
     }
     
-    protected void onDraw(Canvas canvas) {
+    protected void onDraw(final Canvas canvas) {
         super.onDraw(canvas);
         
         if (getWidth() != getMeasuredWidth() || getHeight() != getMeasuredHeight()) {
@@ -141,9 +149,10 @@ public class AtlasImageView extends View {
         
         if (debug) {
             Log.w(TAG, 
-                      "onDraw() bounds: " + drawable.getBounds() + ", orientation: " + orientation 
-                    + "            min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
-                    + "     instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight()
+                    "onDraw() bounds: " + drawable.getBounds() + ", content: " + contentWidth + "x" + contentHeight 
+                    + ", orientation: " + orientation + ", angle: " + angle 
+                    + "          min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
+                    + "   instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight()
             );
         }
         
@@ -156,6 +165,23 @@ public class AtlasImageView extends View {
             imgWidth = drawable.getIntrinsicWidth();
             imgHeight = drawable.getIntrinsicHeight();
         }
+        
+        // fit in width
+        if (imgWidth > viewWidth) {
+            int newHeight = (int) (1.0 * imgHeight * viewWidth / imgWidth);
+            int newWidth  = viewWidth;
+            if (debug) Log.w(TAG, "onDraw() fit in width:  " + imgWidth + "x" + imgHeight + " -> " + newWidth + "x" + newHeight);
+            imgWidth = newWidth;
+            imgHeight = newHeight;
+        }
+        if (imgHeight > viewHeight) {
+            int newWidth = (int) (1.0 * imgWidth * viewHeight / imgHeight);
+            int newHeight = viewHeight;
+            if (debug) Log.w(TAG, "onDraw() fit in height: " + imgWidth + "x" + imgHeight + " -> " + newWidth + "x" + newHeight);
+            imgWidth = newWidth;
+            imgHeight = newHeight;
+        }
+        
         int left = (viewWidth  - imgWidth)  / 2;
         int top  = (viewHeight - imgHeight) / 2;
         int right = left + imgWidth;
@@ -163,42 +189,61 @@ public class AtlasImageView extends View {
         if (debug) Log.w(TAG, "onDraw() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
         drawable.setBounds(left, top, right, bottom);
 
-        int saved = canvas.save();
+        
+        if (!useBitmapBuffer && buffer != null) {
+            buffer = null;
+            bufferCanvas = null;
+        }
+        if (useBitmapBuffer && (buffer == null || buffer.getWidth() != viewWidth || buffer.getHeight() != viewHeight)) {
+            buffer = Bitmap.createBitmap(viewWidth, viewHeight, Config.ARGB_8888);
+            bufferCanvas = new Canvas(buffer);
+        }
+        
+        Canvas workCanvas = useBitmapBuffer ? bufferCanvas : canvas;
+        if (useBitmapBuffer) {          
+            workCanvas.drawColor(Color.TRANSPARENT, Mode.CLEAR);            // clean before using
+        }
+        
+        if (debug) Log.w(TAG, "onDraw() useBitmapBuffer: " + useBitmapBuffer + ", buffer: " + (buffer == null ? "null" : buffer.getWidth() + "x" + buffer.getHeight()) );
+        int saved = workCanvas.save();
         boolean iOSBug = true;
         if (iOSBug) {
             switch (orientation) {
-                case ImageCell.ORIENTATION_1_CW_180  : canvas.rotate(180, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                case ImageCell.ORIENTATION_2_CW_90    : 
+                case ORIENTATION_90_CW  : workCanvas.rotate(180, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
+                case ORIENTATION_180    : 
                     if (false) {
                         drawable.setBounds(-viewHeight / 2, -viewWidth / 2, viewHeight / 2, viewWidth / 2);
-                        canvas.rotate(-90);
-                        canvas.translate(viewWidth / 2, viewHeight /2 );
+                        workCanvas.rotate(-90);
+                        workCanvas.translate(viewWidth / 2, viewHeight /2 );
                     } else {
                         drawable.setBounds(0, 0, viewHeight, viewWidth);
-                        canvas.translate(0, viewHeight);
-                        canvas.rotate(-90); 
+                        workCanvas.translate(0, viewHeight);
+                        workCanvas.rotate(-90); 
                     }
                     break;
-                case ImageCell.ORIENTATION_3_CCW_90 : 
+                case ORIENTATION_90_CCW : 
                     drawable.setBounds(0, 0, viewHeight, viewWidth);
-                    canvas.translate(viewWidth, 0);
-                    canvas.rotate(90);
+                    workCanvas.translate(viewWidth, 0);
+                    workCanvas.rotate(90);
                     break;
-                default: canvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
+                default: workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
             }
         } else {
-            if (orientation == ImageCell.ORIENTATION_3_CCW_90 || orientation == ImageCell.ORIENTATION_1_CW_180) {
+            if (orientation == ORIENTATION_90_CCW || orientation == ORIENTATION_90_CW) {
                 drawable.setBounds(0,0, viewHeight, viewWidth);
             }
             switch (orientation) {
-                case ImageCell.ORIENTATION_1_CW_180  : canvas.rotate(-90, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                case ImageCell.ORIENTATION_2_CW_90    : canvas.rotate(180, 0.5f * viewWidth , 0.5f * viewHeight); break;
-                case ImageCell.ORIENTATION_3_CCW_90 : canvas.rotate(90,  0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                default: canvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
+                case ORIENTATION_90_CW  : workCanvas.rotate(-90, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
+                case ORIENTATION_180    : workCanvas.rotate(180, 0.5f * viewWidth , 0.5f * viewHeight); break;
+                case ORIENTATION_90_CCW : workCanvas.rotate(90,  0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
+                default: workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
             }
         }
-        drawable.draw(canvas);
-        canvas.restoreToCount(saved);
+        drawable.draw(workCanvas);
+        workCanvas.restoreToCount(saved);
+        if (useBitmapBuffer) {
+            canvas.drawBitmap(buffer, 0, 0, bitmapPaint);
+        }
     }
     
     @Override
@@ -246,5 +291,30 @@ public class AtlasImageView extends View {
         if (requestLayout) {
             requestLayout();
         }
+        invalidate();
     }
+    
+    boolean useBitmapBuffer;
+    private Bitmap buffer;
+    private Canvas bufferCanvas;
+    private static final Paint bitmapPaint = new Paint();
+
+    /** 
+     * Big bitmaps may not fit into GL_MAX_TEXTURE_SIZE boundaries (2048x2048 for Nexus S).
+     * To draw such images, buffer bitmap needs to be created
+     * TODO: understand it automatically
+     */
+    public void setUseBitmapBuffer(boolean useBitmapBuffer) {
+        this.useBitmapBuffer = useBitmapBuffer;
+    }
+
+    public float getAngle() {
+        return angle;
+    }
+
+    public void setAngle(float angle) {
+        this.angle = angle;
+        invalidate();
+    }
+
 }

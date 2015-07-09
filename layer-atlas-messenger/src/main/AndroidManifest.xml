@@ -103,6 +103,13 @@
             android:screenOrientation="portrait"
             android:label="ScreenTest: remove me from manifest" >
         </activity>
+        
+        <activity
+            android:name=".AtlasImageViewScreen"
+            android:configChanges="orientation|keyboardHidden"
+            android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
+            >
+        </activity>
 
         <activity android:name=".AtlasQRCaptureScreen"
                   android:clearTaskOnLaunch="true"

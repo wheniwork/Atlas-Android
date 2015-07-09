@@ -23,9 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
-import java.util.Map;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -64,6 +62,7 @@ import com.layer.atlas.AtlasTypingIndicator;
 import com.layer.atlas.messenger.MessengerApp.keys;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
+import com.layer.sdk.messaging.ConversationOptions;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
 import com.layer.sdk.query.Predicate;
@@ -77,7 +76,7 @@ import com.layer.sdk.query.SortDescriptor;
 public class AtlasMessagesScreen extends Activity {
 
     private static final String TAG = AtlasMessagesScreen.class.getSimpleName();
-    private static final boolean debug = false;
+    private static final boolean debug = true;
     
     public static final String EXTRA_CONVERSATION_IS_NEW = "conversation.new";
     public static final String EXTRA_CONVERSATION_URI = keys.CONVERSATION_URI;
@@ -196,9 +195,9 @@ public class AtlasMessagesScreen extends Activity {
         }
         
         messagesList.setItemClickListener(new ItemClickListener() {
-            public void onItemClick(Cell item) {
-                if (Atlas.MIME_TYPE_ATLAS_LOCATION.equals(item.messagePart.getMimeType())) {
-                    String jsonLonLat = new String(item.messagePart.getData());
+            public void onItemClick(Cell cell) {
+                if (Atlas.MIME_TYPE_ATLAS_LOCATION.equals(cell.messagePart.getMimeType())) {
+                    String jsonLonLat = new String(cell.messagePart.getData());
                     JSONObject json;
                     try {
                         json = new JSONObject(jsonLonLat);
@@ -217,6 +216,14 @@ public class AtlasMessagesScreen extends Activity {
                         }
                     } catch (JSONException ignored) {
                     }
+                } else if (Atlas.MIME_TYPE_IMAGE_JPEG.equals(cell.messagePart.getMimeType())
+                            || Atlas.MIME_TYPE_IMAGE_PNG.equals(cell.messagePart.getMimeType())
+                            || Atlas.MIME_TYPE_IMAGE_GIF.equals(cell.messagePart.getMimeType())
+                        ) {
+                    
+                    Intent intent = new Intent(AtlasMessagesScreen.this.getApplicationContext(), AtlasImageViewScreen.class);
+                    app.setParam(intent, cell);
+                    startActivity(intent);
                 }
             }
         });
@@ -254,7 +261,7 @@ public class AtlasMessagesScreen extends Activity {
             return false;
         }
         
-        conv = app.getLayerClient().newConversation(userIds);
+        conv = app.getLayerClient().newConversation(new ConversationOptions().distinct(false), userIds);
         participantsPicker.setVisibility(View.GONE);
         messageComposer.setConversation(conv);
         messagesList.setConversation(conv);
@@ -266,15 +273,13 @@ public class AtlasMessagesScreen extends Activity {
     private void preparePushMetadata(Message message) {
         Participant me = app.getParticipantProvider().getParticipant(app.getLayerClient().getAuthenticatedUserId());
         String senderName = Atlas.getFullName(me);
-        Map<String, String> metadata = new HashMap<String, String>();
         String text = Atlas.Tools.toString(message);
         if (!text.isEmpty()) {
             if (senderName != null && !senderName.isEmpty()) {
-                metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), senderName + ": " + text);
+                message.getOptions().pushNotificationMessage(senderName + ": " + text);
             } else {
-                metadata.put(Message.ReservedMetadataKeys.PushNotificationAlertMessageKey.getKey(), text);
+                message.getOptions().pushNotificationMessage(text);
             }
-            message.setMetadata(metadata);
         }
     }
 
@@ -565,6 +570,11 @@ public class AtlasMessagesScreen extends Activity {
             }
         });
         ((TextView)findViewById(R.id.atlas_actionbar_title_text)).setText("Messages");
+        ((TextView)findViewById(R.id.atlas_actionbar_title_text)).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                messagesList.requestRefreshValues(true, false);
+            }
+        });
         ImageView settingsBtn = (ImageView) findViewById(R.id.atlas_actionbar_right_btn);
         settingsBtn.setImageResource(R.drawable.atlas_ctl_btn_detail);
         settingsBtn.setVisibility(View.VISIBLE);

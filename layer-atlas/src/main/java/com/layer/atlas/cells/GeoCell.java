@@ -42,7 +42,7 @@ import com.layer.sdk.messaging.MessagePart;
  * @author Oleg Orlov
  * @since  13 May 2015
  */
-public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListener, ImageLoader.BitmapLoadListener {
+public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListener, ImageLoader.ImageLoadListener {
     private static final String TAG = GeoCell.class.getSimpleName();
     private static final boolean debug = false;
     
@@ -172,7 +172,7 @@ public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListene
     }
 
     @Override
-    public void onBitmapLoaded(ImageSpec spec) {
+    public void onImageLoaded(ImageSpec spec) {
         messagesList.requestRefresh();
     }
 }
