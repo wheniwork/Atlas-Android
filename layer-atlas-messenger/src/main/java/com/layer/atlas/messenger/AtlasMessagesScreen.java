@@ -59,6 +59,7 @@ import com.layer.atlas.AtlasMessagesList.Cell;
 import com.layer.atlas.AtlasMessagesList.ItemClickListener;
 import com.layer.atlas.AtlasParticipantPicker;
 import com.layer.atlas.AtlasTypingIndicator;
+import com.layer.atlas.cells.ImageCell;
 import com.layer.atlas.messenger.MessengerApp.keys;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
@@ -211,16 +212,11 @@ public class AtlasMessagesScreen extends Activity {
                             startActivity(openMapIntent);
                             if (debug) Log.w(TAG, "onItemClick() starting Map: " + uriString);
                         } else {
-                            if (debug)
-                                Log.w(TAG, "onItemClick() No Activity to start Map: " + geoUri);
+                            if (debug) Log.w(TAG, "onItemClick() No Activity to start Map: " + geoUri);
                         }
                     } catch (JSONException ignored) {
                     }
-                } else if (Atlas.MIME_TYPE_IMAGE_JPEG.equals(cell.messagePart.getMimeType())
-                            || Atlas.MIME_TYPE_IMAGE_PNG.equals(cell.messagePart.getMimeType())
-                            || Atlas.MIME_TYPE_IMAGE_GIF.equals(cell.messagePart.getMimeType())
-                        ) {
-                    
+                } else if (cell instanceof ImageCell) {
                     Intent intent = new Intent(AtlasMessagesScreen.this.getApplicationContext(), AtlasImageViewScreen.class);
                     app.setParam(intent, cell);
                     startActivity(intent);

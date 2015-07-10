@@ -16,6 +16,8 @@
 package com.layer.atlas.cells;
 
 import android.graphics.Bitmap;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -50,7 +52,7 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
     public final int declaredWidth;
     public final int declaredHeight;
     public final int orientation;
-    private ImageLoader.ImageSpec imageSpec;
+    protected ImageLoader.ImageSpec imageSpec;
     
     /** if more than 0 - download is in progress */
     volatile long downloadProgressBytes = -1;
@@ -103,9 +105,6 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
             imageContainerTheir.setVisibility(View.VISIBLE);
         }
 
-        MessagePart workingPart = previewPart != null ? previewPart : fullPart;
-        Bitmap bmp = (Bitmap) Atlas.imageLoader.getBitmapFromCache(workingPart.getId());
-             
         // understanging image's dimensions
         int imgWidth  = this.declaredWidth;
         int imgHeight = this.declaredHeight;
@@ -118,11 +117,14 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
             imgHeight = imageSpec.originalHeight;
         }
         
+        MessagePart workingPart = getWorkingPart();
+        Drawable drawable = getDrawable(workingPart);
+
         // still no size known? fallback to bitmap's size
-        if ((imgWidth == 0 || imgHeight == 0) && bmp != null) {
-            if (debug) Log.w(TAG, "img.onBind() using imgSize from bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
-            imgWidth  = bmp.getWidth();
-            imgHeight = bmp.getHeight();
+        if ((imgWidth == 0 || imgHeight == 0) && drawable != null) {
+            if (debug) Log.w(TAG, "img.onBind() using imgSize from drawable: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight());
+            imgWidth  = drawable.getIntrinsicWidth();
+            imgHeight = drawable.getIntrinsicHeight();
         }
 
         // calculate appropriate View size. If image dimensions are unknown, use default size 192dp
@@ -168,21 +170,11 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         imageView.setContentDimensions(viewWidth, viewHeight);
         imageView.orientation = orientation;
 
-        // TODO: calculate properly with rotation
-        int requiredWidth  = messagesList.getWidth();
-        int requiredHeight = messagesList.getHeight();
-
-        if (bmp != null) {
-            imageView.setBitmap(bmp);
-            if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() 
-                    + " " + bmp.getByteCount() + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
+        if (drawable != null) {
+            imageView.setDrawable(drawable);
         } else {
             imageView.setDrawable(Tools.EMPTY_DRAWABLE);
-            final Uri id = workingPart.getId();
-            final MessagePartStreamProvider streamProvider = new MessagePartStreamProvider(workingPart);
-            if (workingPart.isContentReady()) {
-                imageSpec = Atlas.imageLoader.requestBitmap(id, streamProvider, requiredWidth, requiredHeight, false, this);
-            } else if (downloadProgressBytes == -1){
+            if ( ! workingPart.isContentReady() && downloadProgressBytes == -1) {
                 workingPart.download(this);
             }
         }
@@ -224,6 +216,31 @@ public class ImageCell extends Cell implements LayerProgressListener, ImageLoade
         return rootView;
     }
     
+    protected MessagePart getWorkingPart() {
+        return previewPart != null ? previewPart : fullPart;
+    }
+
+    /** 
+     * @return drawable to set into imageView. Assumed that it return real drawable finally 
+     */
+    protected Drawable getDrawable(MessagePart workingPart) {
+        // TODO: calculate properly with rotation
+        int requiredWidth  = messagesList.getWidth();
+        int requiredHeight = messagesList.getHeight();
+        
+        Bitmap bmp = (Bitmap) Atlas.imageLoader.getImageFromCache(workingPart.getId());
+        if (bmp != null) {
+            if (debug) Log.i(TAG, "img.onBind() returned from cache! " + bmp.getWidth() + "x" + bmp.getHeight() 
+                    + " " + bmp.getByteCount() + " bytes, req: " + requiredWidth + "x" + requiredHeight + " for " + workingPart.getId());
+            return new BitmapDrawable(bmp);
+        } else if (workingPart.isContentReady()){
+            final Uri id = workingPart.getId();
+            final MessagePartStreamProvider streamProvider = new MessagePartStreamProvider(workingPart);
+            imageSpec = Atlas.imageLoader.requestImage(id, streamProvider, requiredWidth, requiredHeight, false, this);
+        }
+        return null;
+    }
+
     // LayerDownloadListener (when downloading part)
     public void onProgressStart(MessagePart part, Operation operation) {
     }

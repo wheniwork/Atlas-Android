@@ -17,6 +17,7 @@ package com.layer.atlas.messenger;
 
 import android.app.Activity;
 import android.graphics.Bitmap;
+import android.graphics.Movie;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
@@ -32,6 +33,7 @@ import com.layer.atlas.Atlas.ImageLoader.ImageSpec;
 import com.layer.atlas.Atlas.Tools;
 import com.layer.atlas.AtlasImageView2;
 import com.layer.atlas.AtlasProgressView;
+import com.layer.atlas.GIFDrawable;
 import com.layer.atlas.cells.ImageCell;
 import com.layer.sdk.internal.utils.Log;
 import com.layer.sdk.listeners.LayerProgressListener;
@@ -151,12 +153,17 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         // prepare drawables
         if (fullDrawable == null) {
             // build fullDrawable
-            Bitmap fullBmp = (Bitmap) Atlas.imageLoader.getBitmapFromCache(cell.fullPart.getId());
-            if (fullBmp != null) {
-                fullDrawable = new BitmapDrawable(fullBmp);
-                if (fullBmp.getWidth() > 2048 || fullBmp.getHeight() > 2048) {
-                    if (debug) Log.w(TAG, "updateValues() enabling buffering... bitmap: " + fullBmp);
-                    imageViewer.setUseBitmapBuffer(true);
+            Object image = Atlas.imageLoader.getImageFromCache(cell.fullPart.getId());
+            if (image != null) {
+                if (Atlas.MIME_TYPE_IMAGE_GIF.equals(cell.messagePart.getMimeType())) {
+                    fullDrawable = new GIFDrawable((Movie)image);
+                } else {
+                    Bitmap fullBmp = (Bitmap) image;
+                    fullDrawable = new BitmapDrawable(fullBmp);
+                    if (fullBmp.getWidth() > 2048 || fullBmp.getHeight() > 2048) {
+                        if (debug) Log.w(TAG, "updateValues() enabling buffering... bitmap: " + fullBmp);
+                        imageViewer.setUseBitmapBuffer(true);
+                    }
                 }
             } else {
                 DisplayMetrics dm = new DisplayMetrics();
@@ -165,17 +172,22 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
                 final int requiredWidth  = imageViewer.getWidth()  != 0 ? imageViewer.getWidth()  : dm.widthPixels;
                 final int requiredHeight = imageViewer.getHeight() != 0 ? imageViewer.getHeight() : dm.heightPixels;
 
-                Atlas.imageLoader.requestBitmap(cell.fullPart.getId(), new Atlas.MessagePartStreamProvider(cell.fullPart)
-                    , requiredWidth, requiredHeight, false, this);
+                if (Atlas.MIME_TYPE_IMAGE_GIF.equals(cell.messagePart.getMimeType())) {
+                    Atlas.imageLoader.requestImage(cell.fullPart.getId(), new Atlas.MessagePartBufferedStreamProvider(cell.fullPart)
+                        , requiredWidth, requiredHeight, true, this);
+                } else {
+                    Atlas.imageLoader.requestImage(cell.fullPart.getId(), new Atlas.MessagePartStreamProvider(cell.fullPart)
+                        , requiredWidth, requiredHeight, false, this);
+                }
             }
         }
         
         if (previewDrawable == null && cell.previewPart != null) {
-            Bitmap previewBmp = (Bitmap) Atlas.imageLoader.getBitmapFromCache(cell.previewPart.getId());
+            Bitmap previewBmp = (Bitmap) Atlas.imageLoader.getImageFromCache(cell.previewPart.getId());
             if (previewBmp != null) {
                 previewDrawable = new BitmapDrawable(previewBmp);
             } else { 
-                Atlas.imageLoader.requestBitmap(cell.previewPart.getId(), new Atlas.MessagePartStreamProvider(cell.previewPart), this);
+                Atlas.imageLoader.requestImage(cell.previewPart.getId(), new Atlas.MessagePartStreamProvider(cell.previewPart), this);
             }
         }
         
@@ -183,7 +195,7 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
             // set content if ready
             if (fullDrawable != null) {
                 imageViewer.setDrawable(fullDrawable);
-            } else if (previewDrawable != null){
+            } else if (previewDrawable != null) {
                 imageViewer.setDrawable(previewDrawable);
             }
         } else {

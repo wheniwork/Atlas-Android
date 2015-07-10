@@ -93,7 +93,7 @@ public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListene
         ShapedFrameLayout cellCustom = (ShapedFrameLayout) (myMessage ? containerMy : containerTheir);
         
         Object imageId = messagePart.getId();
-        Bitmap bmp = (Bitmap) Atlas.imageLoader.getBitmapFromCache(imageId);
+        Bitmap bmp = (Bitmap) Atlas.imageLoader.getImageFromCache(imageId);
         if (bmp != null) {
             if (debug) Log.d(TAG, "geo.onBind() bitmap: " + bmp.getWidth() + "x" + bmp.getHeight());
             geoImage.setImageBitmap(bmp);
@@ -105,7 +105,7 @@ public class GeoCell extends Cell implements Atlas.DownloadQueue.CompleteListene
             if (tileFile.exists()) {
                 if (debug) Log.d(TAG, "geo.onBind() decodeImage: " + tileFile);
                 // request decoding
-                spec = Atlas.imageLoader.requestBitmap(imageId
+                spec = Atlas.imageLoader.requestImage(imageId
                         , new Atlas.FileStreamProvider(tileFile)
                         , (int)Tools.getPxFromDp(150, cellContainer.getContext())
                         , (int)Tools.getPxFromDp(150, cellContainer.getContext()), false, this);

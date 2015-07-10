@@ -563,7 +563,7 @@ public class Atlas {
             return sampleSize;
         }
     
-        public Object getBitmapFromCache(Object id) {
+        public Object getImageFromCache(Object id) {
             return cache.get(id);
         }
                 
@@ -587,10 +587,17 @@ public class Atlas {
         }
                 
         /**
-         * @see #requestBitmap(Object, StreamProvider, int, int, boolean, ImageLoadListener) 
+         * @see #requestImage(Object, InputStreamProvider, int, int, boolean, ImageLoadListener) 
          */
-        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, ImageLoader.ImageLoadListener loadListener) {
-            return requestBitmap(id, streamProvider, 0, 0, false, loadListener);
+        public ImageSpec requestImage(Object id, InputStreamProvider streamProvider, ImageLoader.ImageLoadListener loadListener) {
+            return requestImage(id, streamProvider, 0, 0, false, loadListener);
+        }
+        
+        /**
+         * @see #requestImage(Object, InputStreamProvider, int, int, boolean, ImageLoadListener) 
+         */
+        public ImageSpec requestImage(Object id, InputStreamProvider streamProvider, boolean gif, ImageLoader.ImageLoadListener loadListener) {
+            return requestImage(id, streamProvider, 0, 0, gif, loadListener);
         }
         
         /** 
@@ -601,7 +608,7 @@ public class Atlas {
          * @param gif               - android.graphics.Movie would be decoded instead of Bitmap. <b>Warning!</b> {@link Atlas.MessagePartBufferedStreamProvider} must be used 
          * @param loadListener      - something you can use to be notified when image is loaded
          */
-        public ImageSpec requestBitmap(Object id, StreamProvider streamProvider, int requiredWidth, int requiredHeight, boolean gif, ImageLoader.ImageLoadListener loadListener) {
+        public ImageSpec requestImage(Object id, InputStreamProvider streamProvider, int requiredWidth, int requiredHeight, boolean gif, ImageLoader.ImageLoadListener loadListener) {
             ImageSpec spec = null;
             synchronized (lock) {
                 for (int i = 0; i < queue.size(); i++) {
@@ -628,7 +635,7 @@ public class Atlas {
 
         public static class ImageSpec {
             public Object id;
-            public StreamProvider inputStreamProvider;
+            public InputStreamProvider inputStreamProvider;
             public int requiredWidth;
             public int requiredHeight;
             public int originalWidth;
@@ -643,7 +650,7 @@ public class Atlas {
             public void onImageLoaded(ImageSpec spec);
         }
         
-        public static abstract class StreamProvider {
+        public static abstract class InputStreamProvider {
             public abstract InputStream getInputStream();
             public abstract boolean ready();
         }
@@ -726,7 +733,7 @@ public class Atlas {
         }
     }
 
-    public static class MessagePartStreamProvider extends ImageLoader.StreamProvider {
+    public static class MessagePartStreamProvider extends ImageLoader.InputStreamProvider {
         public final MessagePart part;
         public MessagePartStreamProvider(MessagePart part) {
             if (part == null) throw new IllegalStateException("MessagePart cannot be null");
@@ -746,7 +753,7 @@ public class Atlas {
      * 
      * Used for GIF purposes, because it calls <code>.reset()</code> stream during execution
      */
-    public static class MessagePartBufferedStreamProvider extends ImageLoader.StreamProvider {
+    public static class MessagePartBufferedStreamProvider extends ImageLoader.InputStreamProvider {
         public final MessagePart part;
         public MessagePartBufferedStreamProvider(MessagePart part) {
             if (part == null) throw new IllegalStateException("MessagePart cannot be null");
@@ -762,7 +769,7 @@ public class Atlas {
         }
     }
 
-    public static class FileStreamProvider extends ImageLoader.StreamProvider {
+    public static class FileStreamProvider extends ImageLoader.InputStreamProvider {
         final File file;
         public FileStreamProvider(File file) {
             if (file == null) throw new IllegalStateException("File cannot be null");

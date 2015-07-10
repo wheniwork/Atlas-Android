@@ -29,9 +29,12 @@ import android.util.Log;
 public class GIFDrawable extends Drawable {
     private static final String TAG = GIFDrawable.class.getSimpleName();
     private static final boolean debug = false;
+    
+    /** By default first frame to show wouldn't depend on time of Drawable creation */
+    private static final long defaultCreatedAt = System.currentTimeMillis();
 
     private Movie gif;
-    private long createdAt = System.currentTimeMillis();
+    private long createdAt = defaultCreatedAt;
     
     public GIFDrawable(Movie gif) {
         this.gif = gif;
@@ -78,6 +81,16 @@ public class GIFDrawable extends Drawable {
     @Override
     public int getOpacity() {
         return PixelFormat.TRANSLUCENT;
+    }
+
+    @Override
+    public int getIntrinsicWidth() {
+        return gif.width();
+    }
+
+    @Override
+    public int getIntrinsicHeight() {
+        return gif.height();
     }
 
 }

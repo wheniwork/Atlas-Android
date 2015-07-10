@@ -62,6 +62,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginLeft="48dp"
+        android:layout_marginBottom="2dp"
         android:textSize="@dimen/atlas_text_size_smaller2"
         android:textColor="@color/atlas_text_gray"
         android:text="Tomaz Stolfa"
@@ -70,7 +71,7 @@
     <LinearLayout 
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingTop="1dp"    
+        android:paddingTop="1dp"
         android:paddingBottom="1dp"    
         
         android:orientation="horizontal"

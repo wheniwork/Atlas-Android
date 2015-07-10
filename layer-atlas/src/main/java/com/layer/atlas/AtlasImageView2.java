@@ -50,7 +50,6 @@ public class AtlasImageView2 extends View {
     
     private int contentWidth;
     private int contentHeight;
-    public int orientation;
     private float angle;
     
     // TODO: 
@@ -147,14 +146,10 @@ public class AtlasImageView2 extends View {
             }
         }
         
-        if (debug) {
-            Log.w(TAG, 
-                    "onDraw() bounds: " + drawable.getBounds() + ", content: " + contentWidth + "x" + contentHeight 
-                    + ", orientation: " + orientation + ", angle: " + angle 
-                    + "          min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
-                    + "   instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight()
-            );
-        }
+        if (debug) Log.w(TAG, 
+                    "onDraw() bounds: " + drawable.getBounds() + ", content: " + contentWidth + "x" + contentHeight + ", angle: " + angle 
+                    +         ", min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
+                    +  ", instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight());
         
         int viewWidth  = getWidth();
         int viewHeight = getHeight();
@@ -189,7 +184,6 @@ public class AtlasImageView2 extends View {
         if (debug) Log.w(TAG, "onDraw() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
         drawable.setBounds(left, top, right, bottom);
 
-        
         if (!useBitmapBuffer && buffer != null) {
             buffer = null;
             bufferCanvas = null;
@@ -206,39 +200,7 @@ public class AtlasImageView2 extends View {
         
         if (debug) Log.w(TAG, "onDraw() useBitmapBuffer: " + useBitmapBuffer + ", buffer: " + (buffer == null ? "null" : buffer.getWidth() + "x" + buffer.getHeight()) );
         int saved = workCanvas.save();
-        boolean iOSBug = true;
-        if (iOSBug) {
-            switch (orientation) {
-                case ORIENTATION_90_CW  : workCanvas.rotate(180, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                case ORIENTATION_180    : 
-                    if (false) {
-                        drawable.setBounds(-viewHeight / 2, -viewWidth / 2, viewHeight / 2, viewWidth / 2);
-                        workCanvas.rotate(-90);
-                        workCanvas.translate(viewWidth / 2, viewHeight /2 );
-                    } else {
-                        drawable.setBounds(0, 0, viewHeight, viewWidth);
-                        workCanvas.translate(0, viewHeight);
-                        workCanvas.rotate(-90); 
-                    }
-                    break;
-                case ORIENTATION_90_CCW : 
-                    drawable.setBounds(0, 0, viewHeight, viewWidth);
-                    workCanvas.translate(viewWidth, 0);
-                    workCanvas.rotate(90);
-                    break;
-                default: workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
-            }
-        } else {
-            if (orientation == ORIENTATION_90_CCW || orientation == ORIENTATION_90_CW) {
-                drawable.setBounds(0,0, viewHeight, viewWidth);
-            }
-            switch (orientation) {
-                case ORIENTATION_90_CW  : workCanvas.rotate(-90, 0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                case ORIENTATION_180    : workCanvas.rotate(180, 0.5f * viewWidth , 0.5f * viewHeight); break;
-                case ORIENTATION_90_CCW : workCanvas.rotate(90,  0.5f * drawable.getBounds().width() , 0.5f * drawable.getBounds().height()); break;
-                default: workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
-            }
-        }
+        workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
         drawable.draw(workCanvas);
         workCanvas.restoreToCount(saved);
         if (useBitmapBuffer) {
