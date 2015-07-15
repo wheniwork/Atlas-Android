@@ -38,8 +38,12 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Movie;
+import android.graphics.Paint;
+import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -157,19 +161,36 @@ public class Atlas {
             return sb.toString();
         }
 
-        public static String toString(MotionEvent me) {
+        public static String toString(MotionEvent event) {
             StringBuilder sb = new StringBuilder();
             
-            sb.append(me.getX()).append("x").append(me.getY());
+            sb.append(event.getX()).append("x").append(event.getY());
             sb.append(", action: ");
-            switch (me.getAction()) {
+            switch (event.getAction() & MotionEvent.ACTION_MASK) {
                 case MotionEvent.ACTION_DOWN    : sb.append("DOWN"); break; 
                 case MotionEvent.ACTION_UP      : sb.append("UP"); break; 
                 case MotionEvent.ACTION_MOVE    : sb.append("MOVE"); break; 
                 case MotionEvent.ACTION_SCROLL  : sb.append("SCROLL"); break; 
-                default                         : sb.append(me.getAction()); break; 
+                case MotionEvent.ACTION_POINTER_UP     : {
+                    sb.append("ACTION_POINTER_UP"); 
+                    final int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK) >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                    sb.append(" pointer: ").append(pointerIndex);
+                    break; 
+                }
+                case MotionEvent.ACTION_POINTER_DOWN   : {
+                    sb.append("ACTION_POINTER_DOWN");  
+                    final int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK) >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
+                    sb.append(" pointer: ").append(pointerIndex);
+                    break; 
+                }
+                default                         : sb.append(event.getAction()); break; 
             }
-            sb.append(", pts: ").append(me.getPointerCount());
+            sb.append(", pts: [");
+            for (int i = 0; i < event.getPointerCount(); i++) {
+                sb.append(i > 0 ? ", ":"");
+                sb.append(i).append(":").append(String.format("%.1fx%.1f", event.getX(i), event.getY(i)));
+            }
+            sb.append("]");
             return sb.toString();
         }
 
@@ -314,6 +335,43 @@ public class Atlas {
         /** escape characters of part.id if they are invalid for filePath */
         public static String escapePath(String partId) {
             return partId.replaceAll("[:/\\+]", "_");
+        }
+
+        /** draws lines between opposite corners of provided rect */
+        public static void drawX(float left, float top, float right, float bottom, Paint paint, Canvas canvas) {
+            canvas.drawLine(left, top, right, bottom, paint);
+            canvas.drawLine(left, bottom, right, top, paint);
+        }
+        /** @see #drawX(float, float, float, float, Paint, Canvas)*/
+        public static void drawX(Rect rect, Paint paint, Canvas canvas) {
+            drawX(rect.left, rect.top, rect.right, rect.bottom, paint, canvas);
+        }
+        /** @see #drawX(float, float, float, float, Paint, Canvas)*/
+        public static void drawX(RectF rect, Paint paint, Canvas canvas) {
+            drawX(rect.left, rect.top, rect.right, rect.bottom, paint, canvas);
+        }
+        
+        public static void drawPlus(float left, float top, float right, float bottom, Paint paint, Canvas canvas) {
+            canvas.drawLine(0.5f * (left + right), top, 0.5f * (left + right), bottom, paint);
+            canvas.drawLine(left, 0.5f * (top + bottom),  right, 0.5f * (top + bottom), paint);
+        }
+        
+        public static void drawPlus(Rect rect, Paint paint, Canvas canvas) {
+            drawPlus(rect.left, rect.top, rect.right, rect.bottom, paint, canvas);
+        }
+        
+        public static void drawPlus(RectF rect, Paint paint, Canvas canvas) {
+            drawPlus(rect.left, rect.top, rect.right, rect.bottom, paint, canvas);
+        }
+
+        public static void drawPlus(float xCenter, float yCenter, Canvas canvas, Paint paint) {
+            canvas.drawLine(xCenter, -10000, xCenter, 10000, paint);
+            canvas.drawLine(-10000, yCenter, 10000, yCenter, paint);
+        }
+
+        public static void drawPlusCircle(float xCenter, float yCenter, float radius, Paint paint, Canvas canvas) {
+            drawPlus(xCenter - 1.1f * radius, yCenter - 1.1f * radius, xCenter + 1.1f * radius, yCenter + 1.1f * radius, paint, canvas);
+            canvas.drawCircle(xCenter, yCenter, radius, paint);
         }
 
     }

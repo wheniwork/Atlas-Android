@@ -22,10 +22,9 @@ import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
-import android.view.MotionEvent;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-import android.view.View.OnTouchListener;
 import android.widget.CheckBox;
 
 import com.layer.atlas.Atlas;
@@ -35,7 +34,6 @@ import com.layer.atlas.AtlasImageView2;
 import com.layer.atlas.AtlasProgressView;
 import com.layer.atlas.GIFDrawable;
 import com.layer.atlas.cells.ImageCell;
-import com.layer.sdk.internal.utils.Log;
 import com.layer.sdk.listeners.LayerProgressListener;
 import com.layer.sdk.messaging.MessagePart;
 
@@ -80,18 +78,9 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         this.imageViewer = (AtlasImageView2) findViewById(R.id.atlas_screen_image_view_image);
         this.imageViewer.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
         
-        this.imageViewer.setOnTouchListener(new OnTouchListener() {
-            @Override
-            public boolean onTouch(View v, MotionEvent event) {
-                if (debug) Log.w(TAG, "onTouch() event: " + Tools.toString(event));
-                return false;
-            }
-        });
-        
         this.progressView = (AtlasProgressView) findViewById(R.id.atlas_screen_image_view_progress);
         
         findViewById(R.id.atlas_screen_image_view_angle_minus).setOnClickListener(new OnClickListener() {
-            @Override
             public void onClick(View v) {
                 imageViewer.setAngle(imageViewer.getAngle() - 3.0f);
                 imageViewer.invalidate();
@@ -99,10 +88,45 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         });
         
         findViewById(R.id.atlas_screen_image_view_angle_plus).setOnClickListener(new OnClickListener() {
-            @Override
             public void onClick(View v) {
                 imageViewer.setAngle(imageViewer.getAngle() + 3.0f);
                 imageViewer.invalidate();
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_zoom_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setZoom(imageViewer.getZoom() - 0.1f);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_zoom_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setZoom(imageViewer.getZoom() + 0.1f);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_x_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setXOffset(imageViewer.getXOffset() - 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_x_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setXOffset(imageViewer.getXOffset() + 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_y_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setYOffset(imageViewer.getYOffset() - 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_y_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setYOffset(imageViewer.getYOffset() + 10);
             }
         });
         
