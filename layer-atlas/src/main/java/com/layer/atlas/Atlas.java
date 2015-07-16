@@ -164,12 +164,12 @@ public class Atlas {
         public static String toString(MotionEvent event) {
             StringBuilder sb = new StringBuilder();
             
-            sb.append(event.getX()).append("x").append(event.getY());
-            sb.append(", action: ");
+            sb.append("action: ");
             switch (event.getAction() & MotionEvent.ACTION_MASK) {
                 case MotionEvent.ACTION_DOWN    : sb.append("DOWN"); break; 
-                case MotionEvent.ACTION_UP      : sb.append("UP"); break; 
+                case MotionEvent.ACTION_UP      : sb.append("UP  "); break; 
                 case MotionEvent.ACTION_MOVE    : sb.append("MOVE"); break; 
+                case MotionEvent.ACTION_CANCEL  : sb.append("CANCEL"); break; 
                 case MotionEvent.ACTION_SCROLL  : sb.append("SCROLL"); break; 
                 case MotionEvent.ACTION_POINTER_UP     : {
                     sb.append("ACTION_POINTER_UP"); 
@@ -188,7 +188,7 @@ public class Atlas {
             sb.append(", pts: [");
             for (int i = 0; i < event.getPointerCount(); i++) {
                 sb.append(i > 0 ? ", ":"");
-                sb.append(i).append(":").append(String.format("%.1fx%.1f", event.getX(i), event.getY(i)));
+                sb.append(i).append(": ").append(String.format("%.1fx%.1f", event.getX(i), event.getY(i)));
             }
             sb.append("]");
             return sb.toString();

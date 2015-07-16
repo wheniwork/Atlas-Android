@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.CheckBox;
+import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
 import com.layer.atlas.Atlas.ImageLoader.ImageSpec;
@@ -43,7 +44,8 @@ import com.layer.sdk.messaging.MessagePart;
  */
 public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.ImageLoadListener, LayerProgressListener {
     private static final String TAG = AtlasImageViewScreen.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
+    private static final boolean debugControls = false;
     
     private AtlasImageView2   imageViewer;
     private AtlasProgressView progressView;
@@ -62,6 +64,8 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         super.onCreate(savedInstanceState);
         setContentView(R.layout.atlas_screen_image_view);
 
+        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
+        
         MessengerApp app = (MessengerApp) getApplication();
         this.cell = (ImageCell) app.getParam(getIntent()); 
         if (debug) Log.w(TAG, "onCreate() cell: " + cell);
@@ -76,9 +80,15 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         }
         
         this.imageViewer = (AtlasImageView2) findViewById(R.id.atlas_screen_image_view_image);
-        this.imageViewer.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        this.imageViewer.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                Toast.makeText(v.getContext(), "On Click!", Toast.LENGTH_SHORT).show();
+            }
+        });
         
         this.progressView = (AtlasProgressView) findViewById(R.id.atlas_screen_image_view_progress);
+        
+        if (debugControls) findViewById(R.id.atlas_screen_image_view_debug).setVisibility(View.VISIBLE);
         
         findViewById(R.id.atlas_screen_image_view_angle_minus).setOnClickListener(new OnClickListener() {
             public void onClick(View v) {

@@ -40,12 +40,9 @@ import com.layer.atlas.Atlas.Tools;
 public class AtlasImageView2 extends View {
     private static final String TAG = AtlasImageView2.class.getSimpleName();
     private static final boolean debug = false;
+    private static final boolean debugOutline = false;
     
-    public static final int ORIENTATION_NORMAL = 0;
-    public static final int ORIENTATION_90_CW = 1;
-    public static final int ORIENTATION_180 = 2;
-    public static final int ORIENTATION_90_CCW = 3;
-    
+    /** Backup for type that could be switched to SOFTWARE in order to render GIFs. */
     private int defaultLayerType;
     
     private Drawable drawable;
@@ -210,24 +207,21 @@ public class AtlasImageView2 extends View {
         workCanvas.translate(pos.x, pos.y);
         workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
         drawable.draw(workCanvas);
-        Tools.drawX(drawable.getBounds(), debugGreenPaint, workCanvas);
+        if (debugOutline) Tools.drawX(drawable.getBounds(), debugGreenPaint, workCanvas);
         workCanvas.restoreToCount(saved);
         if (useBitmapBuffer) {
             canvas.drawBitmap(buffer, 0, 0, bitmapPaint);
         }
         
-        boolean debug = true;
-        if (debug) {
-            Tools.drawPlus(0, 0, getWidth(), getHeight(), debugGrayPaint, canvas);
-        }
+        if (debugOutline) Tools.drawPlus(0, 0, getWidth(), getHeight(), debugGrayPaint, canvas);
         
-        if (debug && showMarker) {
+        if (debugOutline && showMarker) {
             canvas.drawLine(0, lastTouch1y, getWidth(), lastTouch1y, debugRedPaint);
             canvas.drawLine(lastTouch1x, 0, lastTouch1x, getHeight(), debugRedPaint);
             canvas.drawLine(0, lastTouch2y, getWidth(), lastTouch2y, debugBluePaint);
             canvas.drawLine(lastTouch2x, 0, lastTouch2x, getHeight(), debugBluePaint);
         }
-        if (debug) {
+        if (debugOutline) {
             float lineHeight = debugTextPaint.getFontMetrics().descent - debugTextPaint.getFontMetrics().ascent;
 
             float x = Tools.getPxFromDp(20, getContext());
@@ -237,7 +231,7 @@ public class AtlasImageView2 extends View {
             canvas.drawText(String.format("2: %.1fx%.1f", lastTouch2x, lastTouch2y), x, y, debugTextPaint); y += lineHeight;
             canvas.drawText(pos.toString(), x, y, debugTextPaint); y += lineHeight;
         }
-        if (debug) {
+        if (debugOutline) {
             Tools.drawPlusCircle(0.5f * (lastTouch1x + lastTouch2x), 0.5f * (lastTouch1y + lastTouch2y), 10, debugRedPaint, canvas);
             Tools.drawPlusCircle(0.5f * (zoomTouch1x + zoomTouch2x), 0.5f * (zoomTouch1y + zoomTouch2y), 10, debugBluePaint, canvas);
         }
@@ -276,7 +270,6 @@ public class AtlasImageView2 extends View {
     
     @Override
     public boolean onTouchEvent(MotionEvent event) {
-        boolean debug = true;
         
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_MOVE : break;
@@ -352,16 +345,19 @@ public class AtlasImageView2 extends View {
         return true;
     }
     
+    /** @return x in content space: zoom = 1.0 and 0x0 is center of drawable */
     private double getContentX(double viewX, Position pos) {
         return ( viewX - pos.x - 0.5 * getWidth()) / pos.zoom;
     }
+    /** @return y in content space: zoom = 1.0 and 0x0 is center of drawable */
     private double getContentY(double viewY, Position pos) {
         return ( viewY - pos.y - 0.5 * getHeight() ) / pos.zoom;
     }
-    
+    /** @return x in view coordinates for given content coordinate and view position */
     private double getViewX(double contentX, Position pos) {
         return contentX * pos.zoom + 0.5 * getWidth() + pos.x;
     }
+    /** @return y in view coordinates for given content coordinate and view position */
     private double getViewY(double contentY, Position pos) {
         return contentY * pos.zoom + 0.5 * getHeight() + pos.y;
     }
