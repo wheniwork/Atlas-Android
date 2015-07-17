@@ -23,6 +23,7 @@ import android.view.View.OnClickListener;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.layer.atlas.Atlas.Tools;
 import com.layer.atlas.AtlasParticipantPicker;
 
 
@@ -80,7 +81,7 @@ public class AtlasParticipantPickersScreen extends Activity {
                 finish();
             }
         });
-        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
+        Tools.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
     
 }

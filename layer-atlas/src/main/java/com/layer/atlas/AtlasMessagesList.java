@@ -25,9 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
@@ -47,9 +44,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas.Tools;
-import com.layer.atlas.cells.GIFCell;
-import com.layer.atlas.cells.GeoCell;
-import com.layer.atlas.cells.ImageCell;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
 import com.layer.sdk.changes.LayerChange.Type;
@@ -103,6 +97,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
      */
     private ArrayList<Cell> cells = new ArrayList<Cell>();
     
+    /** Where cells comes from */
+    private CellFactory cellFactory;
+    
     private LayerClient client;
     private Conversation conv;
     private Query<Message> query;
@@ -148,12 +145,19 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         this.timeFormat = android.text.format.DateFormat.getTimeFormat(context);
     }
 
+    /** Setup with {@link Atlas.DefaultCellFactory}  */
     public void init(final LayerClient layerClient, final Atlas.ParticipantProvider participantProvider) {
+        init(layerClient, participantProvider, new Atlas.DefaultCellFactory(this));
+    }
+    
+    /** @param cellFactory - use or extend {@link DefaultCellFactory} to get basic cells support */
+    public void init(final LayerClient layerClient, final Atlas.ParticipantProvider participantProvider, CellFactory cellFactory) {
         if (layerClient == null) throw new IllegalArgumentException("LayerClient cannot be null");
         if (participantProvider == null) throw new IllegalArgumentException("ParticipantProvider cannot be null");
         if (messagesList != null) throw new IllegalStateException("AtlasMessagesList is already initialized!");
         
         this.client = layerClient;
+        this.cellFactory = cellFactory;
         LayoutInflater.from(getContext()).inflate(R.layout.atlas_messages_list, this);
         
         // --- message view
@@ -348,58 +352,12 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         messagesAdapter.notifyDataSetChanged();
     }
 
-    protected void buildCellForMessage(Message msg, List<Cell> destination) {
-        
-        final ArrayList<MessagePart> parts = new ArrayList<MessagePart>(msg.getMessageParts());
-        
-        for (int partNo = 0; partNo < parts.size(); partNo++ ) {
-            final MessagePart part = parts.get(partNo);
-            final String mimeType = part.getMimeType();
-            
-            if (Atlas.MIME_TYPE_IMAGE_PNG.equals(mimeType) 
-                    || Atlas.MIME_TYPE_IMAGE_JPEG.equals(mimeType)
-                    || Atlas.MIME_TYPE_IMAGE_GIF.equals(mimeType)
-                    ) {
-                    
-                // 3 parts image support
-                if ((partNo + 2 < parts.size()) && Atlas.MIME_TYPE_IMAGE_DIMENSIONS.equals(parts.get(partNo + 2).getMimeType())) {
-                    String jsonDimensions = new String(parts.get(partNo + 2).getData());
-                    try {
-                        JSONObject jo = new JSONObject(jsonDimensions);
-                        int orientation = jo.getInt("orientation");
-                        int width = jo.getInt("width");
-                        int height = jo.getInt("height");
-                        if (orientation == 1 || orientation == 3) {
-                            width = jo.getInt("height");
-                            height = jo.getInt("width");
-                        }
-                        Cell imageCell = mimeType.equals(Atlas.MIME_TYPE_IMAGE_GIF)  
-                                ? new GIFCell(part, parts.get(partNo + 1), width, height, orientation, this)
-                                : new ImageCell(part, parts.get(partNo + 1), width, height, orientation, this);
-                        destination.add(imageCell);
-                        if (debug) Log.w(TAG, "cellForMessage() 3-image part found at partNo: " + partNo + ", " + width + "x" + height + "@" + orientation);
-                        partNo++; // skip preview
-                        partNo++; // skip dimensions part
-                    } catch (JSONException e) {
-                        Log.e(TAG, "cellForMessage() cannot parse 3-part image", e);
-                    }
-                } else {
-                    // regular image
-                    Cell cell = mimeType.equals(Atlas.MIME_TYPE_IMAGE_GIF) 
-                            ? new GIFCell(part, this)
-                            : new ImageCell(part, this);
-                    destination.add(cell);
-                    if (debug) Log.w(TAG, "cellForMessage() single-image part found at partNo: " + partNo);
-                }
-            
-            } else if (Atlas.MIME_TYPE_ATLAS_LOCATION.equals(part.getMimeType())){
-                destination.add(new GeoCell(part, this));
-            } else {
-                Cell cellData = new TextCell(part);
-                if (false && debug) Log.w(TAG, "cellForMessage() default item: " + cellData);
-                destination.add(cellData);
-            }
-        }
+    public static abstract class CellFactory {
+        public abstract void buildCellForMessage(Message msg, List<Cell> result);
+    }
+    
+    protected void buildCellForMessage(Message msg, List<Cell> result) {
+        cellFactory.buildCellForMessage(msg, result);
     }
     
     public void updateValues() {
@@ -724,15 +682,17 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         }
     }
     
-    private class TextCell extends Cell {
+    public static class TextCell extends Cell {
 
         protected String text;
+        AtlasMessagesList messagesList;
         
-        public TextCell(MessagePart messagePart) {
+        public TextCell(MessagePart messagePart, AtlasMessagesList messagesList) {
             super(messagePart);
+            this.messagesList = messagesList;
         }
         
-        public TextCell(MessagePart messagePart, String text) {
+        public TextCell(MessagePart messagePart, String text, AtlasMessagesList messagesList) {
             super(messagePart);
             this.text = text;
         }
@@ -754,7 +714,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 }
             }
             
-            boolean myMessage = client.getAuthenticatedUserId().equals(cell.messagePart.getMessage().getSender().getUserId());
+            boolean myMessage = messagesList.client.getAuthenticatedUserId().equals(cell.messagePart.getMessage().getSender().getUserId());
             TextView textMy = (TextView) cellText.findViewById(R.id.atlas_view_messages_convert_text);
             TextView textOther = (TextView) cellText.findViewById(R.id.atlas_view_messages_convert_text_counterparty);
             if (myMessage) {
@@ -773,10 +733,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                         textMy.setBackgroundResource(R.drawable.atlas_shape_rounded16_blue_no_right);
                     }
                 }
-                ((GradientDrawable)textMy.getBackground()).setColor(myBubbleColor);
-                textMy.setTextColor(myTextColor);
+                ((GradientDrawable)textMy.getBackground()).setColor(messagesList.myBubbleColor);
+                textMy.setTextColor(messagesList.myTextColor);
                 //textMy.setTextSize(TypedValue.COMPLEX_UNIT_DIP, myTextSize);
-                textMy.setTypeface(myTextTypeface, myTextStyle);
+                textMy.setTypeface(messagesList.myTextTypeface, messagesList.myTextStyle);
             } else {
                 textOther.setVisibility(View.VISIBLE);
                 textOther.setText(text);
@@ -792,10 +752,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                         textOther.setBackgroundResource(R.drawable.atlas_shape_rounded16_gray_no_left);
                     }
                 }
-                ((GradientDrawable)textOther.getBackground()).setColor(otherBubbleColor);
-                textOther.setTextColor(otherTextColor);
+                ((GradientDrawable)textOther.getBackground()).setColor(messagesList.otherBubbleColor);
+                textOther.setTextColor(messagesList.otherTextColor);
                 //textOther.setTextSize(TypedValue.COMPLEX_UNIT_DIP, otherTextSize);
-                textOther.setTypeface(otherTextTypeface, otherTextStyle);
+                textOther.setTypeface(messagesList.otherTextTypeface, messagesList.otherTextStyle);
             }
             return cellText;
         }
@@ -839,6 +799,17 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             lastUserMsg       = false; 
         }
 
+        /** 
+         * Start with inflating your own cell.xml
+         * <pre>
+            View rootView = Tools.findChildById(cellContainer, R.id.atlas_view_messages_cell_image);
+            if (rootView == null) {
+                rootView = LayoutInflater.from(cellContainer.getContext()).inflate(R.layout.atlas_view_messages_cell_image, cellContainer, false); 
+            }
+            // ...
+            return rootView;
+            </pre>
+         */
         public abstract View onBind(ViewGroup cellContainer);
     }
     

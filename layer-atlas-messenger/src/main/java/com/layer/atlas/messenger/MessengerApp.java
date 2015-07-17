@@ -15,7 +15,6 @@
  */
 package com.layer.atlas.messenger;
 
-import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 
@@ -23,7 +22,6 @@ import android.app.Application;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Window;
 
 import com.layer.atlas.Atlas;
 import com.layer.atlas.messenger.provider.HerokuIdentityProvider;
@@ -155,22 +153,6 @@ public class MessengerApp extends Application implements AppIdCallback {
         }
         sb.append("]");
         return sb.toString();
-    }
-    
-    /** Window flags for translucency are available on Android 5.0+ */
-    public static final int FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS = 0x80000000;
-    public static final int FLAG_TRANSLUCENT_STATUS = 0x04000000;
-    
-    /** Changes Status Bar color On Android 5.0+ devices. Do nothing on devices without translucency support */
-    public static void setStatusBarColor(Window wnd, int color) {
-        try {
-            final Method mthd_setStatusBarColor = wnd.getClass().getMethod("setStatusBarColor", int.class);
-            if (mthd_setStatusBarColor != null) {
-                mthd_setStatusBarColor.invoke(wnd, color);
-                wnd.addFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
-                wnd.clearFlags(FLAG_TRANSLUCENT_STATUS);
-            }
-        } catch (Exception ignored) {}
     }
     
     //==============================================================================================

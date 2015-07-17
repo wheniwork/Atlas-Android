@@ -23,17 +23,21 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Method;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -52,7 +56,12 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.view.View.MeasureSpec;
 import android.view.ViewGroup;
+import android.view.Window;
 
+import com.layer.atlas.cells.GIFCell;
+import com.layer.atlas.cells.GeoCell;
+import com.layer.atlas.cells.ImageCell;
+import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
@@ -134,6 +143,84 @@ public class Atlas {
             sb.append(initials);
         }
         return sb.toString().trim();
+    }
+
+    /**
+     * @param imageFile   - to create a preview of
+     * @param layerClient - required to create {@link MessagePart} 
+     * @param tempDir     - required to store preview file until it is picked by LayerClient
+     * @return MessagePart[] {previewBytes, json_with_dimensions} or null if preview cannot be built
+     */
+    public static MessagePart[] buildPreviewAndSize(final File imageFile, final LayerClient layerClient, File tempDir) throws IOException {
+        if (imageFile == null) throw new IllegalArgumentException("imageFile cannot be null");
+        if (layerClient == null) throw new IllegalArgumentException("layerClient cannot be null");
+        if (tempDir == null) throw new IllegalArgumentException("tempDir cannot be null");
+        if (!tempDir.exists()) throw new IllegalArgumentException("tempDir doesn't exist");
+        if (!tempDir.isDirectory()) throw new IllegalArgumentException("tempDir must be a directory");
+        
+        // prepare preview
+        BitmapFactory.Options optOriginal = new BitmapFactory.Options();
+        optOriginal.inJustDecodeBounds = true;
+        //BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optOriginal);
+        BitmapFactory.decodeStream(new FileInputStream(imageFile), null, optOriginal);
+        if (debug) Log.w(TAG, "buildPreviewAndSize() original: " + optOriginal.outWidth + "x" + optOriginal.outHeight);
+        int previewWidthMax = 512;
+        int previewHeightMax = 512;
+        int previewWidth;
+        int previewHeight;
+        int sampleSize;
+        if (optOriginal.outWidth > optOriginal.outHeight) {
+            sampleSize = optOriginal.outWidth / previewWidthMax;
+            previewWidth = previewWidthMax;
+            previewHeight = (int) (1.0 * previewWidth * optOriginal.outHeight / optOriginal.outWidth);
+            if (debug) Log.w(TAG, "buildPreviewAndSize() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
+        } else {
+            sampleSize = optOriginal.outHeight / previewHeightMax;
+            previewHeight = previewHeightMax;
+            previewWidth = (int) (1.0 * previewHeight * optOriginal.outWidth / optOriginal.outHeight);
+            if (debug) Log.w(TAG, "buildPreviewAndSize() sampleSize: " + sampleSize + ", orig: " + optOriginal.outWidth + "x" + optOriginal.outHeight + ", preview: " + previewWidth + "x" + previewHeight);
+        }
+        
+        BitmapFactory.Options optsPreview = new BitmapFactory.Options();
+        optsPreview.inSampleSize = sampleSize;
+        //Bitmap decodedBmp = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), optsPreview);
+        Bitmap decodedBmp = BitmapFactory.decodeStream(new FileInputStream(imageFile), null, optsPreview);
+        if (decodedBmp == null) {
+            if (debug) Log.w(TAG, "buildPreviewAndSize() taking photo, but photo file cannot be decoded: " + imageFile.getPath());
+            return null;
+        }
+        if (debug) Log.w(TAG, "buildPreviewAndSize() decoded bitmap: " + decodedBmp.getWidth() + "x" + decodedBmp.getHeight() + ", " + decodedBmp.getByteCount() + " bytes ");
+        Bitmap bmp = Bitmap.createScaledBitmap(decodedBmp, previewWidth, previewHeight, false);
+        if (debug) Log.w(TAG, "buildPreviewAndSize() preview bitmap: " + bmp.getWidth() + "x" + bmp.getHeight() + ", " + bmp.getByteCount() + " bytes ");
+        
+        String fileName = "atlasPreview" + System.currentTimeMillis() + ".jpg";
+        final File previewFile = new File(tempDir, fileName); 
+        FileOutputStream fos = new FileOutputStream(previewFile);
+        bmp.compress(Bitmap.CompressFormat.JPEG, 50, fos);
+        fos.close();
+        
+        FileInputStream fisPreview = new FileInputStream(previewFile) {
+            public void close() throws IOException {
+                super.close();
+                boolean deleted = previewFile.delete();
+                if (debug) Log.w(TAG, "buildPreviewAndSize() preview file is" + (!deleted ? " not" : "") + " removed: " + previewFile.getName());
+            }
+        };
+        final MessagePart previewPart = layerClient.newMessagePart(MIME_TYPE_IMAGE_JPEG_PREVIEW, fisPreview, previewFile.length());
+        
+        // prepare dimensions
+        JSONObject joDimensions = new JSONObject();
+        try {
+            joDimensions.put("width", optOriginal.outWidth);
+            joDimensions.put("height", optOriginal.outHeight);
+            joDimensions.put("orientation", 0);
+        } catch (JSONException e) {
+            throw new IllegalStateException("Cannot create JSON Object", e);
+        }
+        if (debug) Log.w(TAG, "buildPreviewAndSize() dimensions: " + joDimensions);
+        final MessagePart dimensionsPart = layerClient.newMessagePart(MIME_TYPE_IMAGE_DIMENSIONS, joDimensions.toString().getBytes() );
+        MessagePart[] previewAndSize = new MessagePart[] {previewPart, dimensionsPart};
+        return previewAndSize;
     }
 
     public static final class Tools {
@@ -372,6 +459,22 @@ public class Atlas {
         public static void drawPlusCircle(float xCenter, float yCenter, float radius, Paint paint, Canvas canvas) {
             drawPlus(xCenter - 1.1f * radius, yCenter - 1.1f * radius, xCenter + 1.1f * radius, yCenter + 1.1f * radius, paint, canvas);
             canvas.drawCircle(xCenter, yCenter, radius, paint);
+        }
+
+        /** Window flags for translucency are available on Android 5.0+ */
+        public static final int FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS = 0x80000000;
+        public static final int FLAG_TRANSLUCENT_STATUS = 0x04000000;
+
+        /** Changes Status Bar color On Android 5.0+ devices. Do nothing on devices without translucency support */
+        public static void setStatusBarColor(Window wnd, int color) {
+            try {
+                final Method mthd_setStatusBarColor = wnd.getClass().getMethod("setStatusBarColor", int.class);
+                if (mthd_setStatusBarColor != null) {
+                    mthd_setStatusBarColor.invoke(wnd, color);
+                    wnd.addFlags(FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+                    wnd.clearFlags(FLAG_TRANSLUCENT_STATUS);
+                }
+            } catch (Exception ignored) {}
         }
 
     }
@@ -845,6 +948,78 @@ public class Atlas {
         public boolean ready() {
             if (ImageLoader.debug) Log.w(ImageLoader.TAG, "ready() FileStreamProvider, file ready: " + file.getAbsolutePath());
             return true;
+        }
+    }
+
+    /** 
+     * Basic {@link AtlasMessagesList.CellFactory} supports mime-types
+     * <li> {@link Atlas#MIME_TYPE_TEXT}
+     * <li> {@link Atlas#MIME_TYPE_ATLAS_LOCATION}
+     * <li> {@link Atlas#MIME_TYPE_IMAGE_JPEG}
+     * <li> {@link Atlas#MIME_TYPE_IMAGE_GIF}
+     * <li> {@link Atlas#MIME_TYPE_IMAGE_PNG}
+     * ... including 3-part images with preview and dimensions
+     */
+    public static class DefaultCellFactory extends AtlasMessagesList.CellFactory {
+        public final AtlasMessagesList messagesList;
+        
+        public DefaultCellFactory(AtlasMessagesList messagesList) {
+            this.messagesList = messagesList;
+        }
+    
+        public void buildCellForMessage(Message msg, List<AtlasMessagesList.Cell> destination) {
+            boolean debug = false;
+            String TAG = "preved";
+            final ArrayList<MessagePart> parts = new ArrayList<MessagePart>(msg.getMessageParts());
+            
+            for (int partNo = 0; partNo < parts.size(); partNo++ ) {
+                final MessagePart part = parts.get(partNo);
+                final String mimeType = part.getMimeType();
+                
+                if (MIME_TYPE_IMAGE_PNG.equals(mimeType) 
+                        || MIME_TYPE_IMAGE_JPEG.equals(mimeType)
+                        || MIME_TYPE_IMAGE_GIF.equals(mimeType)
+                        ) {
+                        
+                    // 3 parts image support
+                    if ((partNo + 2 < parts.size()) && MIME_TYPE_IMAGE_DIMENSIONS.equals(parts.get(partNo + 2).getMimeType())) {
+                        String jsonDimensions = new String(parts.get(partNo + 2).getData());
+                        try {
+                            JSONObject jo = new JSONObject(jsonDimensions);
+                            int orientation = jo.getInt("orientation");
+                            int width = jo.getInt("width");
+                            int height = jo.getInt("height");
+                            if (orientation == 1 || orientation == 3) {
+                                width = jo.getInt("height");
+                                height = jo.getInt("width");
+                            }
+                            AtlasMessagesList.Cell imageCell = mimeType.equals(MIME_TYPE_IMAGE_GIF)  
+                                    ? new GIFCell(part, parts.get(partNo + 1), width, height, orientation, messagesList)
+                                    : new ImageCell(part, parts.get(partNo + 1), width, height, orientation, messagesList);
+                            destination.add(imageCell);
+                            if (debug) Log.w(TAG, "cellForMessage() 3-image part found at partNo: " + partNo + ", " + width + "x" + height + "@" + orientation);
+                            partNo++; // skip preview
+                            partNo++; // skip dimensions part
+                        } catch (JSONException e) {
+                            Log.e(TAG, "cellForMessage() cannot parse 3-part image", e);
+                        }
+                    } else {
+                        // regular image
+                        AtlasMessagesList.Cell cell = mimeType.equals(MIME_TYPE_IMAGE_GIF) 
+                                ? new GIFCell(part, messagesList)
+                                : new ImageCell(part, messagesList);
+                        destination.add(cell);
+                        if (debug) Log.w(TAG, "cellForMessage() single-image part found at partNo: " + partNo);
+                    }
+                
+                } else if (MIME_TYPE_ATLAS_LOCATION.equals(part.getMimeType())){
+                    destination.add(new GeoCell(part, messagesList));
+                } else {
+                    AtlasMessagesList.Cell cellData = new AtlasMessagesList.TextCell(part, messagesList);
+                    if (false && debug) Log.w(TAG, "cellForMessage() default item: " + cellData);
+                    destination.add(cellData);
+                }
+            }
         }
     }
     

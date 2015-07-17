@@ -34,6 +34,7 @@ import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
 import com.layer.atlas.Atlas.Participant;
+import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.messaging.Conversation;
 
 /**
@@ -177,7 +178,7 @@ public class AtlasConversationSettingsScreen extends Activity {
         });
         
         ((TextView)findViewById(R.id.atlas_actionbar_title_text)).setText("Details");
-        MessengerApp.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
+        Tools.setStatusBarColor(getWindow(), getResources().getColor(R.color.atlas_background_blue_dark));
     }
 
 }
