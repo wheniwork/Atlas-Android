@@ -967,6 +967,11 @@ public class Atlas {
             this.messagesList = messagesList;
         }
     
+        /** 
+         * Scan message and messageParts and build corresponding Cell(s). Put them into result list
+         * @param msg           - message to build Cell(s) for
+         * @param destination   - result list of Cells
+         */
         public void buildCellForMessage(Message msg, List<AtlasMessagesList.Cell> destination) {
             boolean debug = false;
             String TAG = "preved";

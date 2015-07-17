@@ -17,7 +17,6 @@ package com.layer.atlas.messenger;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.text.InputType;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.View;
@@ -27,8 +26,6 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.layer.atlas.messenger.provider.IdentityProvider;
-import com.layer.atlas.messenger.provider.ParticipantProvider;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerAuthenticationListener;
@@ -43,7 +40,6 @@ public class AtlasLoginScreen extends Activity {
     
     private volatile boolean inProgress = false;
     private EditText loginText;
-    private EditText passwordText;
     private View goButton;
 
     @Override
@@ -52,7 +48,6 @@ public class AtlasLoginScreen extends Activity {
         setContentView(R.layout.atlas_screen_login);
         
         loginText = (EditText) findViewById(R.id.atlas_screen_login_username);
-        passwordText = (EditText) findViewById(R.id.atlas_screen_login_password);
         goButton = findViewById(R.id.atlas_screen_login_go_btn);
 
         final TextView.OnEditorActionListener doneListener = new TextView.OnEditorActionListener() {
@@ -65,14 +60,7 @@ public class AtlasLoginScreen extends Activity {
                 return false;
             }
         };
-        if (((MessengerApp)getApplication()).getIdentityProvider().passwordRequired()) {
-            passwordText.setVisibility(View.VISIBLE);
-            loginText.setInputType(loginText.getInputType() & ~InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-            passwordText.setOnEditorActionListener(doneListener);
-            goButton.setVisibility(View.VISIBLE);
-        } else {
-            loginText.setOnEditorActionListener(doneListener);
-        }
+        loginText.setOnEditorActionListener(doneListener);
         
         goButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
@@ -99,10 +87,9 @@ public class AtlasLoginScreen extends Activity {
     private void login() {
         final MessengerApp app = (MessengerApp)getApplication();
         final LayerClient layerClient = app.getLayerClient();
-        final IdentityProvider identityProvider = app.getIdentityProvider();
+        final AtlasIdentityProvider identityProvider = app.getIdentityProvider();
         
         final String userName = loginText.getText().toString().trim();
-        final String userPass = identityProvider.passwordRequired() ? passwordText.getText().toString().trim() : null;
         
         if (userName.isEmpty()) return;
         inProgress = true;
@@ -113,21 +100,20 @@ public class AtlasLoginScreen extends Activity {
                 new Thread(new Runnable() {
                     public void run() {
                         try {
-                            final IdentityProvider.Result result = identityProvider.getIdentityToken(nonce, userName, userPass);
-                            if (result.error != null || result.identityToken == null) {
+                            String[] tokenAndError = identityProvider.getIdentityToken(nonce, userName);
+                            final String token = tokenAndError[0];
+                            final String error = tokenAndError[1];
+                            if (error != null || token == null) {
                                 inProgress = false;
                                 runOnUiThread(new Runnable() {
                                     public void run() {
                                         updateValues();
-                                        Toast.makeText(AtlasLoginScreen.this, result.error, Toast.LENGTH_LONG).show();
+                                        Toast.makeText(AtlasLoginScreen.this, error, Toast.LENGTH_LONG).show();
                                     }
                                 });
                                 return;
                             }
-                            layerClient.answerAuthenticationChallenge(result.identityToken);
-                            if (result.participants != null && app.getParticipantProvider() instanceof ParticipantProvider) {
-                                ((ParticipantProvider)app.getParticipantProvider()).set(result.participants);
-                            }
+                            layerClient.answerAuthenticationChallenge(token);
                         } catch (Exception e) {
                             Log.e(TAG, "onAuthenticationChallenge() Unexpected error. ", e);
                         }

@@ -43,6 +43,7 @@ import android.widget.FrameLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
+import com.layer.atlas.Atlas.DefaultCellFactory;
 import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
@@ -230,7 +231,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                     Atlas.Participant participant = participantProvider.getParticipant(userId);
                     if (cell.firstUserMsg && showTheirDecor) {
                         userNameHeader.setVisibility(View.VISIBLE);
-                        String fullName = participant == null ? "Unknown User" : participant.getFirstName() + " " + participant.getLastName();
+                        String fullName = participant == null ? "Unknown User" : Atlas.getFullName(participant);
                         userNameHeader.setText(fullName);
                     } else {
                         userNameHeader.setVisibility(View.GONE);
@@ -801,14 +802,14 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
 
         /** 
          * Start with inflating your own cell.xml
-         * <pre>
+        <pre>
             View rootView = Tools.findChildById(cellContainer, R.id.atlas_view_messages_cell_image);
             if (rootView == null) {
                 rootView = LayoutInflater.from(cellContainer.getContext()).inflate(R.layout.atlas_view_messages_cell_image, cellContainer, false); 
             }
             // ...
             return rootView;
-            </pre>
+        </pre>
          */
         public abstract View onBind(ViewGroup cellContainer);
     }

@@ -17,6 +17,7 @@ package com.layer.atlas.messenger;
 
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.UUID;
 
 import android.app.Application;
 import android.content.Intent;
@@ -24,11 +25,6 @@ import android.os.Bundle;
 import android.util.Log;
 
 import com.layer.atlas.Atlas;
-import com.layer.atlas.messenger.provider.HerokuIdentityProvider;
-import com.layer.atlas.messenger.provider.IdentityProvider;
-import com.layer.atlas.messenger.provider.ParticipantProvider;
-import com.layer.atlas.messenger.provider.QRIdentityProvider;
-import com.layer.atlas.messenger.provider.QRParticipantProviderCallback;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.LayerClient.Options;
 
@@ -54,8 +50,7 @@ public class MessengerApp extends Application implements AppIdCallback {
     private static final boolean debug = false;
 
     private LayerClient layerClient;
-    private IdentityProvider identityProvider;
-    private Atlas.ParticipantProvider participantProvider;
+    private AtlasIdentityProvider identityProvider;
     private String appId = LAYER_APP_ID;
 
     public interface keys {
@@ -65,18 +60,12 @@ public class MessengerApp extends Application implements AppIdCallback {
     @Override
     public void onCreate() {
         super.onCreate();
-        LayerClient.enableLogging();
+        LayerClient.enableLogging(this);
         LayerClient.applicationCreated(this);
-        if (appId == null) {
+        if (this.appId == null) {
             this.appId = loadAppId(); 
-            this.identityProvider = new QRIdentityProvider(this);
-            this.participantProvider = new ParticipantProvider(this, new QRParticipantProviderCallback(this));
-        } else {
-            HerokuIdentityProvider herokuBasedProvider = new HerokuIdentityProvider(this, appId);
-            this.identityProvider = herokuBasedProvider;
-            this.participantProvider = herokuBasedProvider;
-            herokuBasedProvider.load();
         }
+        this.identityProvider = new AtlasIdentityProvider(this);
     }
 
     public LayerClient getLayerClient() {
@@ -86,35 +75,42 @@ public class MessengerApp extends Application implements AppIdCallback {
     /**
      * Initializes a new LayerClient if needed, or returns the already-initialized LayerClient.
      * 
-     * @param localAppId Layer App ID to initialize a LayerClient with
+     * @param appIdString Layer App ID to initialize a LayerClient with
      * @return The newly initialized LayerClient, or the existing LayerClient
      */
-    public LayerClient initLayerClient(final String localAppId) {
+    public LayerClient initLayerClient(final String appIdString) {
         if (layerClient != null) return layerClient;
-        final LayerClient client = LayerClient.newInstance(this, localAppId, new Options()
+        
+        String appId = appIdString;
+        if (appIdString.startsWith("layer:///")) {
+            identityProvider.setAppId(UUID.fromString(appId.substring(appId.lastIndexOf("/") + 1)).toString());
+        } else {
+            identityProvider.setAppId(appIdString);
+            appId = "layer:///apps/staging/" + UUID.fromString(appIdString).toString();
+        }
+        
+        final LayerClient client = LayerClient.newInstance(this, appId, new Options()
                 .broadcastPushInForeground(false)
                 .googleCloudMessagingSenderId(GCM_SENDER_ID));
         if (debug) Log.w(TAG, "onCreate() client created");
 
-        setAppId(localAppId);
+        setAppId(appIdString);
         layerClient = client;
 
         if (!client.isAuthenticated()) client.authenticate();
         else if (!client.isConnected()) client.connect();
         if (debug) Log.w(TAG, "onCreate() Layer launched");
 
-        if (getParticipantProvider() instanceof ParticipantProvider) {
-            if (debug) Log.d(TAG, "onCreate() Refreshing Contacts");
-            ((ParticipantProvider)getParticipantProvider()).refresh();
-        }
+        identityProvider.requestRefresh();
+        
         return layerClient;
     }
 
     public Atlas.ParticipantProvider getParticipantProvider() {
-        return participantProvider;
+        return identityProvider;
     }
 
-    public IdentityProvider getIdentityProvider() {
+    public AtlasIdentityProvider getIdentityProvider() {
         return identityProvider;
     }
 
