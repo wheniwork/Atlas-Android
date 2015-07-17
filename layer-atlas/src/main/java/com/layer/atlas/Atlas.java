@@ -565,7 +565,7 @@ public class Atlas {
      */
     public static class ImageLoader {
         private static final String TAG = Atlas.ImageLoader.class.getSimpleName();
-        private static final boolean debug = true;
+        private static final boolean debug = false;
         
         private static final int BITMAP_DECODE_RETRIES = 10;
         private static final double MEMORY_THRESHOLD = 0.7;

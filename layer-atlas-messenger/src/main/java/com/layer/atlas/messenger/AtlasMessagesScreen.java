@@ -74,7 +74,7 @@ import com.layer.sdk.query.SortDescriptor;
 public class AtlasMessagesScreen extends Activity {
 
     private static final String TAG = AtlasMessagesScreen.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     public static final String EXTRA_CONVERSATION_IS_NEW = "conversation.new";
     public static final String EXTRA_CONVERSATION_URI = keys.CONVERSATION_URI;

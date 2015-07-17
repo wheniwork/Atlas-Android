@@ -63,7 +63,7 @@ import com.layer.sdk.query.Query;
  */
 public class AtlasMessagesList extends FrameLayout implements LayerChangeEventListener.MainThread {
     private static final String TAG = AtlasMessagesList.class.getSimpleName();
-    private static final boolean debug = true;
+    private static final boolean debug = false;
     
     public static final boolean CLUSTERED_BUBBLES = false;
     
