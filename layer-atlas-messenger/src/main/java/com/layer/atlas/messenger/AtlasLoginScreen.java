@@ -99,24 +99,26 @@ public class AtlasLoginScreen extends Activity {
                 if (debug) Log.w(TAG, "onAuthenticationChallenge() nonce: " + nonce);
                 new Thread(new Runnable() {
                     public void run() {
+                        String[] tokenAndError = new String[] {null, null};
                         try {
-                            String[] tokenAndError = identityProvider.getIdentityToken(nonce, userName);
-                            final String token = tokenAndError[0];
-                            final String error = tokenAndError[1];
-                            if (error != null || token == null) {
-                                inProgress = false;
-                                runOnUiThread(new Runnable() {
-                                    public void run() {
-                                        updateValues();
-                                        Toast.makeText(AtlasLoginScreen.this, error, Toast.LENGTH_LONG).show();
-                                    }
-                                });
-                                return;
-                            }
-                            layerClient.answerAuthenticationChallenge(token);
+                            tokenAndError = identityProvider.getIdentityToken(nonce, userName);
                         } catch (Exception e) {
+                            tokenAndError[1] = "Unexpected error, " + e;
                             Log.e(TAG, "onAuthenticationChallenge() Unexpected error. ", e);
                         }
+                        final String token = tokenAndError[0];
+                        final String error = tokenAndError[1];
+                        if (error != null || token == null) {
+                            inProgress = false;
+                            runOnUiThread(new Runnable() {
+                                public void run() {
+                                    updateValues();
+                                    Toast.makeText(AtlasLoginScreen.this, error, Toast.LENGTH_LONG).show();
+                                }
+                            });
+                            return;
+                        }
+                        layerClient.answerAuthenticationChallenge(token);
                     }
                 }).start();
             }
