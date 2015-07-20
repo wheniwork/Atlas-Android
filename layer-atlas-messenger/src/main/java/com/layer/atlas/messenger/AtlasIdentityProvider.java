@@ -38,6 +38,10 @@ import android.util.Log;
 
 import com.layer.atlas.Atlas;
 
+/**
+ * @author Oleg Orlov
+ * @since  17 Jul 2015
+ */
 public class AtlasIdentityProvider implements Atlas.ParticipantProvider {
     private final static String TAG = AtlasIdentityProvider.class.getSimpleName();
     private static final boolean debug = false;

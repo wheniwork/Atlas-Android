@@ -59,6 +59,8 @@ import com.layer.atlas.AtlasTypingIndicator;
 import com.layer.atlas.cells.ImageCell;
 import com.layer.atlas.messenger.MessengerApp.keys;
 import com.layer.sdk.LayerClient;
+import com.layer.sdk.changes.LayerChangeEvent;
+import com.layer.sdk.listeners.LayerChangeEventListener;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.ConversationOptions;
 import com.layer.sdk.messaging.Message;
@@ -235,8 +237,6 @@ public class AtlasMessagesScreen extends Activity {
             Log.e(TAG, "updateValues() no conversation set");
             return;
         }
-        
-        messagesList.updateValues();
 
         TextView titleText = (TextView) findViewById(R.id.atlas_actionbar_title_text);
         titleText.setText(Atlas.getTitle(conv, app.getParticipantProvider(), app.getLayerClient().getAuthenticatedUserId()));
@@ -455,6 +455,13 @@ public class AtlasMessagesScreen extends Activity {
         
         app.getLayerClient().registerEventListener(messagesList);
         app.getLayerClient().registerTypingIndicator(typingIndicator.clear());
+        
+        // when something changed
+        app.getLayerClient().registerEventListener(new LayerChangeEventListener.MainThread() {
+            public void onEventMainThread(LayerChangeEvent event) {
+                updateValues();
+            }
+        });
     }
     
     private static final int LOCATION_EXPIRATION_TIME = 60 * 1000; // 1 minute 

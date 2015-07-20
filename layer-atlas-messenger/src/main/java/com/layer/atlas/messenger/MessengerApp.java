@@ -32,7 +32,7 @@ import com.layer.sdk.LayerClient.Options;
  * @author Oleg Orlov
  * @since March 3, 2015
  */
-public class MessengerApp extends Application implements AppIdCallback {
+public class MessengerApp extends Application {
 
     //==============================================================================================
     // LAYER CONFIGURATION
@@ -123,7 +123,6 @@ public class MessengerApp extends Application implements AppIdCallback {
         return getSharedPreferences("app", MODE_PRIVATE).getString("appId", null);
     }
 
-    @Override
     public String getAppId() {
         return appId;
     }
