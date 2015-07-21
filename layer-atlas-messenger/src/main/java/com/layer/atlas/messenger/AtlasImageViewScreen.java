@@ -171,6 +171,7 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
                 case ImageCell.ORIENTATION_1_CW_180 : angle = 180; break;
             }
             this.imageViewer.setAngle(angle);
+            imageViewer.setContentDimensions(0, 0);
         } else {
             imageViewer.setContentDimensions(0, 0);
             imageViewer.setAngle(0);

@@ -260,26 +260,32 @@ public class AtlasImageView2 extends View {
     }
     
     public float getZoomToFit() {
-        int viewWidth = getWidth();
-        int viewHeight = getHeight();
         int imgWidth = getContentWorkWidth();
         int imgHeight = getContentWorkHeight();
         
-        double zoomToFitWidth = 1.0 * viewWidth / imgWidth;
-        double zoomToFitHeight = 1.0 * viewHeight / imgHeight;
+        if ((90 + ((int)angle)) % 180 == 0) {
+            imgHeight = getContentWorkWidth();
+            imgWidth = getContentWorkHeight();
+        }
         
-        float zoomToFit = (float) Math.min(Math.min(zoomToFitWidth, zoomToFitHeight), 1.0);
+        double zoomToFitWidth = 1.0 * getWidth() / imgWidth;
+        double zoomToFitHeight = 1.0 * getHeight() / imgHeight;
+        
+        float zoomToFit = (float) Math.min(zoomToFitWidth, zoomToFitHeight);
         return zoomToFit;
     }
     
     public float getZoomToFill() {
-        int viewWidth = getWidth();
-        int viewHeight = getHeight();
         int imgWidth = getContentWorkWidth();
         int imgHeight = getContentWorkHeight();
+        
+        if ((90 + ((int)angle)) % 180 == 0) {
+            imgHeight = getContentWorkWidth();
+            imgWidth = getContentWorkHeight();
+        }
 
-        double zoomToFitWidth = 1.0 * viewWidth / imgWidth;
-        double zoomToFitHeight = 1.0 * viewHeight / imgHeight;
+        double zoomToFitWidth = 1.0 * getWidth() / imgWidth;
+        double zoomToFitHeight = 1.0 * getHeight() / imgHeight;
         
         float zoomToFill = (float) Math.max(zoomToFitWidth, zoomToFitHeight);
         return zoomToFill;
