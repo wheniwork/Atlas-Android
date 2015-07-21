@@ -23,6 +23,7 @@ import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
 import android.graphics.PorterDuff.Mode;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
@@ -137,6 +138,17 @@ public class AtlasImageView2 extends View {
                     + ", measured: " + getMeasuredWidth() + "x" + getMeasuredHeight());
         }
         
+        // handle Move 
+        if (currentMove != null) {
+            boolean stillInProgress = currentMove.handleMove(pos, System.currentTimeMillis(), currentMoveStartedAt);
+            if (stillInProgress) {
+                invalidate();
+            } else {
+                currentMove = null;
+                currentMoveStartedAt = 0;
+            }
+        }
+        
         if (drawable == null) return;
         
         if (drawable instanceof BitmapDrawable) {
@@ -155,31 +167,16 @@ public class AtlasImageView2 extends View {
         
         int viewWidth  = getWidth();
         int viewHeight = getHeight();
-        int imgWidth  = contentWidth;
-        int imgHeight = contentHeight;
-
-        if (contentWidth == 0 && contentHeight == 0) {
-            imgWidth = drawable.getIntrinsicWidth();
-            imgHeight = drawable.getIntrinsicHeight();
+        int imgWidth  = getContentWorkWidth();
+        int imgHeight = getContentWorkHeight();
+        
+        if (contentWidth == 0 || contentHeight == 0) {
+            float zoomToFit = getZoomToFit();
+            imgWidth  = (int) (zoomToFit * getContentWorkWidth());
+            imgHeight = (int) (zoomToFit * getContentWorkHeight());
         }
         
-        // fit in width
-        if (imgWidth > viewWidth) {
-            int newHeight = (int) (1.0 * imgHeight * viewWidth / imgWidth);
-            int newWidth  = viewWidth;
-            if (debug) Log.w(TAG, "onDraw() fit in width:  " + imgWidth + "x" + imgHeight + " -> " + newWidth + "x" + newHeight);
-            imgWidth = newWidth;
-            imgHeight = newHeight;
-        }
-        if (imgHeight > viewHeight) {
-            int newWidth = (int) (1.0 * imgWidth * viewHeight / imgHeight);
-            int newHeight = viewHeight;
-            if (debug) Log.w(TAG, "onDraw() fit in height: " + imgWidth + "x" + imgHeight + " -> " + newWidth + "x" + newHeight);
-            imgWidth = newWidth;
-            imgHeight = newHeight;
-        }
-        
-        float zoomedWidth =  (int) (imgWidth * pos.zoom);
+        float zoomedWidth  = (int) (imgWidth * pos.zoom);
         float zoomedHeight = (int) (imgHeight * pos.zoom);
         int left = (int) ((viewWidth  - zoomedWidth) / 2);
         int top  = (int) ((viewHeight - zoomedHeight) / 2);
@@ -238,10 +235,70 @@ public class AtlasImageView2 extends View {
         
     }
     
+    /** Image Bounds in view coordinates */
+    private RectF getImageBounds(Position pos) {
+        RectF result = new RectF();
+        int imgWidth  = getContentWorkWidth();
+        int imgHeight = getContentWorkHeight();
+        
+        if (contentWidth == 0 || contentHeight == 0) {
+            float zoomToFit = getZoomToFit();
+            imgWidth  = (int) (zoomToFit * getContentWorkWidth());
+            imgHeight = (int) (zoomToFit * getContentWorkHeight());
+        }
+        
+        float zoomedWidth  = (int) (imgWidth * pos.zoom);
+        float zoomedHeight = (int) (imgHeight * pos.zoom);
+        result.left   = -0.5f * zoomedWidth + pos.x;
+        result.right  =  0.5f * zoomedWidth + pos.x;
+        result.top    = -0.5f * zoomedHeight + pos.y;
+        result.bottom =  0.5f * zoomedHeight + pos.y;
+        
+        if (debug) Log.w(TAG, "onDraw() left: " + result.left + ", top: " + result.top + ", right: " + result.right + ", bottom: " + result.bottom);
+        
+        return result;
+    }
+    
+    public float getZoomToFit() {
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
+        int imgWidth = getContentWorkWidth();
+        int imgHeight = getContentWorkHeight();
+        
+        double zoomToFitWidth = 1.0 * viewWidth / imgWidth;
+        double zoomToFitHeight = 1.0 * viewHeight / imgHeight;
+        
+        float zoomToFit = (float) Math.min(Math.min(zoomToFitWidth, zoomToFitHeight), 1.0);
+        return zoomToFit;
+    }
+    
+    public float getZoomToFill() {
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
+        int imgWidth = getContentWorkWidth();
+        int imgHeight = getContentWorkHeight();
+
+        double zoomToFitWidth = 1.0 * viewWidth / imgWidth;
+        double zoomToFitHeight = 1.0 * viewHeight / imgHeight;
+        
+        float zoomToFill = (float) Math.max(zoomToFitWidth, zoomToFitHeight);
+        return zoomToFill;
+    }
+    
+    /** return contentWidth if defined or drawable.intrinsic width*/
+    private int getContentWorkWidth() {
+        return contentWidth == 0 ? drawable.getIntrinsicWidth() : contentWidth;
+    }
+    /** Return contentHeight if defined or drawable.intrinsic height */
+    private int getContentWorkHeight() {
+        return contentHeight == 0 ? drawable.getIntrinsicHeight() : contentHeight;
+    }
+
     private final static Paint debugRedPaint   = new Paint();
     private final static Paint debugGreenPaint  = new Paint();
     private final static Paint debugBluePaint  = new Paint();
     private final static Paint debugGrayPaint  = new Paint();
+    private final static Paint debugWhitePaint  = new Paint();
     private final static TextPaint debugTextPaint = new TextPaint();
 
     static {
@@ -254,6 +311,8 @@ public class AtlasImageView2 extends View {
         debugBluePaint.setColor(Color.rgb(0, 0, 200));
         debugGrayPaint.setStyle(Paint.Style.STROKE);
         debugGrayPaint.setColor(Color.rgb(200, 200, 200));
+        debugWhitePaint.setStyle(Paint.Style.STROKE);
+        debugWhitePaint.setColor(Color.rgb(233, 233, 233));
         debugTextPaint.setColor(Color.RED);
     }
     
@@ -277,7 +336,11 @@ public class AtlasImageView2 extends View {
         }
         
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
-            case MotionEvent.ACTION_UP              : { showMarker = false; break;  }
+            case MotionEvent.ACTION_UP              : { 
+                showMarker = false;
+                checkBoundaries();
+                break;  
+            }
             case MotionEvent.ACTION_DOWN            : {
                 showMarker = true; 
                 dragTouch1x = event.getX(0);
@@ -329,11 +392,11 @@ public class AtlasImageView2 extends View {
                     double centerXafter  = 0.5 * (event.getX(0) + event.getX(1));
                     double centerYafter  = 0.5 * (event.getY(0) + event.getY(1));
                     
-                    double centerXdrBefore = getContentX(centerXbefore, zoomStart);
-                    double centerYdrBefore = getContentY(centerYbefore, zoomStart);
+                    double centerXcontentBefore = getContentX(centerXbefore, zoomStart);
+                    double centerYcontentBefore = getContentY(centerYbefore, zoomStart);
                     
-                    pos.x = (float) (centerXafter - centerXdrBefore * newZoom - 0.5f * getWidth());
-                    pos.y = (float) (centerYafter - centerYdrBefore * newZoom - 0.5f * getHeight());
+                    pos.x = (float) (centerXafter - centerXcontentBefore * newZoom - 0.5f * getWidth());
+                    pos.y = (float) (centerYafter - centerYcontentBefore * newZoom - 0.5f * getHeight());
                     
                 }
                 break;
@@ -343,6 +406,82 @@ public class AtlasImageView2 extends View {
         
         invalidate();
         return true;
+    }
+    
+    /** Ensures drawable fit in boundaries for current position and launches adjacting Move if not */
+    private void checkBoundaries() {
+        Position moveTo = pos.copy();
+        boolean move = false;
+        float minZoom = getZoomToFit();
+        float maxZoom = minZoom * 3;
+        if (maxZoom < getZoomToFill()) maxZoom = getZoomToFill();
+        
+        if (pos.zoom < minZoom) {
+            moveTo = new Position(minZoom, 0, 0);
+            move = true;
+        } else { 
+            if (pos.zoom > maxZoom) {
+                moveTo.zoom = maxZoom;
+                
+                float viewXcenter = 0.5f * getWidth();
+                float viewYcenter = 0.5f * getHeight();
+                double centerXcontentBefore = getContentX(viewXcenter, pos);
+                double centerYcontentBefore = getContentY(viewYcenter, pos);
+                moveTo.x = (float) (viewXcenter - centerXcontentBefore * maxZoom - 0.5f * getWidth());
+                moveTo.y = (float) (viewYcenter - centerYcontentBefore * maxZoom - 0.5f * getHeight());
+    
+                move = true;
+            }
+            
+            // adjust offset to fit in boundaries
+            RectF imageBounds = getImageBounds(moveTo);
+            RectF offsetBounds = new RectF();
+            if (imageBounds.width() - getWidth() > 0) {
+                offsetBounds.left   = -0.5f * (imageBounds.width() - getWidth());
+                offsetBounds.right  =  0.5f * (imageBounds.width() - getWidth());
+            }
+            if (imageBounds.height() - getHeight() > 0) {
+                offsetBounds.top    = -0.5f * (imageBounds.height() - getHeight());
+                offsetBounds.bottom =  0.5f * (imageBounds.height() - getHeight());
+            }
+            if (imageBounds.centerX() < offsetBounds.left) { 
+                moveTo.x = offsetBounds.left; 
+                move = true;
+            } else if (imageBounds.centerX() > offsetBounds.right) {
+                moveTo.x = offsetBounds.right;
+                move = true;
+            } 
+ 
+            if (imageBounds.centerY() < offsetBounds.top)   { 
+                moveTo.y = offsetBounds.top;   
+                move = true; 
+            } else if (imageBounds.centerY() > offsetBounds.bottom)   { 
+                moveTo.y = offsetBounds.bottom;   
+                move = true; 
+            }
+        }
+        
+        if (move) {
+            final Position finalMoveTo = moveTo; 
+            move(new Move() {
+                Position startPos = new Position(pos);
+                Position toPos = finalMoveTo;
+                long durationMs = 200;
+                public boolean handleMove(Position result, long currentTime, long startedAt) {
+                    if (currentTime - startedAt > durationMs) {
+                        result.set(toPos);
+                        return false;
+                    }
+                    
+                    double remainingProgress = 1.0 - (1.0 * (currentTime - startedAt) / durationMs);
+                    result.zoom = (float) (toPos.zoom + (startPos.zoom - toPos.zoom) * remainingProgress); 
+                    result.x    = (float) (toPos.x + (startPos.x - toPos.x) * remainingProgress);
+                    result.y    = (float) (toPos.y + (startPos.y - toPos.y) * remainingProgress);
+                    return true;
+                }
+            });
+        }
+        
     }
     
     /** @return x in content space: zoom = 1.0 and 0x0 is center of drawable */
@@ -465,7 +604,20 @@ public class AtlasImageView2 extends View {
         invalidate();
     }
     
-    private static class Position {
+    private Move currentMove;
+    private long currentMoveStartedAt;
+    
+    public void move(Move move) {
+        this.currentMove = move;
+        this.currentMoveStartedAt = System.currentTimeMillis();
+        invalidate();
+    }
+    
+    public static abstract class Move {
+        public abstract boolean handleMove(Position result, long currentTime, long startedAt);
+    }
+    
+    public static class Position {
         
         private float zoom = 1.0f;
         private float x    = 0.0f;
@@ -487,6 +639,12 @@ public class AtlasImageView2 extends View {
         
         public Position copy() {
             return new Position(zoom, x, y);
+        }
+        
+        public void set(Position from) {
+            this.zoom   = from.zoom;
+            this.x      = from.x;
+            this.y      = from.y;
         }
         
         @Override

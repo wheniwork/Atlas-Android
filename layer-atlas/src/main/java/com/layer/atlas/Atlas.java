@@ -973,8 +973,6 @@ public class Atlas {
          * @param destination   - result list of Cells
          */
         public void buildCellForMessage(Message msg, List<AtlasMessagesList.Cell> destination) {
-            boolean debug = false;
-            String TAG = "preved";
             final ArrayList<MessagePart> parts = new ArrayList<MessagePart>(msg.getMessageParts());
             
             for (int partNo = 0; partNo < parts.size(); partNo++ ) {
@@ -1021,7 +1019,6 @@ public class Atlas {
                     destination.add(new GeoCell(part, messagesList));
                 } else {
                     AtlasMessagesList.Cell cellData = new AtlasMessagesList.TextCell(part, messagesList);
-                    if (false && debug) Log.w(TAG, "cellForMessage() default item: " + cellData);
                     destination.add(cellData);
                 }
             }
