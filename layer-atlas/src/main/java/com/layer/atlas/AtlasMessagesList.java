@@ -188,30 +188,12 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 TextView timeBarDay = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_timebar_day);
                 TextView timeBarTime = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_timebar_time);
                 if (cell.timeHeader) {
-
-                    Calendar cal = Calendar.getInstance();
-                    cal.set(Calendar.HOUR_OF_DAY, 0);
-                    cal.set(Calendar.MINUTE, 0);
-                    cal.set(Calendar.SECOND, 0);
-                    long todayMidnight = cal.getTimeInMillis();
-                    long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
-                    long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
                     Date sentAt = cell.messagePart.getMessage().getSentAt();
                     if (sentAt == null) sentAt = new Date();
-                    
-                    String timeBarTimeText = timeFormat.format(sentAt.getTime());
-                    String timeBarDayText = null;
-                    if (sentAt.getTime() > todayMidnight) {
-                        timeBarDayText = "Today"; 
-                    } else if (sentAt.getTime() > yesterMidnight) {
-                        timeBarDayText = "Yesterday";
-                    } else if (sentAt.getTime() > weekAgoMidnight) {
-                        cal.setTime(sentAt);
-                        timeBarDayText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
-                    } else {
-                        timeBarDayText = Tools.sdfDayOfWeek.format(sentAt);
-                    }
+
+                    String timeBarDayText = Atlas.formatTimeDay(sentAt);
                     timeBarDay.setText(timeBarDayText);
+                    String timeBarTimeText = timeFormat.format(sentAt.getTime());
                     timeBarTime.setText(timeBarTimeText);
                     timeBar.setVisibility(View.VISIBLE);
                 } else {
@@ -222,28 +204,35 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 TextView textAvatar = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_initials);
                 View spacerRight = convertView.findViewById(R.id.atlas_view_messages_convert_spacer_right);
                 TextView userNameHeader = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_user_name);
-                if (myMessage) {
+                if (cell.noDecorations) {
                     spacerRight.setVisibility(View.GONE);
-                    textAvatar.setVisibility(View.INVISIBLE);
+                    textAvatar.setVisibility(View.GONE);
                     userNameHeader.setVisibility(View.GONE);
+                    avatarContainer.setVisibility(View.GONE);
                 } else {
-                    spacerRight.setVisibility(View.VISIBLE);
-                    Atlas.Participant participant = participantProvider.getParticipant(userId);
-                    if (cell.firstUserMsg && showTheirDecor) {
-                        userNameHeader.setVisibility(View.VISIBLE);
-                        String fullName = participant == null ? "Unknown User" : Atlas.getFullName(participant);
-                        userNameHeader.setText(fullName);
-                    } else {
-                        userNameHeader.setVisibility(View.GONE);
-                    }
-                    
-                    if (cell.lastUserMsg && participant != null) {
-                        textAvatar.setVisibility(View.VISIBLE);
-                        textAvatar.setText(Atlas.getInitials(participant));
-                    } else {
+                    if (myMessage) {
+                        spacerRight.setVisibility(View.GONE);
                         textAvatar.setVisibility(View.INVISIBLE);
+                        userNameHeader.setVisibility(View.GONE);
+                    } else {
+                        spacerRight.setVisibility(View.VISIBLE);
+                        Atlas.Participant participant = participantProvider.getParticipant(userId);
+                        if (cell.firstUserMsg && showTheirDecor) {
+                            userNameHeader.setVisibility(View.VISIBLE);
+                            String fullName = participant == null ? "Unknown User" : Atlas.getFullName(participant);
+                            userNameHeader.setText(fullName);
+                        } else {
+                            userNameHeader.setVisibility(View.GONE);
+                        }
+                        
+                        if (cell.lastUserMsg && participant != null) {
+                            textAvatar.setVisibility(View.VISIBLE);
+                            textAvatar.setText(Atlas.getInitials(participant));
+                        } else {
+                            textAvatar.setVisibility(View.INVISIBLE);
+                        }
+                        avatarContainer.setVisibility(showTheirDecor ? View.VISIBLE : View.GONE);
                     }
-                    avatarContainer.setVisibility(showTheirDecor ? View.VISIBLE : View.GONE);
                 }
                 
                 // mark unsent messages
@@ -465,6 +454,10 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 cell.firstUserMsg = true;
                 if (i > 0) cells.get(i - 1).lastUserMsg = true;
             }
+            if (i > 0 && cells.get(i -1).noDecorations) {
+                cell.lastUserMsg = true;
+            }
+            
             
             // check time header is needed
             if (sentAt.getTime() - lastMessageTime > oneHourSpan) {
@@ -479,6 +472,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             cell.clusterItemId = currentItem++;
             
             currentUser = cell.messagePart.getMessage().getSender().getUserId();
+            if (cell.noDecorations) currentUser = null;
             lastMessageTime = sentAt.getTime();
             calLastMessage.setTime(sentAt);
             if (false && debug) Log.d(TAG, "updateValues() item: " + cell);
@@ -772,10 +766,18 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         /** if true, than previous message was from different user*/
         private boolean firstUserMsg;
         /** if true, than next message is from different user */
-        private boolean lastUserMsg; 
+        private boolean lastUserMsg;
+        
+        /** don't move left and right */
+        private boolean noDecorations;
         
         public Cell(MessagePart messagePart) {
             this.messagePart = messagePart;
+        }
+        
+        public Cell(MessagePart messagePart, boolean noDecorations) {
+            this.messagePart = messagePart;
+            this.noDecorations = noDecorations;
         }
 
         @Override

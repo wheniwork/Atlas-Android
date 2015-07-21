@@ -17,7 +17,6 @@ package com.layer.atlas;
 
 import java.text.DateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
@@ -44,7 +43,6 @@ import android.widget.ListView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas.Participant;
-import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
 import com.layer.sdk.changes.LayerChangeEvent;
@@ -366,27 +364,7 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     
     public String formatTime(Date sentAt) {
         if (sentAt == null) sentAt = new Date();
-
-        Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.HOUR_OF_DAY, 0);
-        cal.set(Calendar.MINUTE, 0);
-        cal.set(Calendar.SECOND, 0);
-        long todayMidnight = cal.getTimeInMillis();
-        long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
-        long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
-        
-        String timeText = null;
-        if (sentAt.getTime() > todayMidnight) {
-            timeText = timeFormat.format(sentAt.getTime()); 
-        } else if (sentAt.getTime() > yesterMidnight) {
-            timeText = "Yesterday";
-        } else if (sentAt.getTime() > weekAgoMidnight){
-            cal.setTime(sentAt);
-            timeText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
-        } else {
-            timeText = dateFormat.format(sentAt);
-        }
-        return timeText;
+        return Atlas.formatTimeShort(sentAt, timeFormat, dateFormat);
     }
 
     @Override

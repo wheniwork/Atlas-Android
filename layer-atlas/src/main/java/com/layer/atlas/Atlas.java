@@ -24,9 +24,12 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.reflect.Method;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -221,6 +224,55 @@ public class Atlas {
         final MessagePart dimensionsPart = layerClient.newMessagePart(MIME_TYPE_IMAGE_DIMENSIONS, joDimensions.toString().getBytes() );
         MessagePart[] previewAndSize = new MessagePart[] {previewPart, dimensionsPart};
         return previewAndSize;
+    }
+
+    /** @return if Today: time. If Yesterday: "Yesterday", if within one week: day of week, otherwise: dateFormat.format() */
+    public static String formatTimeShort(Date dateTime, DateFormat timeFormat, DateFormat dateFormat) {
+    
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        long todayMidnight = cal.getTimeInMillis();
+        long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
+        long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
+        
+        String timeText = null;
+        if (dateTime.getTime() > todayMidnight) {
+            timeText = timeFormat.format(dateTime.getTime()); 
+        } else if (dateTime.getTime() > yesterMidnight) {
+            timeText = "Yesterday";
+        } else if (dateTime.getTime() > weekAgoMidnight){
+            cal.setTime(dateTime);
+            timeText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
+        } else {
+            timeText = dateFormat.format(dateTime);
+        }
+        return timeText;
+    }
+
+    /** Today, Yesterday, Weekday or Weekday + date */
+    public static String formatTimeDay(Date sentAt) {
+        Calendar cal = Calendar.getInstance();
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.SECOND, 0);
+        long todayMidnight = cal.getTimeInMillis();
+        long yesterMidnight = todayMidnight - Tools.TIME_HOURS_24;
+        long weekAgoMidnight = todayMidnight - Tools.TIME_HOURS_24 * 7;
+        
+        String timeBarDayText = null;
+        if (sentAt.getTime() > todayMidnight) {
+            timeBarDayText = "Today"; 
+        } else if (sentAt.getTime() > yesterMidnight) {
+            timeBarDayText = "Yesterday";
+        } else if (sentAt.getTime() > weekAgoMidnight) {
+            cal.setTime(sentAt);
+            timeBarDayText = Tools.TIME_WEEKDAYS_NAMES[cal.get(Calendar.DAY_OF_WEEK) - 1];
+        } else {
+            timeBarDayText = Tools.sdfDayOfWeek.format(sentAt);
+        }
+        return timeBarDayText;
     }
 
     public static final class Tools {
@@ -720,6 +772,7 @@ public class Atlas {
             int sampleSize = 1;
             while (originalDimension / (sampleSize * 2) > minRequiredDimension) {
                 sampleSize *= 2;
+                if (sampleSize >= 32) break;
             }
             return sampleSize;
         }
