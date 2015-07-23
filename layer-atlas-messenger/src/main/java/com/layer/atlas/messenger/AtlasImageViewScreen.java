@@ -26,7 +26,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.CheckBox;
-import android.widget.Toast;
 
 import com.layer.atlas.Atlas;
 import com.layer.atlas.Atlas.ImageLoader.ImageSpec;
@@ -58,12 +57,15 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
     
     private long downloadBytesPreview = -1;
     private long downloadBytesFull = -1;
+    
+    private int defaultUIFlags;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.atlas_screen_image_view);
 
+        defaultUIFlags = getWindow().getDecorView().getSystemUiVisibility();
         getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
         
         MessengerApp app = (MessengerApp) getApplication();
@@ -82,7 +84,12 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         this.imageViewer = (AtlasImageView2) findViewById(R.id.atlas_screen_image_view_image);
         this.imageViewer.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                Toast.makeText(v.getContext(), "On Click!", Toast.LENGTH_SHORT).show();
+                getWindow().getDecorView().setSystemUiVisibility(defaultUIFlags);
+                imageViewer.postDelayed(new Runnable() {
+                    public void run() {
+                        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LOW_PROFILE);
+                    }
+                }, 1666);
             }
         });
         

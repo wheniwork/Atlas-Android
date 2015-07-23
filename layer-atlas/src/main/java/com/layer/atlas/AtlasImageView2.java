@@ -30,6 +30,7 @@ import android.graphics.drawable.Drawable;
 import android.text.TextPaint;
 import android.util.AttributeSet;
 import android.util.Log;
+import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 
@@ -206,7 +207,7 @@ public class AtlasImageView2 extends View {
         if (debug) Log.w(TAG, "onDraw() useBitmapBuffer: " + useBitmapBuffer + ", buffer: " + (buffer == null ? "null" : buffer.getWidth() + "x" + buffer.getHeight()) );
         int saved = workCanvas.save();
         workCanvas.translate(pos.x, pos.y);
-        workCanvas.drawRect(left, top, right, bottom, debugFillPaint);
+        if (debugOutline) workCanvas.drawRect(left, top, right, bottom, debugFillPaint);
         workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
         drawable.draw(workCanvas);
         if (debugOutline) Tools.drawX(drawable.getBounds(), debugGreenPaint, workCanvas);
@@ -347,8 +348,23 @@ public class AtlasImageView2 extends View {
     private float zoomTouch1x, zoomTouch1y, zoomTouch2x, zoomTouch2y;
     private Position zoomStart;
     
+    private GestureDetector gestureDetector = new GestureDetector(getContext(), new GestureDetector.SimpleOnGestureListener() {
+        @Override
+        public void onLongPress(MotionEvent e) {
+            performLongClick();
+        }
+        @Override
+        public boolean onSingleTapConfirmed(MotionEvent e) {
+            boolean result = performClick();
+            return result;
+        }
+        
+    });
+    
     @Override
     public boolean onTouchEvent(MotionEvent event) {
+        boolean gestureDetectorResult = gestureDetector.onTouchEvent(event);
+        if (debug) Log.w(TAG, "onTouchEvent() super result: " + gestureDetectorResult);
         
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_MOVE : break;
