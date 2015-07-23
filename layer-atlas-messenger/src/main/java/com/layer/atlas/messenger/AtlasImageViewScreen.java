@@ -88,93 +88,25 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
         
         this.progressView = (AtlasProgressView) findViewById(R.id.atlas_screen_image_view_progress);
         
-        if (debugControls) findViewById(R.id.atlas_screen_image_view_debug).setVisibility(View.VISIBLE);
+        initDebugControls();
         
-        findViewById(R.id.atlas_screen_image_view_angle_minus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setAngle(imageViewer.getAngle() - 3.0f);
-                imageViewer.invalidate();
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_angle_plus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setAngle(imageViewer.getAngle() + 3.0f);
-                imageViewer.invalidate();
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_zoom_minus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setZoom(imageViewer.getZoom() - 0.1f);
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_zoom_plus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setZoom(imageViewer.getZoom() + 0.1f);
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_x_minus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setXOffset(imageViewer.getXOffset() - 10);
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_x_plus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setXOffset(imageViewer.getXOffset() + 10);
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_y_minus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setYOffset(imageViewer.getYOffset() - 10);
-            }
-        });
-        
-        findViewById(R.id.atlas_screen_image_view_y_plus).setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                imageViewer.setYOffset(imageViewer.getYOffset() + 10);
-            }
-        });
-        
-        this.hdCheck = (CheckBox) findViewById(R.id.atlas_screen_image_view_hd);
-        this.hdCheck.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                updateValues();
-            }
-        });
-        
-        this.decorCheck = (CheckBox) findViewById(R.id.atlas_screen_image_view_decor);
-        this.decorCheck.setOnClickListener(new OnClickListener() {
-            public void onClick(View v) {
-                updateDecor();
-            }
-        });
         updateDecor();
         updateValues();
     }
 
     private void updateDecor() {
         if (decorCheck.isChecked()) {
-            if (cell.orientation == ImageCell.ORIENTATION_1_CW_180 || cell.orientation == ImageCell.ORIENTATION_2_CW_90) {
-                this.imageViewer.setContentDimensions(this.cell.declaredHeight, this.cell.declaredWidth);
-            } else {
-                this.imageViewer.setContentDimensions(this.cell.declaredWidth, this.cell.declaredHeight);
-            }
             float angle = 0;
             switch (cell.orientation) {
                 case ImageCell.ORIENTATION_2_CW_90  : angle = -90; break;
                 case ImageCell.ORIENTATION_3_CCW_90 : angle = 90;  break;
                 case ImageCell.ORIENTATION_1_CW_180 : angle = 180; break;
             }
-            this.imageViewer.setAngle(angle);
+            imageViewer.setAngle(angle);
             imageViewer.setContentDimensions(0, 0);
         } else {
-            imageViewer.setContentDimensions(0, 0);
             imageViewer.setAngle(0);
+            imageViewer.setContentDimensions(0, 0);
         }
     }
     
@@ -305,4 +237,72 @@ public class AtlasImageViewScreen extends Activity implements Atlas.ImageLoader.
             updateValues();
         }
     };
+    
+    private void initDebugControls() {
+        if (debugControls) findViewById(R.id.atlas_screen_image_view_debug).setVisibility(View.VISIBLE);
+        
+        findViewById(R.id.atlas_screen_image_view_angle_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setAngle(imageViewer.getAngle() - 3.0f);
+                imageViewer.invalidate();
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_angle_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setAngle(imageViewer.getAngle() + 3.0f);
+                imageViewer.invalidate();
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_zoom_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setZoom(imageViewer.getZoom() - 0.1f);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_zoom_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setZoom(imageViewer.getZoom() + 0.1f);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_x_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setXOffset(imageViewer.getXOffset() - 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_x_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setXOffset(imageViewer.getXOffset() + 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_y_minus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setYOffset(imageViewer.getYOffset() - 10);
+            }
+        });
+        
+        findViewById(R.id.atlas_screen_image_view_y_plus).setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                imageViewer.setYOffset(imageViewer.getYOffset() + 10);
+            }
+        });
+        
+        this.hdCheck = (CheckBox) findViewById(R.id.atlas_screen_image_view_hd);
+        this.hdCheck.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                updateValues();
+            }
+        });
+        
+        this.decorCheck = (CheckBox) findViewById(R.id.atlas_screen_image_view_decor);
+        this.decorCheck.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                updateDecor();
+            }
+        });
+    }
 }

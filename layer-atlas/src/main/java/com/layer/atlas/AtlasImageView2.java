@@ -22,6 +22,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
 import android.graphics.Paint;
+import android.graphics.Paint.Style;
 import android.graphics.PorterDuff.Mode;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
@@ -51,6 +52,11 @@ public class AtlasImageView2 extends View {
     private int contentWidth;
     private int contentHeight;
     private float angle;
+    
+    /** content width  to be used by {@link #onDraw(Canvas)} (before angle applied) */
+    private int contentWorkWidth;
+    /** content height to be used by {@link #onDraw(Canvas)} (before angle applied) */
+    private int contentWorkHeight;
     
     private final Position pos = new Position();
     
@@ -118,11 +124,13 @@ public class AtlasImageView2 extends View {
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         super.onLayout(changed, left, top, right, bottom);
         if (debug) Log.d(TAG, "onLayout() changed: " + changed+ " left: " + left+ " top: " + top+ " right: " + right+ " bottom: " + bottom);
+        setContentWorkDimensions();
     }
     
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         if (debug) Log.w(TAG, "onSizeChanged() w: " + w + " h: " + h+ " oldw: " + oldw+ " oldh: " + oldh);
+        setContentWorkDimensions();
     }
 
     private void setupPaints() {
@@ -161,20 +169,16 @@ public class AtlasImageView2 extends View {
         }
         
         if (debug) Log.w(TAG, 
-                    "onDraw() bounds: " + drawable.getBounds() + ", content: " + contentWidth + "x" + contentHeight + ", angle: " + angle 
-                    +         ", min: " + drawable.getMinimumWidth() + "x" + drawable.getMinimumHeight()
-                    +  ", instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight());
+                    "onDraw() content: " + contentWidth + "x" + contentHeight + ", angle: " + angle 
+                    +   ", instrinsic: " + drawable.getIntrinsicWidth() + "x" + drawable.getIntrinsicHeight());
         
         int viewWidth  = getWidth();
         int viewHeight = getHeight();
-        int imgWidth  = getContentWorkWidth();
-        int imgHeight = getContentWorkHeight();
+        setContentWorkDimensions();
         
-        if (contentWidth == 0 || contentHeight == 0) {
-            float zoomToFit = getZoomToFit();
-            imgWidth  = (int) (zoomToFit * getContentWorkWidth());
-            imgHeight = (int) (zoomToFit * getContentWorkHeight());
-        }
+        int imgWidth  = contentWorkWidth;
+        int imgHeight = contentWorkHeight;
+        if (imgWidth == 0 || imgHeight == 0) Log.e(TAG, "onDraw() dimensions are undefined. " + contentWorkWidth + "x" + contentWorkHeight);
         
         float zoomedWidth  = (int) (imgWidth * pos.zoom);
         float zoomedHeight = (int) (imgHeight * pos.zoom);
@@ -182,7 +186,7 @@ public class AtlasImageView2 extends View {
         int top  = (int) ((viewHeight - zoomedHeight) / 2);
         int right = (int) (left + zoomedWidth);
         int bottom = (int) (top + zoomedHeight);
-        if (debug) Log.w(TAG, "onDraw() left: " + left + ", top: " + top + ", right: " + right + ", bottom: " + bottom);
+        if (debug) Log.w(TAG, "onDraw() workSize: " + imgWidth + "x" + imgHeight + " pos: " + pos + ", drawable: " + left + "x" + top + " -> " + right + "x" + bottom);
         drawable.setBounds(left, top, right, bottom);
 
         if (!useBitmapBuffer && buffer != null) {
@@ -202,6 +206,7 @@ public class AtlasImageView2 extends View {
         if (debug) Log.w(TAG, "onDraw() useBitmapBuffer: " + useBitmapBuffer + ", buffer: " + (buffer == null ? "null" : buffer.getWidth() + "x" + buffer.getHeight()) );
         int saved = workCanvas.save();
         workCanvas.translate(pos.x, pos.y);
+        workCanvas.drawRect(left, top, right, bottom, debugFillPaint);
         workCanvas.rotate(angle, 0.5f * viewWidth , 0.5f * viewHeight);
         drawable.draw(workCanvas);
         if (debugOutline) Tools.drawX(drawable.getBounds(), debugGreenPaint, workCanvas);
@@ -235,77 +240,83 @@ public class AtlasImageView2 extends View {
         
     }
     
-    /** Image Bounds in view coordinates */
-    private RectF getImageBounds(Position pos) {
-        RectF result = new RectF();
-        int imgWidth  = getContentWorkWidth();
-        int imgHeight = getContentWorkHeight();
-        
-        if (contentWidth == 0 || contentHeight == 0) {
-            float zoomToFit = getZoomToFit();
-            imgWidth  = (int) (zoomToFit * getContentWorkWidth());
-            imgHeight = (int) (zoomToFit * getContentWorkHeight());
+    private void setContentWorkDimensions() {
+        if (debug) Log.w(TAG, "setContentWorkWidth() called from: " + com.layer.sdk.internal.utils.Log.printStackTrace());
+        contentWorkWidth = contentWidth;
+        contentWorkHeight = contentHeight;
+        if (contentWorkWidth != 0 && contentWorkWidth != 0) {       // everything is set from user's dimensions
+            if (debug) Log.w(TAG, "checkContentWorkWidth() set from user's dimension: " + contentWorkWidth + contentWorkHeight);
+            return; 
         }
         
-        float zoomedWidth  = (int) (imgWidth * pos.zoom);
-        float zoomedHeight = (int) (imgHeight * pos.zoom);
-        result.left   = -0.5f * zoomedWidth + pos.x;
-        result.right  =  0.5f * zoomedWidth + pos.x;
-        result.top    = -0.5f * zoomedHeight + pos.y;
-        result.bottom =  0.5f * zoomedHeight + pos.y;
-        
-        if (debug) Log.w(TAG, "onDraw() left: " + result.left + ", top: " + result.top + ", right: " + result.right + ", bottom: " + result.bottom);
-        
-        return result;
+        if (drawable == null) {
+            if (debug) Log.w(TAG, "setContentWorkWidth() no user's dimensions, no drawable");
+            return;
+        }
+        int defaultWidth    = drawable.getIntrinsicWidth();
+        int defaultHeight   = drawable.getIntrinsicHeight();
+
+        int viewWidth = getWidth();
+        int viewHeight = getHeight();
+        if (viewWidth != 0 && viewHeight != 0) {                    // set from zoom2Fit 
+            boolean flippedDimensions = flippedDimensions();
+            double zoomToFitHor = 1.0 * viewWidth  / (flippedDimensions ? defaultHeight : defaultWidth);
+            double zoomToFitVer = 1.0 * viewHeight / (flippedDimensions ? defaultWidth : defaultHeight);
+            double defaultZoom = Math.min(zoomToFitHor, zoomToFitVer);  // both dimensions should fit
+            
+            if (contentWorkWidth == 0) {
+                contentWorkWidth = (int) (defaultWidth * defaultZoom);
+            }
+            if (contentWorkHeight == 0) {
+                contentWorkHeight = (int) (defaultHeight * defaultZoom);
+            }
+            if (debug) Log.w(TAG, "checkContentWorkWidth() set from fit2width: " + contentWorkWidth + "x" + contentWorkHeight);
+        } else {
+            if (contentWorkWidth == 0) {
+                contentWorkWidth = defaultWidth;
+            }
+            if (contentWorkHeight == 0) {
+                contentWorkHeight = defaultHeight;
+            }
+            if (debug) Log.w(TAG, "checkContentWorkWidth() set from drawable: " + contentWorkWidth + "x" + contentWorkHeight);
+        }
     }
-    
+
+    private boolean flippedDimensions() {
+        boolean flipDimensions = ((90 + ((int)angle)) % 180 == 0) ? true : false;
+        return flipDimensions;
+    }
+
+    /** takes into account content:0x0 & angle calculation */
     public float getZoomToFit() {
-        int imgWidth = getContentWorkWidth();
-        int imgHeight = getContentWorkHeight();
+        setContentWorkDimensions();
         
-        if ((90 + ((int)angle)) % 180 == 0) {
-            imgHeight = getContentWorkWidth();
-            imgWidth = getContentWorkHeight();
-        }
-        
-        double zoomToFitWidth = 1.0 * getWidth() / imgWidth;
-        double zoomToFitHeight = 1.0 * getHeight() / imgHeight;
+        double zoomToFitWidth  = 1.0 * getWidth()  / (flippedDimensions() ? contentWorkHeight : contentWorkWidth);
+        double zoomToFitHeight = 1.0 * getHeight() / (flippedDimensions() ? contentWorkWidth : contentWorkHeight);
         
         float zoomToFit = (float) Math.min(zoomToFitWidth, zoomToFitHeight);
+        if (debug) Log.d(TAG, "getZoomToFit() zoomToFit: " + zoomToFit + ", " + contentWorkWidth + "x" + contentWorkHeight);
         return zoomToFit;
     }
     
     public float getZoomToFill() {
-        int imgWidth = getContentWorkWidth();
-        int imgHeight = getContentWorkHeight();
+        setContentWorkDimensions();
         
-        if ((90 + ((int)angle)) % 180 == 0) {
-            imgHeight = getContentWorkWidth();
-            imgWidth = getContentWorkHeight();
-        }
-
-        double zoomToFitWidth = 1.0 * getWidth() / imgWidth;
-        double zoomToFitHeight = 1.0 * getHeight() / imgHeight;
+        double zoomToFitWidth = 1.0 * getWidth()   / (flippedDimensions() ? contentWorkHeight : contentWorkWidth);
+        double zoomToFitHeight = 1.0 * getHeight() / (flippedDimensions() ? contentWorkWidth : contentWorkHeight);
         
         float zoomToFill = (float) Math.max(zoomToFitWidth, zoomToFitHeight);
+        if (debug) Log.d(TAG, "getZoomToFit() zoomToFill: " + zoomToFill + ", " + contentWorkWidth + "x" + contentWorkHeight);
         return zoomToFill;
     }
     
-    /** return contentWidth if defined or drawable.intrinsic width*/
-    private int getContentWorkWidth() {
-        return contentWidth == 0 ? drawable.getIntrinsicWidth() : contentWidth;
-    }
-    /** Return contentHeight if defined or drawable.intrinsic height */
-    private int getContentWorkHeight() {
-        return contentHeight == 0 ? drawable.getIntrinsicHeight() : contentHeight;
-    }
-
     private final static Paint debugRedPaint   = new Paint();
     private final static Paint debugGreenPaint  = new Paint();
     private final static Paint debugBluePaint  = new Paint();
     private final static Paint debugGrayPaint  = new Paint();
     private final static Paint debugWhitePaint  = new Paint();
     private final static TextPaint debugTextPaint = new TextPaint();
+    private final static Paint debugFillPaint = new Paint();
 
     static {
         debugRedPaint.setStyle(Paint.Style.STROKE);
@@ -320,6 +331,9 @@ public class AtlasImageView2 extends View {
         debugWhitePaint.setStyle(Paint.Style.STROKE);
         debugWhitePaint.setColor(Color.rgb(233, 233, 233));
         debugTextPaint.setColor(Color.RED);
+        debugFillPaint.setStyle(Style.FILL_AND_STROKE);
+        debugFillPaint.setColor(Color.argb(100, 233, 233, 233));
+        
     }
     
     private float lastTouch1x, lastTouch2x;
@@ -338,7 +352,7 @@ public class AtlasImageView2 extends View {
         
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
             case MotionEvent.ACTION_MOVE : break;
-            default : if (debug) Log.w(TAG, "onTouch() event: " + Tools.toString(event));
+            default : if (debug) Log.d(TAG, "onTouch() event: " + Tools.toString(event));
         }
         
         switch (event.getAction() & MotionEvent.ACTION_MASK) {
@@ -439,8 +453,17 @@ public class AtlasImageView2 extends View {
                 move = true;
             }
             
+            RectF imageBounds = new RectF();
+            float zoomedWidth  = (flippedDimensions() ? contentWorkHeight : contentWorkWidth) * moveTo.zoom;
+            float zoomedHeight = (flippedDimensions() ? contentWorkWidth : contentWorkHeight) * moveTo.zoom;
+            imageBounds.left   = -0.5f * zoomedWidth + moveTo.x;
+            imageBounds.right  =  0.5f * zoomedWidth + moveTo.x;
+            imageBounds.top    = -0.5f * zoomedHeight + moveTo.y;
+            imageBounds.bottom =  0.5f * zoomedHeight + moveTo.y;
+            
+            if (debug) Log.w(TAG, "checkBoundaries() current image bounds: " + imageBounds.left + "x" + imageBounds.top + " -> " + imageBounds.right + "x" + imageBounds.bottom);
+            
             // adjust offset to fit in boundaries
-            RectF imageBounds = getImageBounds(moveTo);
             RectF offsetBounds = new RectF();
             if (imageBounds.width() - getWidth() > 0) {
                 offsetBounds.left   = -0.5f * (imageBounds.width() - getWidth());
@@ -468,7 +491,7 @@ public class AtlasImageView2 extends View {
         }
         
         if (move) {
-            final Position finalMoveTo = moveTo; 
+            final Position finalMoveTo = moveTo;
             move(new Move() {
                 Position startPos = new Position(pos);
                 Position toPos = finalMoveTo;
@@ -487,6 +510,7 @@ public class AtlasImageView2 extends View {
                 }
             });
         }
+        if (debug) Log.i(TAG, "checkBoundaries() " + (move ? "moveTo: " + moveTo : "ok"));
         
     }
     
@@ -514,7 +538,7 @@ public class AtlasImageView2 extends View {
             lastTouch2x = event.getX(1);
             lastTouch2y = event.getY(1);
         }
-        if (debug) Log.w(TAG, "trackLastTouch() 0: " + lastTouch1x + "x" + lastTouch1y + ", 1: " + lastTouch2x + "x" + lastTouch2y);
+        if (debug) Log.d(TAG, "trackLastTouch() 0: " + lastTouch1x + "x" + lastTouch1y + ", 1: " + lastTouch2x + "x" + lastTouch2y);
     }
     
     @Override
@@ -540,21 +564,17 @@ public class AtlasImageView2 extends View {
         } else {
             setLayerType(defaultLayerType, null);
         }
+        setContentWorkDimensions();
         invalidate();
     }
     
     public void setContentDimensions(int contentWidth, int contentHeight) {
-        boolean requestLayout = false;
-        if (this.contentWidth != contentWidth || this.contentHeight != contentHeight) {
-            requestLayout = true;
-        }
         if (debug) Log.w(TAG, "setContentDimensions() new: " + contentWidth + "x" + contentHeight + ", old: " + this.contentWidth + "x" + this.contentHeight);
         this.contentWidth = contentWidth;
         this.contentHeight = contentHeight;
         
-        if (requestLayout) {
-            requestLayout();
-        }
+        setContentWorkDimensions();
+        requestLayout();
         invalidate();
     }
     
@@ -655,7 +675,7 @@ public class AtlasImageView2 extends View {
         
         @Override
         public String toString() {
-            return String.format("Zoom: %.1f at: %.1fx%.1f", zoom, x, y);
+            return String.format("Zoom: %.2f at: %.1fx%.1f", zoom, x, y);
         }
         
     }
