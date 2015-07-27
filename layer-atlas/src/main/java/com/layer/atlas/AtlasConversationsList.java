@@ -25,9 +25,17 @@ import java.util.List;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Typeface;
-import android.graphics.drawable.GradientDrawable;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -39,10 +47,12 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.AdapterView.OnItemLongClickListener;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas.Participant;
+import com.layer.atlas.Atlas.Tools;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.changes.LayerChange;
 import com.layer.sdk.changes.LayerChangeEvent;
@@ -128,6 +138,51 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
         this.conversationsList = (ListView) findViewById(R.id.atlas_conversations_view);
         this.conversationsList.setAdapter(conversationsAdapter = new BaseAdapter() {
             
+            /** to draw right avatar with mask separately */
+            Bitmap tmpBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+            Bitmap maskSingleBmp     = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+            Bitmap maskMultiLeftBmp  = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+            Bitmap maskMultiRightBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+            Bitmap maskMultiBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+            Paint avatarPaint = new Paint();
+            Paint maskPaint = new Paint();
+            {
+                avatarPaint.setAntiAlias(true);
+                avatarPaint.setDither(true);
+                
+                maskPaint.setAntiAlias(true);
+                maskPaint.setDither(true);
+                maskPaint.setXfermode(new PorterDuffXfermode(Mode.DST_IN));
+                
+                Paint paintCircle = new Paint();
+                paintCircle.setStyle(Style.FILL_AND_STROKE);
+                paintCircle.setColor(Color.CYAN);
+                paintCircle.setAntiAlias(true);
+                
+                Canvas maskSingleCanvas = new Canvas(maskSingleBmp);
+                maskSingleCanvas.drawCircle(0.5f * maskSingleBmp.getWidth(), 0.5f * maskSingleBmp.getHeight(), 0.5f * maskSingleBmp.getWidth(), paintCircle);
+                
+                Paint paintErase = new Paint();
+                paintErase.setAntiAlias(true);
+                paintErase.setXfermode(new PorterDuffXfermode(Mode.CLEAR));
+                
+                float radiusOne = Tools.getPxFromDp(13f, getContext());
+                float centerTwo = Tools.getPxFromDp(27f, getContext());
+                float spacingRadius = Tools.getPxFromDp(14.3f, getContext());
+
+                Canvas maskLeftCanvas = new Canvas(maskMultiLeftBmp);
+                maskLeftCanvas.drawCircle(radiusOne, radiusOne, radiusOne, paintCircle);
+                maskLeftCanvas.drawCircle(centerTwo, centerTwo, spacingRadius, paintErase); // cut right-bottom
+                
+                Canvas maskRightCanvas = new Canvas(maskMultiRightBmp);
+                maskRightCanvas.drawCircle(centerTwo, centerTwo, radiusOne, paintCircle);
+
+                Canvas maskMultiCanvas = new Canvas(maskMultiBmp);
+                maskMultiCanvas.drawCircle(radiusOne, radiusOne, radiusOne, paintCircle);
+                maskMultiCanvas.drawCircle(centerTwo, centerTwo, spacingRadius, paintErase);// cut right-bottom
+                maskMultiCanvas.drawCircle(centerTwo, centerTwo, radiusOne, paintCircle);
+            }
+            
             public View getView(int position, View convertView, ViewGroup parent) {
                 if (convertView == null) {
                     convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.atlas_view_conversations_list_convert, parent, false);
@@ -147,13 +202,31 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                 TextView textInitials = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_single_text);
                 View avatarSingle = convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_single);
                 View avatarMulti = convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi);
+                ImageView avatarImgView = (ImageView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_img);
+                Bitmap avatarBmp = null;
+                if (avatarImgView.getDrawable() instanceof BitmapDrawable){
+                    BitmapDrawable bitmapDrawable = (BitmapDrawable) avatarImgView.getDrawable();
+                    avatarBmp = bitmapDrawable.getBitmap();
+                } else {
+                    avatarBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()), Config.ARGB_8888);
+                    avatarImgView.setImageBitmap(avatarBmp);
+                }
+                Canvas canvas = new Canvas(avatarBmp);
+                canvas.drawColor(avatarBackgroundColor);
                 if (allButMe.size() < 2) {
                     String conterpartyUserId = allButMe.get(0);
                     Atlas.Participant participant = participantProvider.getParticipant(conterpartyUserId);
-                    textInitials.setText(participant == null ? null : Atlas.getInitials(participant));
-                    textInitials.setTextColor(avatarTextColor);
-                    ((GradientDrawable) textInitials.getBackground()).setColor(avatarBackgroundColor);
-                    avatarSingle.setVisibility(View.VISIBLE);
+                    if (participant == null || participant.getAvatarDrawable() == null) {
+                        textInitials.setText(participant == null ? "?" : Atlas.getInitials(participant));
+                        textInitials.setTextColor(avatarTextColor);
+                        avatarSingle.setVisibility(View.VISIBLE);
+                    } else {
+                        Drawable drawable = participant.getAvatarDrawable();
+                        drawable.setBounds(0, 0, (int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()));
+                        drawable.draw(canvas);
+                        avatarSingle.setVisibility(View.GONE);
+                    }
+                    canvas.drawBitmap(maskSingleBmp, 0, 0, maskPaint);
                     avatarMulti.setVisibility(View.GONE);
                 } else {
                     Participant leftParticipant = null;
@@ -171,16 +244,37 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                         }
                     }
                     
-                    TextView textInitialsLeft = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi_left);
-                    textInitialsLeft.setText(leftParticipant == null ? "?" : Atlas.getInitials(leftParticipant));
-                    textInitialsLeft.setTextColor(avatarTextColor);
-                    ((GradientDrawable) textInitialsLeft.getBackground()).setColor(avatarBackgroundColor);
-                    
+                    TextView textInitialsLeft  = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi_left);
                     TextView textInitialsRight = (TextView) convertView.findViewById(R.id.atlas_view_conversations_list_convert_avatar_multi_right);
-                    textInitialsRight.setText(rightParticipant == null ? "?" : Atlas.getInitials(rightParticipant));
-                    textInitialsRight.setTextColor(avatarTextColor);
-                    ((GradientDrawable) textInitialsRight.getBackground()).setColor(avatarBackgroundColor);
+                    Canvas tmpCanvas = new Canvas(tmpBmp);
+                    if (leftParticipant == null || leftParticipant.getAvatarDrawable() == null) {
+                        textInitialsLeft.setText(leftParticipant == null ? "?" : Atlas.getInitials(leftParticipant));
+                        textInitialsLeft.setTextColor(avatarTextColor);
+                        textInitialsLeft.setVisibility(View.VISIBLE);
+                    } else {
+                        tmpCanvas.drawColor(Color.TRANSPARENT, Mode.CLEAR);
+                        Drawable leftDrawable = leftParticipant.getAvatarDrawable();
+                        leftDrawable.setBounds(0, 0, (int)Tools.getPxFromDp(26, getContext()), (int)Tools.getPxFromDp(26, getContext()));
+                        leftDrawable.draw(tmpCanvas);
+                        tmpCanvas.drawBitmap(maskMultiLeftBmp, 0, 0, maskPaint);
+                        canvas.drawBitmap(tmpBmp, 0, 0, avatarPaint);
+                        textInitialsLeft.setVisibility(View.GONE);
+                    }
+                    if (rightParticipant == null || rightParticipant.getAvatarDrawable() == null) {
+                        textInitialsRight.setText(rightParticipant == null ? "?" : Atlas.getInitials(rightParticipant));
+                        textInitialsRight.setTextColor(avatarTextColor);
+                        textInitialsRight.setVisibility(View.VISIBLE);
+                    } else {
+                        tmpCanvas.drawColor(Color.TRANSPARENT, Mode.CLEAR);
+                        Drawable drawable = rightParticipant.getAvatarDrawable();
+                        drawable.setBounds((int)Tools.getPxFromDp(14, getContext()), (int)Tools.getPxFromDp(14, getContext()), (int)Tools.getPxFromDp(40, getContext()), (int)Tools.getPxFromDp(40, getContext()));
+                        drawable.draw(tmpCanvas);
+                        tmpCanvas.drawBitmap(maskMultiRightBmp, 0, 0, maskPaint);
+                        canvas.drawBitmap(tmpBmp, 0, 0, avatarPaint);
+                        textInitialsRight.setVisibility(View.GONE);
+                    }
                     
+                    canvas.drawBitmap(maskMultiBmp, 0, 0, maskPaint);               // always apply mask 
                     avatarSingle.setVisibility(View.GONE);
                     avatarMulti.setVisibility(View.VISIBLE);
                 }
@@ -269,13 +363,13 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
     }
     
     public void updateValues() {
-        if (conversationsAdapter == null) return;           // never initialized
-        
-        conversations.clear();                              // always clean, rebuild if authenticated 
+        if (conversationsAdapter == null) return; // never initialized
+
+        conversations.clear(); // always clean, rebuild if authenticated 
         conversationsAdapter.notifyDataSetChanged();
-        
-        if ( ! layerClient.isAuthenticated()) return;
-            
+
+        if (!layerClient.isAuthenticated()) return;
+
         List<Conversation> convs = null;
         if (query != null) {
             convs = (List<Conversation>) layerClient.executeQueryForObjects(query);
@@ -290,9 +384,8 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
                 if (conv.getParticipants().size() == 0) continue;
                 // only ourselves in participant list is possible to happen, but there is nothing to do with it
                 // behave like conversation is disconnected
-                if (conv.getParticipants().size() == 1 
-                        && conv.getParticipants().contains(layerClient.getAuthenticatedUserId())) continue;
-                
+                if (conv.getParticipants().size() == 1 && conv.getParticipants().contains(layerClient.getAuthenticatedUserId())) continue;
+
                 conversations.add(conv);
             }
             
@@ -332,28 +425,28 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasConversationList, R.attr.AtlasConversationList, defStyle);
         this.titleTextColor = ta.getColor(R.styleable.AtlasConversationList_cellTitleTextColor, context.getResources().getColor(R.color.atlas_text_black));
         this.titleTextStyle = ta.getInt(R.styleable.AtlasConversationList_cellTitleTextStyle, Typeface.NORMAL);
-        String titleTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellTitleTextTypeface); 
-        this.titleTextTypeface  = titleTextTypefaceName != null ? Typeface.create(titleTextTypefaceName, titleTextStyle) : null;
-        
+        String titleTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellTitleTextTypeface);
+        this.titleTextTypeface = titleTextTypefaceName != null ? Typeface.create(titleTextTypefaceName, titleTextStyle) : null;
+
         this.titleUnreadTextColor = ta.getColor(R.styleable.AtlasConversationList_cellTitleUnreadTextColor, context.getResources().getColor(R.color.atlas_text_black));
         this.titleUnreadTextStyle = ta.getInt(R.styleable.AtlasConversationList_cellTitleUnreadTextStyle, Typeface.BOLD);
-        String titleUnreadTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellTitleUnreadTextTypeface); 
-        this.titleUnreadTextTypeface  = titleUnreadTextTypefaceName != null ? Typeface.create(titleUnreadTextTypefaceName, titleUnreadTextStyle) : null;
-        
+        String titleUnreadTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellTitleUnreadTextTypeface);
+        this.titleUnreadTextTypeface = titleUnreadTextTypefaceName != null ? Typeface.create(titleUnreadTextTypefaceName, titleUnreadTextStyle) : null;
+
         this.subtitleTextColor = ta.getColor(R.styleable.AtlasConversationList_cellSubtitleTextColor, context.getResources().getColor(R.color.atlas_text_black));
         this.subtitleTextStyle = ta.getInt(R.styleable.AtlasConversationList_cellSubtitleTextStyle, Typeface.NORMAL);
-        String subtitleTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellSubtitleTextTypeface); 
-        this.subtitleTextTypeface  = subtitleTextTypefaceName != null ? Typeface.create(subtitleTextTypefaceName, subtitleTextStyle) : null;
-        
+        String subtitleTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellSubtitleTextTypeface);
+        this.subtitleTextTypeface = subtitleTextTypefaceName != null ? Typeface.create(subtitleTextTypefaceName, subtitleTextStyle) : null;
+
         this.subtitleUnreadTextColor = ta.getColor(R.styleable.AtlasConversationList_cellSubtitleUnreadTextColor, context.getResources().getColor(R.color.atlas_text_black));
         this.subtitleUnreadTextStyle = ta.getInt(R.styleable.AtlasConversationList_cellSubtitleUnreadTextStyle, Typeface.NORMAL);
-        String subtitleUnreadTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellSubtitleUnreadTextTypeface); 
-        this.subtitleUnreadTextTypeface  = subtitleUnreadTextTypefaceName != null ? Typeface.create(subtitleUnreadTextTypefaceName, subtitleUnreadTextStyle) : null;
-        
-        this.cellBackgroundColor = ta.getColor(R.styleable.AtlasConversationList_cellBackgroundColor, Color.TRANSPARENT); 
-        this.cellUnreadBackgroundColor = ta.getColor(R.styleable.AtlasConversationList_cellUnreadBackgroundColor, Color.TRANSPARENT); 
-        this.dateTextColor = ta.getColor(R.styleable.AtlasConversationList_dateTextColor, context.getResources().getColor(R.color.atlas_text_black)); 
-        this.avatarTextColor = ta.getColor(R.styleable.AtlasConversationList_avatarTextColor, context.getResources().getColor(R.color.atlas_text_black)); 
+        String subtitleUnreadTextTypefaceName = ta.getString(R.styleable.AtlasConversationList_cellSubtitleUnreadTextTypeface);
+        this.subtitleUnreadTextTypeface = subtitleUnreadTextTypefaceName != null ? Typeface.create(subtitleUnreadTextTypefaceName, subtitleUnreadTextStyle) : null;
+
+        this.cellBackgroundColor = ta.getColor(R.styleable.AtlasConversationList_cellBackgroundColor, Color.TRANSPARENT);
+        this.cellUnreadBackgroundColor = ta.getColor(R.styleable.AtlasConversationList_cellUnreadBackgroundColor, Color.TRANSPARENT);
+        this.dateTextColor = ta.getColor(R.styleable.AtlasConversationList_dateTextColor, context.getResources().getColor(R.color.atlas_text_black));
+        this.avatarTextColor = ta.getColor(R.styleable.AtlasConversationList_avatarTextColor, context.getResources().getColor(R.color.atlas_text_black));
         this.avatarBackgroundColor = ta.getColor(R.styleable.AtlasConversationList_avatarBackgroundColor, context.getResources().getColor(R.color.atlas_shape_avatar_gray));
         ta.recycle();
     }
@@ -394,7 +487,6 @@ public class AtlasConversationsList extends FrameLayout implements LayerChangeEv
         this.longClickListener = conversationLongClickListener;
     }
 
-    
     public interface ConversationClickListener {
         void onItemClick(Conversation conversation);
     }

@@ -27,25 +27,28 @@
     	android:layout_width="72dp"
     	>
     	
+        <ImageView 
+            android:id="@+id/atlas_view_conversations_list_convert_avatar_img"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_gravity="center"
+            android:visibility="visible"
+            />        
+        
         <!-- single person avatar -->
         <FrameLayout 
             android:id="@+id/atlas_view_conversations_list_convert_avatar_single"
             android:layout_width="40dp"
             android:layout_height="40dp"
             android:layout_gravity="center"
+            android:visibility="gone"
             >
-            <View 
-                android:layout_width="40dp"
-                android:layout_height="40dp"
-                android:background="@drawable/atlas_shape_circle_white"
-                />
             <TextView 
                 android:id="@+id/atlas_view_conversations_list_convert_avatar_single_text"
                 android:layout_width="38dp"
                 android:layout_height="38dp"
                 android:layout_marginLeft="1dp"
                 android:layout_marginTop="1dp"
-                android:background="@drawable/atlas_shape_circle_gray"
                 android:gravity="center"
                 android:textSize="@dimen/atlas_text_size_smaller"
                 android:text="TS"
@@ -59,31 +62,15 @@
             android:layout_height="match_parent"
             android:visibility="gone"
             >
-            <View 
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginLeft="15dp"
-                android:layout_marginTop="15dp"
-                android:background="@drawable/atlas_shape_circle_white"
-                />
-            
             <TextView
                 android:id="@+id/atlas_view_conversations_list_convert_avatar_multi_left" 
                 android:layout_width="26dp"
                 android:layout_height="26dp"
                 android:layout_marginLeft="16dp"
                 android:layout_marginTop="16dp"
-                android:background="@drawable/atlas_shape_circle_gray"
                 android:gravity="center"
                 android:textSize="@dimen/atlas_text_size_tiny"
                 android:text="ZF"
-                />
-            <View 
-                android:layout_width="28dp"
-                android:layout_height="28dp"
-                android:layout_marginLeft="29dp"
-                android:layout_marginTop="29dp"
-                android:background="@drawable/atlas_shape_circle_white"
                 />
             <TextView 
                 android:id="@+id/atlas_view_conversations_list_convert_avatar_multi_right"
@@ -91,7 +78,6 @@
                 android:layout_height="26dp"
                 android:layout_marginLeft="30dp"
                 android:layout_marginTop="30dp"
-                android:background="@drawable/atlas_shape_circle_gray"
                 android:gravity="center"
                 android:textSize="@dimen/atlas_text_size_tiny"
                 android:text="AB"

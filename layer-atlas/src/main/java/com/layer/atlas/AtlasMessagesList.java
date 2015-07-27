@@ -27,7 +27,17 @@ import java.util.Set;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
 import android.os.Handler;
@@ -40,6 +50,7 @@ import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
@@ -131,10 +142,15 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     private int avatarTextColor;
     private int avatarBackgroundColor;
     
+    private Bitmap maskSingleBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(24, getContext()), (int)Tools.getPxFromDp(24, getContext()), Config.ARGB_8888);
+    private Paint avatarPaint = new Paint();
+    private Paint maskPaint = new Paint();
+    
     public AtlasMessagesList(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         parseStyle(context, attrs, defStyle);
         this.timeFormat = android.text.format.DateFormat.getTimeFormat(context);
+        setupPaints();
     }
 
     public AtlasMessagesList(Context context, AttributeSet attrs) {
@@ -144,6 +160,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
     public AtlasMessagesList(Context context) {
         super(context);
         this.timeFormat = android.text.format.DateFormat.getTimeFormat(context);
+        setupPaints();
     }
 
     /** Setup with {@link Atlas.DefaultCellFactory}  */
@@ -202,17 +219,24 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 
                 View avatarContainer = convertView.findViewById(R.id.atlas_view_messages_convert_avatar_container);
                 TextView textAvatar = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_initials);
+                ImageView avatarImgView = (ImageView) convertView.findViewById(R.id.atlas_view_messages_convert_avatar_img);
+                Bitmap avatarBmp = null;
+                if (avatarImgView.getDrawable() instanceof BitmapDrawable){
+                    BitmapDrawable bitmapDrawable = (BitmapDrawable) avatarImgView.getDrawable();
+                    avatarBmp = bitmapDrawable.getBitmap();
+                } else {
+                    avatarBmp = Bitmap.createBitmap(maskSingleBmp.getWidth(), maskSingleBmp.getHeight(), Config.ARGB_8888);
+                }
                 View spacerRight = convertView.findViewById(R.id.atlas_view_messages_convert_spacer_right);
                 TextView userNameHeader = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_user_name);
                 if (cell.noDecorations) {
                     spacerRight.setVisibility(View.GONE);
-                    textAvatar.setVisibility(View.GONE);
                     userNameHeader.setVisibility(View.GONE);
                     avatarContainer.setVisibility(View.GONE);
                 } else {
                     if (myMessage) {
                         spacerRight.setVisibility(View.GONE);
-                        textAvatar.setVisibility(View.INVISIBLE);
+                        avatarContainer.setVisibility(View.INVISIBLE);
                         userNameHeader.setVisibility(View.GONE);
                     } else {
                         spacerRight.setVisibility(View.VISIBLE);
@@ -225,15 +249,27 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                             userNameHeader.setVisibility(View.GONE);
                         }
                         
+                        Canvas avatarCanvas = new Canvas(avatarBmp);
+                        avatarCanvas.drawColor(avatarBackgroundColor);
+
+                        textAvatar.setVisibility(View.INVISIBLE);
+                        avatarImgView.setVisibility(View.INVISIBLE);
                         if (cell.lastUserMsg && participant != null) {
-                            textAvatar.setVisibility(View.VISIBLE);
-                            textAvatar.setText(Atlas.getInitials(participant));
-                        } else {
-                            textAvatar.setVisibility(View.INVISIBLE);
+                            Drawable avatarDrawable = participant.getAvatarDrawable();
+                            avatarImgView.setVisibility(View.VISIBLE);
+                            if (avatarDrawable != null) {
+                                avatarDrawable.setBounds(0, 0, avatarBmp.getWidth(), avatarBmp.getHeight());
+                                avatarDrawable.draw(avatarCanvas);
+                            } else {
+                                textAvatar.setVisibility(View.VISIBLE);
+                                textAvatar.setText(Atlas.getInitials(participant));
+                            }
                         }
+                        avatarCanvas.drawBitmap(maskSingleBmp, 0, 0, maskPaint);
                         avatarContainer.setVisibility(showTheirDecor ? View.VISIBLE : View.GONE);
                     }
                 }
+                avatarImgView.setImageBitmap(avatarBmp);
                 
                 // mark unsent messages
                 View cellContainer = convertView.findViewById(R.id.atlas_view_messages_cell_container);
@@ -264,7 +300,6 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 timeBarDay.setTextColor(dateTextColor);
                 timeBarTime.setTextColor(dateTextColor);
                 textAvatar.setTextColor(avatarTextColor);
-                ((GradientDrawable)textAvatar.getBackground()).setColor(avatarBackgroundColor);
                 
                 return convertView;
             }
@@ -315,6 +350,23 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         updateValues();
     }
     
+    private void setupPaints() {
+        avatarPaint.setAntiAlias(true);
+        avatarPaint.setDither(true);
+        
+        maskPaint.setAntiAlias(true);
+        maskPaint.setDither(true);
+        maskPaint.setXfermode(new PorterDuffXfermode(Mode.DST_IN));
+        
+        Paint paintCircle = new Paint();
+        paintCircle.setStyle(Style.FILL_AND_STROKE);
+        paintCircle.setColor(Color.CYAN);
+        paintCircle.setAntiAlias(true);
+        
+        Canvas maskSingleCanvas = new Canvas(maskSingleBmp);
+        maskSingleCanvas.drawCircle(0.5f * maskSingleBmp.getWidth(), 0.5f * maskSingleBmp.getHeight(), 0.5f * maskSingleBmp.getWidth(), paintCircle);
+    }
+
     public void parseStyle(Context context, AttributeSet attrs, int defStyle) {
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessageList, R.attr.AtlasMessageList, defStyle);
         this.myTextColor = ta.getColor(R.styleable.AtlasMessageList_myTextColor, context.getResources().getColor(R.color.atlas_text_black));

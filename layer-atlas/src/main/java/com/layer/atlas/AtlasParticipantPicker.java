@@ -25,7 +25,17 @@ import java.util.TreeSet;
 
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffXfermode;
 import android.graphics.Typeface;
+import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -41,11 +51,13 @@ import android.widget.AdapterView.OnItemClickListener;
 import android.widget.BaseAdapter;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import com.layer.atlas.Atlas.Participant;
 import com.layer.atlas.Atlas.ParticipantProvider;
+import com.layer.atlas.Atlas.Tools;
 
 /**
  * @author Oleg Orlov
@@ -82,10 +94,17 @@ public class AtlasParticipantPicker extends FrameLayout {
     private int chipTextColor;
     private Typeface chipTextTypeface;
     private int chipTextStyle;
+    
+    private Bitmap maskSingleBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(32, getContext()), (int)Tools.getPxFromDp(32, getContext()), Config.ARGB_8888);
+    private Paint avatarPaint = new Paint();
+    private Paint maskPaint = new Paint();
+    private int avatarBackgroundColor;
+    private Bitmap maskSmallBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(24, getContext()), (int)Tools.getPxFromDp(24, getContext()), Config.ARGB_8888);
 
     public AtlasParticipantPicker(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
         parseStyle(context, attrs, defStyle);
+        setupPaints();
     }
 
     public AtlasParticipantPicker(Context context, AttributeSet attrs) {
@@ -94,6 +113,7 @@ public class AtlasParticipantPicker extends FrameLayout {
 
     public AtlasParticipantPicker(Context context) {
         super(context);
+        setupPaints();
     }
 
     public void init(String[] userIdToSkip, ParticipantProvider participantProvider) {
@@ -175,15 +195,37 @@ public class AtlasParticipantPicker extends FrameLayout {
 
                 TextView name = (TextView) convertView.findViewById(R.id.atlas_view_participants_picker_convert_name);
                 TextView avatarText = (TextView) convertView.findViewById(R.id.atlas_view_participants_picker_convert_ava);
+                ImageView avatarImgView = (ImageView) convertView.findViewById(R.id.atlas_view_participants_picker_convert_avatar_img);
+                Bitmap avatarBmp = null;
+                if (avatarImgView.getDrawable() instanceof BitmapDrawable){
+                    BitmapDrawable bitmapDrawable = (BitmapDrawable) avatarImgView.getDrawable();
+                    avatarBmp = bitmapDrawable.getBitmap();
+                } else {
+                    avatarBmp = Bitmap.createBitmap(maskSingleBmp.getWidth(), maskSingleBmp.getHeight(), Config.ARGB_8888);
+                }
+                Canvas avatarCanvas = new Canvas(avatarBmp);
+                avatarCanvas.drawColor(avatarBackgroundColor, Mode.CLEAR);
+                avatarCanvas.drawColor(avatarBackgroundColor);
+                
                 ParticipantEntry entry = participantsForAdapter.get(position);
 
                 if (entry != null) {
                     name.setText(Atlas.getFullName(entry.participant));
-                    avatarText.setText(Atlas.getInitials(entry.participant));
+                    Drawable avatarDrawable = entry.participant.getAvatarDrawable();
+                    if (entry.participant != null && avatarDrawable != null) {
+                        avatarDrawable.setBounds(0, 0, avatarBmp.getWidth(), avatarBmp.getHeight());
+                        avatarDrawable.draw(avatarCanvas);
+                        avatarText.setVisibility(View.INVISIBLE);
+                    } else {
+                        avatarText.setVisibility(View.VISIBLE);
+                        avatarText.setText(Atlas.getInitials(entry.participant));
+                    }
                 } else {
-                    name.setText(null);
-                    avatarText.setText(null);
+                    name.setText("Unknown user");
+                    avatarText.setText("?");
                 }
+                avatarCanvas.drawBitmap(maskSingleBmp, 0, 0, maskPaint);
+                avatarImgView.setImageBitmap(avatarBmp);
                 
                 // apply styles
                 name.setTextColor(listTextColor);
@@ -268,17 +310,30 @@ public class AtlasParticipantPicker extends FrameLayout {
         }
         if (debug) Log.w(TAG, "refreshParticipants() childs left: " + selectedParticipantsContainer.getChildCount());
         for (String id : selectedParticipantIds) {
-            Participant entry = participantProvider.getParticipant(id);
+            Participant participant = participantProvider.getParticipant(id);
             View participantView = LayoutInflater.from(selectedParticipantsContainer.getContext()).inflate(R.layout.atlas_view_participants_picker_name_convert, selectedParticipantsContainer, false);
 
             TextView avaText = (TextView) participantView.findViewById(R.id.atlas_view_participants_picker_name_convert_ava);
-            avaText.setText(Atlas.getInitials(entry));
+//            ImageView avatarImgView = (ImageView) participantView.findViewById(R.id.atlas_view_participants_picker_name_convert_avatar_img);
+//            Bitmap avatarBmp = Bitmap.createBitmap(maskSmallBmp.getWidth(), maskSmallBmp.getHeight(), Config.ARGB_8888);
+//            Canvas avatarCanvas = new Canvas(avatarBmp);
+//            avatarCanvas.drawColor(R.color.atlas_shape_avatar_gray);
+//            if (participant.getAvatarDrawable() != null) {
+//                participant.getAvatarDrawable().setBounds(0, 0, avatarBmp.getWidth(), avatarBmp.getHeight());
+//                participant.getAvatarDrawable().draw(avatarCanvas);
+//                avaText.setVisibility(View.INVISIBLE);
+//            } else {
+                avaText.setText(Atlas.getInitials(participant));
+//            }
+//            avatarCanvas.drawBitmap(maskSmallBmp, 0, 0, maskPaint);
+//            avatarImgView.setImageBitmap(avatarBmp);
+            
             TextView nameText = (TextView) participantView.findViewById(R.id.atlas_view_participants_picker_name_convert_name);
-            nameText.setText(Atlas.getFullName(entry));
-            participantView.setTag(entry);
+            nameText.setText(Atlas.getFullName(participant));
+            participantView.setTag(participant);
 
             selectedParticipantsContainer.addView(participantView, selectedParticipantsContainer.getChildCount() - 1);
-            if (debug) Log.w(TAG, "refreshParticipants() child added: " + participantView + ", for: " + entry);
+            if (debug) Log.w(TAG, "refreshParticipants() child added: " + participantView + ", for: " + participant);
             
             // apply styles
             avaText.setTextColor(chipTextColor);
@@ -310,6 +365,25 @@ public class AtlasParticipantPicker extends FrameLayout {
         Collections.sort(participantsForAdapter, new ParticipantEntryFilteringComparator(filter));
         if (debug) Log.w(TAG, "filterParticipants() participants to show: " + participantsForAdapter.size());
         participantsAdapter.notifyDataSetChanged();
+    }
+
+    private void setupPaints() {
+        avatarPaint.setAntiAlias(true);
+        avatarPaint.setDither(true);
+        
+        maskPaint.setAntiAlias(true);
+        maskPaint.setDither(true);
+        maskPaint.setXfermode(new PorterDuffXfermode(Mode.DST_IN));
+        
+        Paint paintCircle = new Paint();
+        paintCircle.setStyle(Style.FILL_AND_STROKE);
+        paintCircle.setColor(Color.CYAN);
+        paintCircle.setAntiAlias(true);
+        
+        Canvas maskSingleCanvas = new Canvas(maskSingleBmp);
+        maskSingleCanvas.drawCircle(0.5f * maskSingleBmp.getWidth(), 0.5f * maskSingleBmp.getHeight(), 0.5f * maskSingleBmp.getWidth(), paintCircle);
+        
+        avatarBackgroundColor = getResources().getColor(R.color.atlas_shape_avatar_gray);
     }
 
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {

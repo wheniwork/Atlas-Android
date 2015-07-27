@@ -34,6 +34,7 @@ import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 
 import com.layer.atlas.Atlas;
@@ -279,7 +280,7 @@ public class AtlasIdentityProvider implements Atlas.ParticipantProvider {
         public String userId;
         public String firstName;
         public String lastName;
-
+        
         public String getId() {
             return userId;
         }
@@ -292,6 +293,11 @@ public class AtlasIdentityProvider implements Atlas.ParticipantProvider {
         @Override
         public String getLastName() {
             return lastName;
+        }
+        
+        @Override
+        public Drawable getAvatarDrawable() {
+            return null;
         }
         
         public String toString() {

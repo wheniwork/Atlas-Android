@@ -33,27 +33,41 @@
         >
     
         <!-- avatar placeholder -->
-    	<TextView 
-        	android:id="@+id/atlas_view_participants_picker_name_convert_ava"
-        	android:layout_width="24dp"
-        	android:layout_height="24dp"
+    	<FrameLayout 
+            android:layout_width="24dp"
+            android:layout_height="24dp"
         	android:layout_gravity="center"
-        	android:background="@drawable/atlas_shape_circle_gray"
-        	android:text="TS"
-            android:textSize="@dimen/atlas_text_size_smaller2"
-        	android:gravity="center"
-        	/>
-    	
+            android:visibility="gone"
+            >
+         
+            <ImageView 
+                android:id="@+id/atlas_view_participants_picker_name_convert_avatar_img"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_gravity="center"
+                />        
+            
+            <TextView 
+            	android:id="@+id/atlas_view_participants_picker_name_convert_ava"
+            	android:layout_width="match_parent"
+            	android:layout_height="match_parent"
+            	android:text="TS"
+                android:textSize="@dimen/atlas_text_size_smaller2"
+            	android:gravity="center"
+            	/>
+            
+        </FrameLayout>
+        
     	<TextView
     		android:id="@+id/atlas_view_participants_picker_name_convert_name"
     		android:layout_width="wrap_content"
     		android:layout_height="wrap_content"
     		android:layout_weight="1"
     		android:layout_gravity="center"
-    	    android:paddingLeft="6dp"
+    	    android:paddingLeft="10dp"
     	    android:text="Tomaz Stolfa" 
     	    android:textSize="16sp"
-            android:paddingRight="12dp"
+            android:paddingRight="10dp"
             android:paddingBottom="1dp"
     	    />
         

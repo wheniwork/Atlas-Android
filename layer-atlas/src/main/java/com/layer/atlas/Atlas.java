@@ -52,6 +52,7 @@ import android.graphics.Paint;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
+import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.util.TypedValue;
@@ -549,6 +550,14 @@ public class Atlas {
          * @return The last name of this Participant
          */
         String getLastName();
+        
+        /**
+         * Returns drawable to be used as paprticipant's avatar in Atlas Views.
+         * If undefined, initials would be used instead.
+         * 
+         * @return drawable, or null 
+         */
+        Drawable getAvatarDrawable();
         
         public static Comparator<Participant> COMPARATOR = new FilteringComparator("");
     }

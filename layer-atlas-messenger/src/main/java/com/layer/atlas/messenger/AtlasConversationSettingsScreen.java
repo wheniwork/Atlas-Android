@@ -22,6 +22,15 @@ import java.util.HashSet;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.Bitmap.Config;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Paint.Style;
+import android.graphics.PorterDuff.Mode;
+import android.graphics.PorterDuffXfermode;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.View;
 import android.view.View.OnClickListener;
@@ -53,10 +62,16 @@ public class AtlasConversationSettingsScreen extends Activity {
     private View btnLeaveGroup;
     private EditText textGroupName;
     
+    private Bitmap maskSingleBmp;
+    private Paint avatarPaint = new Paint();
+    private Paint maskPaint = new Paint();
+    private int avatarBackgroundColor;
+    
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.atlas_screen_conversation_settings);
+        setupPaints();
         
         btnLeaveGroup = findViewById(R.id.atlas_screen_conversation_settings_leave_group);
         textGroupName = (EditText) findViewById(R.id.atlas_screen_conversation_settings_groupname_text);
@@ -74,6 +89,26 @@ public class AtlasConversationSettingsScreen extends Activity {
         this.namesList = (ViewGroup) findViewById(R.id.atlas_screen_conversation_settings_participants_list);
         
         prepareActionBar();
+    }
+    
+    private void setupPaints() {
+        maskSingleBmp = Bitmap.createBitmap((int)Tools.getPxFromDp(32, this), (int)Tools.getPxFromDp(32, this), Config.ARGB_8888);
+        
+        avatarPaint.setAntiAlias(true);
+        avatarPaint.setDither(true);
+        
+        maskPaint.setAntiAlias(true);
+        maskPaint.setDither(true);
+        maskPaint.setXfermode(new PorterDuffXfermode(Mode.DST_IN));
+        
+        Paint paintCircle = new Paint();
+        paintCircle.setStyle(Style.FILL_AND_STROKE);
+        paintCircle.setColor(Color.CYAN);
+        paintCircle.setAntiAlias(true);
+        
+        Canvas maskSingleCanvas = new Canvas(maskSingleBmp);
+        maskSingleCanvas.drawCircle(0.5f * maskSingleBmp.getWidth(), 0.5f * maskSingleBmp.getHeight(), 0.5f * maskSingleBmp.getWidth(), paintCircle);
+        avatarBackgroundColor = getResources().getColor(R.color.atlas_shape_avatar_gray);
     }
 
     private void updateValues() {
@@ -108,10 +143,26 @@ public class AtlasConversationSettingsScreen extends Activity {
         for (int iContact = 0; iContact < entries.size(); iContact++) {
             View convert = getLayoutInflater().inflate(R.layout.atlas_screen_conversation_settings_participant_convert, namesList, false);
             
+            Participant participant = entries.get(iContact).participant;
+            
+            ImageView avatarImgView = (ImageView) convert.findViewById(R.id.atlas_screen_conversation_settings_convert_avatar_img);
             TextView avaText = (TextView) convert.findViewById(R.id.atlas_screen_conversation_settings_convert_ava);
-            avaText.setText(Atlas.getInitials(entries.get(iContact).participant));
+            Bitmap avatarBmp = Bitmap.createBitmap(maskSingleBmp.getWidth(), maskSingleBmp.getHeight(), Config.ARGB_8888);
+            Canvas avatarCanvas = new Canvas(avatarBmp);
+            avatarCanvas.drawColor(avatarBackgroundColor);
+            Drawable avatarDrawable = participant.getAvatarDrawable();
+            if (avatarDrawable != null) {
+                avatarDrawable.setBounds(0, 0, avatarBmp.getWidth(), avatarBmp.getHeight());
+                avatarDrawable.draw(avatarCanvas);
+                avaText.setVisibility(View.GONE);
+            } else {
+                avaText.setText(Atlas.getInitials(participant));
+            }
+            avatarCanvas.drawBitmap(maskSingleBmp, 0, 0, maskPaint);
+            avatarImgView.setImageBitmap(avatarBmp);
+            
             TextView nameText = (TextView) convert.findViewById(R.id.atlas_screen_conversation_settings_convert_name);
-            nameText.setText(Atlas.getFullName(entries.get(iContact).participant));
+            nameText.setText(Atlas.getFullName(participant));
             
             convert.setTag(entries.get(iContact));
             convert.setOnLongClickListener(contactLongClickListener);
