@@ -242,7 +242,6 @@ public class AtlasImageView2 extends View {
     }
     
     private void setContentWorkDimensions() {
-        if (debug) Log.w(TAG, "setContentWorkWidth() called from: " + com.layer.sdk.internal.utils.Log.printStackTrace());
         contentWorkWidth = contentWidth;
         contentWorkHeight = contentHeight;
         if (contentWorkWidth != 0 && contentWorkWidth != 0) {       // everything is set from user's dimensions
