@@ -185,11 +185,11 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             public View getView(int position, View convertView, ViewGroup parent) {
                 final Cell cell = cells.get(position);
                 MessagePart part = cell.messagePart;
-                String userId = part.getMessage().getSender().getUserId();
-
-                boolean myMessage = client.getAuthenticatedUserId().equals(userId);
+                Message message = part.getMessage();
+                String senderId = message.getSender().getUserId();
+                boolean myMessage = client.getAuthenticatedUserId().equals(senderId);
                 boolean showTheirDecor = participants.size() > 2;
-                
+
                 if (convertView == null) { 
                     convertView = LayoutInflater.from(parent.getContext()).inflate(R.layout.atlas_view_messages_convert, parent, false);
                 }
@@ -205,7 +205,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 TextView timeBarDay = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_timebar_day);
                 TextView timeBarTime = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_timebar_time);
                 if (cell.timeHeader) {
-                    Date sentAt = cell.messagePart.getMessage().getSentAt();
+                    Date sentAt = message.getSentAt();
                     if (sentAt == null) sentAt = new Date();
 
                     String timeBarDayText = Atlas.formatTimeDay(sentAt);
@@ -240,10 +240,12 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                         userNameHeader.setVisibility(View.GONE);
                     } else {
                         spacerRight.setVisibility(View.VISIBLE);
-                        Atlas.Participant participant = participantProvider.getParticipant(userId);
+                        Atlas.Participant participant = participantProvider.getParticipant(senderId);
                         if (cell.firstUserMsg && showTheirDecor) {
                             userNameHeader.setVisibility(View.VISIBLE);
-                            String fullName = participant == null ? "Unknown User" : Atlas.getFullName(participant);
+                            String fullName = (participant != null) ? Atlas.getFullName(participant) : 
+                                    (message.getSender().getName() != null) ? message.getSender().getName():
+                                    "Unknown User";
                             userNameHeader.setText(fullName);
                         } else {
                             userNameHeader.setVisibility(View.GONE);
@@ -273,17 +275,17 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 
                 // mark unsent messages
                 View cellContainer = convertView.findViewById(R.id.atlas_view_messages_cell_container);
-                cellContainer.setAlpha((myMessage && !cell.messagePart.getMessage().isSent()) 
+                cellContainer.setAlpha((myMessage && !message.isSent()) 
                         ? CELL_CONTAINER_ALPHA_UNSENT : CELL_CONTAINER_ALPHA_SENT);
                 
                 // delivery receipt check
                 TextView receiptView = (TextView) convertView.findViewById(R.id.atlas_view_messages_convert_delivery_receipt);
                 receiptView.setVisibility(View.GONE);
-                if (latestDeliveredMessage != null && latestDeliveredMessage.getId().equals(cell.messagePart.getMessage().getId())) {
+                if (latestDeliveredMessage != null && latestDeliveredMessage.getId().equals(message.getId())) {
                     receiptView.setVisibility(View.VISIBLE);
                     receiptView.setText("Delivered");
                 }
-                if (latestReadMessage != null && latestReadMessage.getId().equals(cell.messagePart.getMessage().getId())) {
+                if (latestReadMessage != null && latestReadMessage.getId().equals(message.getId())) {
                     receiptView.setVisibility(View.VISIBLE);
                     receiptView.setText("Read");
                 }
@@ -292,10 +294,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 bindCell(convertView, cell);
 
                 // mark displayed message as read
-                Message msg = part.getMessage();
-                if (!msg.getSender().getUserId().equals(client.getAuthenticatedUserId())) {
-                    msg.markAsRead();
-                }
+                if (!myMessage) message.markAsRead();
                 
                 timeBarDay.setTextColor(dateTextColor);
                 timeBarTime.setTextColor(dateTextColor);
@@ -447,8 +446,6 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
                 messagesUpdated.add(msg);
             }
             
-            if (msgData.msg.getSender().getUserId() == null) continue;
-            
             messagesOrder.add(msgData);
             cells.addAll(msgData.cells);
             // message appears in query results? Keep them in cache
@@ -476,7 +473,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
         // calculate heads/tails
         int currentItem = 0;
         int clusterId = currentItem;
-        String currentUser = null;
+        String currentUserId = null;
         long lastMessageTime = 0;
         Calendar calLastMessage = Calendar.getInstance();
         Calendar calCurrent = Calendar.getInstance();
@@ -486,7 +483,9 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             Cell cell = cells.get(i);
             cell.reset();
             boolean newCluster = false;
-            if (!cell.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
+            String senderId = cell.messagePart.getMessage().getSender().getUserId();
+            boolean isCurrentUser = (senderId != null && senderId.equals(currentUserId));
+            if (!isCurrentUser) {
                 newCluster = true;
             }
             Date sentAt = cell.messagePart.getMessage().getSentAt();
@@ -502,7 +501,7 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             }
             
             // last message from user
-            if ( ! cell.messagePart.getMessage().getSender().getUserId().equals(currentUser)) {
+            if (!isCurrentUser) {
                 cell.firstUserMsg = true;
                 if (i > 0) cells.get(i - 1).lastUserMsg = true;
             }
@@ -523,8 +522,8 @@ public class AtlasMessagesList extends FrameLayout implements LayerChangeEventLi
             cell.clusterHeadItemId = clusterId;
             cell.clusterItemId = currentItem++;
             
-            currentUser = cell.messagePart.getMessage().getSender().getUserId();
-            if (cell.noDecorations) currentUser = null;
+            currentUserId = senderId;
+            if (cell.noDecorations) currentUserId = null;
             lastMessageTime = sentAt.getTime();
             calLastMessage.setTime(sentAt);
             if (false && debug) Log.d(TAG, "updateValues() item: " + cell);
