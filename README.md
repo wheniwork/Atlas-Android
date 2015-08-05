@@ -79,7 +79,7 @@ The <a href="layer-atlas/src/main/java/com/layer/atlas/AtlasConversationsList.ja
 
 ```java
 conversationsList = (AtlasConversationsList) findViewById(R.id.conversations_list);
-conversationsList.init(conversationsList, layerClient, participantProvider);
+conversationsList.init(layerClient, participantProvider);
 conversationsList.setClickListener(new ConversationClickListener() {
 	public void onItemClick(Conversation conversation) {
 		openChatScreen(conversation, false);
