@@ -15,10 +15,73 @@
 -->
 <resources>
 
-    <dimen name="atlas_text_size_title">20sp</dimen>
-    <dimen name="atlas_text_size_general">16sp</dimen>
-    <dimen name="atlas_text_size_smaller">14sp</dimen>
-    <dimen name="atlas_text_size_smaller2">12sp</dimen>
-    <dimen name="atlas_text_size_tiny">8sp</dimen>
+    <!-- ####################################################################################### -->
+    <!-- # Standard Dimensions                                                                 # -->
+    <!-- ####################################################################################### -->
+
+    <dimen name="atlas_padding_normal">16dp</dimen>
+    <dimen name="atlas_padding_narrow">8dp</dimen>
+    <dimen name="atlas_primary_item_height">72dp</dimen>
+    <dimen name="atlas_secondary_item_height">56dp</dimen>
+    <dimen name="atlas_dropdown_item_height">48dp</dimen>
+    <dimen name="atlas_avatar_item_single">40dp</dimen>
+    <dimen name="atlas_avatar_item_multi">26dp</dimen>
+    <dimen name="atlas_message_avatar_item_single">24dp</dimen>
+    <dimen name="atlas_primary_icon_size">24dp</dimen>
+    <dimen name="atlas_icon_button_size">48dp</dimen>
+    <dimen name="atlas_icon_button_side_padding">4dp</dimen>
+    <dimen name="atlas_input_height">48dp</dimen>
+    <dimen name="atlas_chip_height">32dp</dimen>
+    <dimen name="atlas_chip_radius">16dp</dimen>
+    <dimen name="atlas_chip_margin">4dp</dimen>
+
+    <dimen name="atlas_text_size_input">16sp</dimen>
+    <dimen name="atlas_text_size_primary_item_title">16sp</dimen>
+    <dimen name="atlas_text_size_primary_item_subtitle">14sp</dimen>
+    <dimen name="atlas_text_size_primary_item_metadata">12sp</dimen>
+    <dimen name="atlas_text_size_secondary_item">16sp</dimen>
+    <dimen name="atlas_text_size_button">14sp</dimen>
+    <dimen name="atlas_text_size_dropdown_item">14sp</dimen>
+    <dimen name="atlas_text_size_message_item">14sp</dimen>
+    <dimen name="atlas_text_size_message_item_metadata">12sp</dimen>
+    <dimen name="atlas_text_size_chip">13sp</dimen>
+
+
+    <!-- ####################################################################################### -->
+    <!-- # Message Items and Cells                                                             # -->
+    <!-- ####################################################################################### -->
+
+    <dimen name="atlas_message_item_cell_radius">15dp</dimen>
+    <dimen name="atlas_message_item_cell_min_width">30dp</dimen>
+    <dimen name="atlas_message_item_cell_min_height">30dp</dimen>
+    <dimen name="atlas_message_item_cell_padding_top">4dp</dimen>
+    <dimen name="atlas_message_item_cell_padding_bottom">6dp</dimen>
+    <dimen name="atlas_message_item_cell_padding_near">@dimen/atlas_padding_narrow</dimen>
+    <dimen name="atlas_message_item_cell_padding_far">9dp</dimen>
+    <dimen name="atlas_message_item_cell_margin_far">@dimen/atlas_padding_normal</dimen>
+
+    <dimen name="atlas_message_item_time_group_padding_top">14dp</dimen>
+    <dimen name="atlas_message_item_time_group_padding_bottom">7dp</dimen>
+    <dimen name="atlas_message_item_receipt_margin">12dp</dimen>
+    <dimen name="atlas_message_item_sender_margin_left">40dp</dimen>
+    <dimen name="atlas_message_item_sender_margin_bottom">1dp</dimen>
+    <dimen name="atlas_message_cluster_space">2dp</dimen>
+    <dimen name="atlas_message_cluster_space_gap">16dp</dimen>
+
+
+    <!-- ####################################################################################### -->
+    <!-- # Typing Indicator                                                                    # -->
+    <!-- ####################################################################################### -->
+
+    <dimen name="atlas_typing_indicator_dot_size">4dp</dimen>
+    <dimen name="atlas_typing_indicator_dot_space">2dp</dimen>
+
+
+    <!-- ####################################################################################### -->
+    <!-- # Address Bar                                                                         # -->
+    <!-- ####################################################################################### -->
+
+    <dimen name="atlas_participant_filter_min_width">32dp</dimen>
+    <dimen name="atlas_selected_participant_group_max_height">96dp</dimen>
 
 </resources>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<merge xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <com.layer.atlas.util.views.MaxHeightScrollView
+        android:id="@+id/selected_participant_scroll"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        >
+
+        <com.layer.atlas.util.views.FlowLayout
+            android:id="@+id/selected_participant_group"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            >
+
+            <com.layer.atlas.util.views.EmptyDelEditText
+                android:id="@+id/filter"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:imeOptions="actionDone"
+                android:minWidth="@dimen/atlas_participant_filter_min_width"
+                android:singleLine="true"
+                android:textSize="@dimen/atlas_text_size_input"
+                />
+
+        </com.layer.atlas.util.views.FlowLayout>
+    </com.layer.atlas.util.views.MaxHeightScrollView>
+
+    <android.support.v7.widget.RecyclerView
+        android:id="@+id/participant_list"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+    </android.support.v7.widget.RecyclerView>
+
+</merge>

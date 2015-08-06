@@ -15,36 +15,50 @@
 -->
 <resources>
 
-    <color name="atlas_delimeter_gray">#18000000</color>
-    <color name="atlas_shape_avatar_gray">#14000000</color>
+    <color name="atlas_color_primary_blue">#FF21AAE1</color>
+    <color name="atlas_color_dark_blue">#FF198BB8</color>
+    <color name="atlas_color_primary_gray">#FFEBEBEB</color>
 
-    <color name="atlas_bubble_blue">#21AAE1</color>
+    <color name="atlas_status_bar_background">@color/atlas_color_dark_blue</color>
+    <color name="atlas_action_bar_background">@color/atlas_color_primary_blue</color>
+    <color name="atlas_window_background">@android:color/white</color>
+    <color name="atlas_navigation_bar_background">@android:color/black</color>
+    <color name="atlas_delete_background">#FFFF5252</color>
+    <color name="atlas_item_background">@android:color/white</color>
 
-    <color name="atlas_text_blue">#21AAE1</color>
-    <color name="atlas_text_blue_bright">#FF2196F3</color>
-    <color name="atlas_text_gray">#86000000</color>
-    <color name="atlas_text_black">#FF000000</color>
-    <color name="atlas_text_black87">#DD000000</color>
-    <color name="atlas_text_white">#FFFFFFFF</color>
+    <color name="atlas_floating_button">@color/atlas_color_primary_blue</color>
 
-    <color name="atlas_background_white">#FFFFFFFF</color>
-    <color name="atlas_background_blue">#21AAE1</color>
-    <color name="atlas_background_blue_bright">#2196F3</color>
-    <color name="atlas_background_blue_dark">#198BB8</color>
-    <color name="atlas_background_gray">#EBEBEB</color>
-    <color name="atlas_background_transparent">#00FFFFFF</color>
+    <color name="atlas_text_black">@android:color/black</color>
+    <color name="atlas_text_gray">#FF757575</color>
+    <color name="atlas_text_white">@android:color/white</color>
+    <color name="atlas_text_blue">@color/atlas_color_primary_blue</color>
 
-    <color name="atlas_qr_mask">#80000000</color>
-    <color name="atlas_qr_laser">#FF2196F3</color>
-    <color name="atlas_qr_result">#FFFFFFFF</color>
+    <color name="atlas_button_text_enabled">@android:color/black</color>
+    <color name="atlas_button_text_disabled">#42000000</color>
+    <color name="atlas_button_text_pressed">@color/atlas_color_primary_blue</color>
 
-    <!-- proper way to declare colors  -->
-    <color name="atlas_view_participant_picker_text_background">@color/atlas_background_white
-    </color>
-    <color name="atlas_view_participant_picker_list_background">@color/atlas_background_white
-    </color>
+    <color name="atlas_item_leavebehind">#3D000000</color>
+    <color name="atlas_item_swiping">#E0FFFFFF</color>
 
-    <!-- menu item background -->
-    <color name="atlas_menu_item_background_gray">#EDEDED</color>
+    <color name="atlas_item_selected">#FFD8D8D8</color>
+    <color name="atlas_item_divider">#FFE0E0E0</color>
 
+    <color name="atlas_view_divider">#FFE0E0E0</color>
+
+    <color name="atlas_dialog_primary">@color/atlas_color_primary_blue</color>
+    <color name="atlas_dialog_accent">@color/atlas_color_primary_blue</color>
+
+    <color name="atlas_avatar_background">#14000000</color>
+    <color name="atlas_avatar_border">@android:color/white</color>
+    <color name="atlas_avatar_text">@android:color/black</color>
+    <color name="atlas_chip_background">@color/atlas_color_primary_gray</color>
+
+    <color name="atlas_cell_them_background">@color/atlas_color_primary_gray</color>
+    <color name="atlas_cell_me_background">@color/atlas_color_primary_blue</color>
+
+    <color name="atlas_icon_enabled">#8A000000</color>
+    <color name="atlas_icon_disabled">#3D000000</color>
+    <color name="atlas_delete_icon">@android:color/white</color>
+
+    <color name="atlas_image_popup_background">@android:color/black</color>
 </resources>

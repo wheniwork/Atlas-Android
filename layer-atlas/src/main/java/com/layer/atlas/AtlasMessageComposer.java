@@ -15,223 +15,331 @@
  */
 package com.layer.atlas;
 
-import java.util.ArrayList;
-
+import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
-import android.graphics.Color;
-import android.graphics.Typeface;
-import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
+import android.os.Bundle;
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.support.v4.graphics.drawable.DrawableCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
-import android.util.Log;
-import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.PopupWindow;
 import android.widget.TextView;
 
+import com.layer.atlas.messagetypes.AttachmentSender;
+import com.layer.atlas.messagetypes.text.TextSender;
+import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.sdk.LayerClient;
-import com.layer.sdk.exceptions.LayerException;
 import com.layer.sdk.listeners.LayerTypingIndicatorListener;
 import com.layer.sdk.messaging.Conversation;
-import com.layer.sdk.messaging.Message;
-import com.layer.sdk.messaging.MessagePart;
 
-/**
- * @author Oleg Orlov
- * @since 12 May 2015
- */
+import java.util.ArrayList;
+
 public class AtlasMessageComposer extends FrameLayout {
-    private static final String TAG = AtlasMessageComposer.class.getSimpleName();
-    private static final boolean debug = false;
-    
-    private EditText messageText;
-    private View btnSend;
-    private View btnUpload;
-    
-    private Listener listener;
-    private Conversation conv;
-    private LayerClient layerClient;
-    
-    private ArrayList<MenuItem> menuItems = new ArrayList<MenuItem>(); 
-    
+    private EditText mMessageEditText;
+    private Button mSendButton;
+    private ImageView mAttachButton;
+
+    private LayerClient mLayerClient;
+    private ParticipantProvider mParticipantProvider;
+    private Conversation mConversation;
+
+    private TextSender mTextSender;
+    private ArrayList<AttachmentSender> mAttachmentSenders = new ArrayList<AttachmentSender>();
+
+    private PopupWindow mAttachmentMenu;
+
     // styles
-    private int textColor;
-    private float textSize;
-    private Typeface typeFace;
-    private int textStyle;
-    
-    //
-    public AtlasMessageComposer(Context context, AttributeSet attrs, int defStyle) {
-        super(context, attrs, defStyle);
-        parseStyle(context, attrs, defStyle);
+    private boolean mEnabled;
+
+    public AtlasMessageComposer(Context context) {
+        super(context);
+        initAttachmentMenu(context, null, 0);
     }
 
     public AtlasMessageComposer(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
 
-    public AtlasMessageComposer(Context context) {
-        super(context);
+    public AtlasMessageComposer(Context context, AttributeSet attrs, int defStyle) {
+        super(context, attrs, defStyle);
+        parseStyle(context, attrs, defStyle);
+        initAttachmentMenu(context, attrs, defStyle);
     }
-    
-    public void parseStyle(Context context, AttributeSet attrs, int defStyle) {
-        TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessageComposer, R.attr.AtlasMessageComposer, defStyle);
-        this.textColor = ta.getColor(R.styleable.AtlasMessageComposer_composerTextColor, context.getResources().getColor(R.color.atlas_text_black));
-        //this.textSize  = ta.getDimension(R.styleable.AtlasMessageComposer_composerTextSize, context.getResources().getDimension(R.dimen.atlas_text_size_general));
-        this.textStyle = ta.getInt(R.styleable.AtlasMessageComposer_composerTextStyle, Typeface.NORMAL);
-        String typeFaceName = ta.getString(R.styleable.AtlasMessageComposer_composerTextTypeface); 
-        this.typeFace  = typeFaceName != null ? Typeface.create(typeFaceName, textStyle) : null;
-        ta.recycle();
-    }
-    
+
     /**
-     * Initialization is required to engage MessageComposer with LayerClient and Conversation 
-     * to send messages. 
-     * <p>
-     * If Conversation is not defined, "Send" action will not be able to send messages 
-     * 
-     * @param client - must be not null
-     * @param conversation - could be null. Conversation could be provided later using {@link #setConversation(Conversation)}
+     * Prepares this AtlasMessageComposer for use.
+     *
+     * @return this AtlasMessageComposer.
      */
-    public void init(LayerClient client, Conversation conversation) {
-        if (client == null) throw new IllegalArgumentException("LayerClient cannot be null");
-        if (messageText != null) throw new IllegalStateException("AtlasMessageComposer is already initialized!");
-        
-        this.layerClient = client;
-        this.conv = conversation;
-        
+    public AtlasMessageComposer init(LayerClient layerClient, ParticipantProvider participantProvider) {
         LayoutInflater.from(getContext()).inflate(R.layout.atlas_message_composer, this);
-        
-        btnUpload = findViewById(R.id.atlas_message_composer_upload);
-        btnUpload.setOnClickListener(new OnClickListener() {
+
+        mLayerClient = layerClient;
+        mParticipantProvider = participantProvider;
+
+        mAttachButton = (ImageView) findViewById(R.id.attachment);
+        mAttachButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                final PopupWindow popupWindow = new PopupWindow(v.getContext());
-                popupWindow.setWindowLayoutMode(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                LayoutInflater inflater = LayoutInflater.from(v.getContext());
-                LinearLayout menu = (LinearLayout) inflater.inflate(R.layout.atlas_view_message_composer_menu, null);
-                popupWindow.setContentView(menu);
-
-                for (MenuItem item : menuItems) {
-                    View itemConvert = inflater.inflate(R.layout.atlas_view_message_composer_menu_convert, menu, false);
-                    TextView titleText = ((TextView) itemConvert.findViewById(R.id.altas_view_message_composer_convert_text));
-                    titleText.setText(item.title);
-                    itemConvert.setTag(item);
-                    itemConvert.setOnClickListener(new OnClickListener() {
-                        public void onClick(View v) {
-                            popupWindow.dismiss();
-                            MenuItem item = (MenuItem) v.getTag();
-                            if (item.clickListener != null) {
-                                item.clickListener.onClick(v);
-                            }
-                        }
-                    });
-                    menu.addView(itemConvert);
-                }
-                popupWindow.setBackgroundDrawable(new ColorDrawable(Color.TRANSPARENT));
-                popupWindow.setOutsideTouchable(true);
-                int[] viewXYWindow = new int[2];
-                v.getLocationInWindow(viewXYWindow);
-
+                LinearLayout menu = (LinearLayout) mAttachmentMenu.getContentView();
                 menu.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
-                int menuHeight = menu.getMeasuredHeight();
-                popupWindow.showAtLocation(v, Gravity.NO_GRAVITY, viewXYWindow[0], viewXYWindow[1] - menuHeight);
+                mAttachmentMenu.showAsDropDown(v, 0, -menu.getMeasuredHeight() - v.getHeight());
             }
         });
-        
-        messageText = (EditText) findViewById(R.id.atlas_message_composer_text);
-        messageText.addTextChangedListener(new TextWatcher() {
+
+        mMessageEditText = (EditText) findViewById(R.id.message_edit_text);
+        mMessageEditText.addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
 
             @Override
             public void afterTextChanged(Editable s) {
-                if (conv == null) return;
-                try {
-                    if (s.length() > 0) {
-                        conv.send(LayerTypingIndicatorListener.TypingIndicator.STARTED);
-                    } else {
-                        conv.send(LayerTypingIndicatorListener.TypingIndicator.FINISHED);
-                    }
-                } catch (LayerException e) {
-                    // `e.getType() == LayerException.Type.CONVERSATION_DELETED`
+                if (mConversation == null || mConversation.isDeleted()) return;
+                if (s.length() > 0) {
+                    mSendButton.setEnabled(isEnabled());
+                    mConversation.send(LayerTypingIndicatorListener.TypingIndicator.STARTED);
+                } else {
+                    mSendButton.setEnabled(false);
+                    mConversation.send(LayerTypingIndicatorListener.TypingIndicator.FINISHED);
                 }
             }
         });
-        
-        btnSend = findViewById(R.id.atlas_message_composer_send);
-        btnSend.setOnClickListener(new OnClickListener() {
+
+        mSendButton = (Button) findViewById(R.id.send_button);
+        mSendButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                
-                String text = messageText.getText().toString();
-                
-                if (text.trim().length() > 0) {
-                    
-                    ArrayList<MessagePart> parts = new ArrayList<MessagePart>();
-                    String[] lines = text.split("\n+");
-                    for (String line : lines) {
-                        parts.add(layerClient.newMessagePart(line));
-                    }
-                    Message msg = layerClient.newMessage(parts);
-                    
-                    if (listener != null) {
-                        boolean proceed = listener.beforeSend(msg);
-                        if (!proceed) return;
-                    } else if (conv == null) {
-                        Log.e(TAG, "Cannot send message. Conversation is not set");
-                    }
-                    if (conv == null) return;
-                    
-                    conv.send(msg);
-                    messageText.setText("");
-                }
+                if (!mTextSender.send(mMessageEditText.getText().toString())) return;
+                mMessageEditText.setText("");
+                mSendButton.setEnabled(false);
             }
         });
         applyStyle();
+        return this;
     }
-    
+
+    /**
+     * Sets the Conversation used for sending Messages.
+     *
+     * @param conversation the Conversation used for sending Messages.
+     * @return This AtlasMessageComposer.
+     */
+    public AtlasMessageComposer setConversation(Conversation conversation) {
+        mConversation = conversation;
+        if (mTextSender != null) mTextSender.setConversation(conversation);
+        for (AttachmentSender sender : mAttachmentSenders) {
+            sender.setConversation(conversation);
+        }
+        return this;
+    }
+
+    /**
+     * Sets a listener for receiving the message EditText focus change callbacks.
+     *
+     * @param listener Listener for receiving the message EditText focus change callbacks.
+     * @return This AtlasMessageComposer.
+     */
+    public AtlasMessageComposer setOnMessageEditTextFocusChangeListener(OnFocusChangeListener listener) {
+        mMessageEditText.setOnFocusChangeListener(listener);
+        return this;
+    }
+
+    /**
+     * Sets the TextSender used for sending composed text messages.
+     *
+     * @param textSender TextSender used for sending composed text messages.
+     * @return This AtlasMessageComposer.
+     */
+    public AtlasMessageComposer setTextSender(TextSender textSender) {
+        mTextSender = textSender;
+        mTextSender.init(this.getContext().getApplicationContext(), mLayerClient, mParticipantProvider);
+        mTextSender.setConversation(mConversation);
+        return this;
+    }
+
+    /**
+     * Adds AttachmentSenders to this AtlasMessageComposer's attachment menu.
+     *
+     * @param senders AttachmentSenders to add to this AtlasMessageComposer's attachment menu.
+     * @return This AtlasMessageComposer.
+     */
+    public AtlasMessageComposer addAttachmentSenders(AttachmentSender... senders) {
+        for (AttachmentSender sender : senders) {
+            if (sender.getTitle() == null && sender.getIcon() == null) {
+                throw new NullPointerException("Attachment handlers must have at least a title or icon specified.");
+            }
+            sender.init(this.getContext().getApplicationContext(), mLayerClient, mParticipantProvider);
+            sender.setConversation(mConversation);
+            mAttachmentSenders.add(sender);
+            addAttachmentMenuItem(sender);
+        }
+        if (!mAttachmentSenders.isEmpty()) mAttachButton.setVisibility(View.VISIBLE);
+        return this;
+    }
+
+    /**
+     * Must be called from Activity's onActivityResult to allow attachment senders to manage results
+     * from e.g. selecting a gallery photo or taking a camera image.
+     *
+     * @param activity    Activity receiving the result.
+     * @param requestCode Request code from the Activity's onActivityResult.
+     * @param resultCode  Result code from the Activity's onActivityResult.
+     * @param data        Intent data from the Activity's onActivityResult.
+     * @return this AtlasMessageComposer.
+     */
+    public AtlasMessageComposer onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        for (AttachmentSender sender : mAttachmentSenders) {
+            sender.onActivityResult(activity, requestCode, resultCode, data);
+        }
+        return this;
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        if (mAttachButton != null) mAttachButton.setEnabled(enabled);
+        if (mMessageEditText != null) mMessageEditText.setEnabled(enabled);
+        if (mSendButton != null) {
+            mSendButton.setEnabled(enabled && (mMessageEditText != null) && (mMessageEditText.getText().length() > 0));
+        }
+        super.setEnabled(enabled);
+    }
+
+    private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
+        TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessageComposer, R.attr.AtlasMessageComposer, defStyle);
+        mEnabled = ta.getBoolean(R.styleable.AtlasMessageComposer_android_enabled, true);
+        ta.recycle();
+    }
+
     private void applyStyle() {
-        //messageText.setTextSize(textSize);
-        messageText.setTypeface(typeFace, textStyle);
-        messageText.setTextColor(textColor);
+        setEnabled(mEnabled);
+
+        ColorStateList list = getResources().getColorStateList(R.color.atlas_message_composer_attach_button);
+        Drawable d = DrawableCompat.wrap(mAttachButton.getDrawable().mutate());
+        DrawableCompat.setTintList(d, list);
+        mAttachButton.setImageDrawable(d);
     }
 
-    public void registerMenuItem(String title, OnClickListener clickListener) {
-        if (title == null) throw new NullPointerException("Item title must not be null");
-        MenuItem item = new MenuItem();
-        item.title = title;
-        item.clickListener = clickListener;
-        menuItems.add(item);
-        btnUpload.setVisibility(View.VISIBLE);
-    }
-    
-    public void setListener(Listener listener) {
-        this.listener = listener;
-    }
-    
-    public Conversation getConversation() {
-        return conv;
+    private void addAttachmentMenuItem(AttachmentSender sender) {
+        LayoutInflater inflater = LayoutInflater.from(getContext());
+        LinearLayout menuLayout = (LinearLayout) mAttachmentMenu.getContentView();
+
+        View menuItem = inflater.inflate(R.layout.atlas_message_composer_attachment_menu_item, menuLayout, false);
+        ((TextView) menuItem.findViewById(R.id.title)).setText(sender.getTitle());
+        menuItem.setTag(sender);
+        menuItem.setOnClickListener(new OnClickListener() {
+            public void onClick(View v) {
+                mAttachmentMenu.dismiss();
+                ((AttachmentSender) v.getTag()).requestSend();
+            }
+        });
+        if (sender.getIcon() != null) {
+            ImageView iconView = ((ImageView) menuItem.findViewById(R.id.icon));
+            iconView.setImageResource(sender.getIcon());
+            iconView.setVisibility(VISIBLE);
+            Drawable d = DrawableCompat.wrap(iconView.getDrawable());
+            DrawableCompat.setTint(d, getResources().getColor(R.color.atlas_icon_enabled));
+        }
+        menuLayout.addView(menuItem);
     }
 
-    public void setConversation(Conversation conv) {
-        this.conv = conv;
+    private void initAttachmentMenu(Context context, AttributeSet attrs, int defStyle) {
+        if (mAttachmentMenu != null) throw new IllegalStateException("Already initialized menu");
+
+        if (attrs == null) {
+            mAttachmentMenu = new PopupWindow(context);
+        } else {
+            mAttachmentMenu = new PopupWindow(context, attrs, defStyle);
+        }
+        mAttachmentMenu.setContentView(LayoutInflater.from(context).inflate(R.layout.atlas_message_composer_attachment_menu, null));
+        mAttachmentMenu.setWindowLayoutMode(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        mAttachmentMenu.setOutsideTouchable(true);
     }
 
-    public interface Listener {
-        boolean beforeSend(Message message);
+    @Override
+    protected Parcelable onSaveInstanceState() {
+        Parcelable superState = super.onSaveInstanceState();
+        if (mAttachmentSenders.isEmpty()) return superState;
+        SavedState savedState = new SavedState(superState);
+        for (AttachmentSender sender : mAttachmentSenders) {
+            Parcelable parcelable = sender.onSaveInstanceState();
+            if (parcelable == null) continue;
+            savedState.put(sender.getClass(), parcelable);
+        }
+        return savedState;
     }
-    
-    private static class MenuItem {
-        String title;
-        OnClickListener clickListener;
+
+    @Override
+    protected void onRestoreInstanceState(Parcelable state) {
+        if (!(state instanceof SavedState)) {
+            super.onRestoreInstanceState(state);
+            return;
+        }
+
+        SavedState savedState = (SavedState) state;
+        super.onRestoreInstanceState(savedState.getSuperState());
+
+        for (AttachmentSender sender : mAttachmentSenders) {
+            Parcelable parcelable = savedState.get(sender.getClass());
+            if (parcelable == null) continue;
+            sender.onRestoreInstanceState(parcelable);
+        }
+    }
+
+    /**
+     * Saves a map from AttachmentSender class to AttachmentSender saved instance.
+     */
+    private static class SavedState extends BaseSavedState {
+        Bundle mBundle = new Bundle();
+
+        public SavedState(Parcelable superState) {
+            super(superState);
+        }
+
+        SavedState put(Class<? extends AttachmentSender> cls, Parcelable parcelable) {
+            mBundle.putParcelable(cls.getName(), parcelable);
+            return this;
+        }
+
+        Parcelable get(Class<? extends AttachmentSender> cls) {
+            return mBundle.getParcelable(cls.getName());
+        }
+
+        @Override
+        public void writeToParcel(Parcel dest, int flags) {
+            super.writeToParcel(dest, flags);
+            dest.writeBundle(mBundle);
+        }
+
+        public static final Parcelable.Creator<SavedState> CREATOR = new Parcelable.Creator<SavedState>() {
+            public SavedState createFromParcel(Parcel in) {
+                return new SavedState(in);
+            }
+
+            public SavedState[] newArray(int size) {
+                return new SavedState[size];
+            }
+        };
+
+        private SavedState(Parcel in) {
+            super(in);
+            mBundle = in.readBundle();
+        }
     }
 }

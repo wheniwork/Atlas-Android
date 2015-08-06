@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- ###################### -->
+    <!-- Atlas Component Styles -->
+    <!-- ###################### -->
+    <attr name="AtlasConversationList" format="reference"/>
+    <attr name="AtlasMessageComposer" format="reference"/>
+    <attr name="AtlasMessageList" format="reference"/>
+    <attr name="AtlasParticipantPicker" format="reference"/>
+    <attr name="AtlasTypingIndicator" format="reference"/>
+
+
+    <declare-styleable name="AtlasSwipeableItemState">
+        <attr name="state_swiping" format="boolean"/>
+    </declare-styleable>
+
+
+    <!-- #################################### -->
+    <!-- Styleable Atlas Component Attributes -->
+    <!-- #################################### -->
+
+    <declare-styleable name="AtlasConversationsRecyclerView">
+    </declare-styleable>
+
+    <declare-styleable name="AtlasMessageComposer">
+        <attr name="android:enabled"/>
+    </declare-styleable>
+
+    <declare-styleable name="AtlasMessagesRecyclerView">
+    </declare-styleable>
+
+    <declare-styleable name="AtlasAddressBar">
+    </declare-styleable>
+
+    <declare-styleable name="AtlasTypingIndicator">
+    </declare-styleable>
+
+
+    <!-- ####################### -->
+    <!-- Atlas Attribute Formats -->
+    <!-- ####################### -->
+
+</resources>
