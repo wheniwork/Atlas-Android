@@ -62,10 +62,10 @@
     </declare-styleable>
 
     <declare-styleable name="AtlasMessageComposer">
-        <attr name="textColor"/>
-        <attr name="textSize"/>
-        <attr name="textTypeface"/>
-        <attr name="textStyle"/>
+        <attr name="composerTextColor"/>
+        <attr name="composerTextSize"/>
+        <attr name="composerTextTypeface"/>
+        <attr name="composerTextStyle"/>
     </declare-styleable>
 
     <declare-styleable name="AtlasMessageList">
@@ -100,10 +100,10 @@
     </declare-styleable>
 
     <declare-styleable name="AtlasTypingIndicator">
-        <attr name="textColor"/>
-        <attr name="textSize"/>
-        <attr name="textTypeface"/>
-        <attr name="textStyle"/>
+        <attr name="indicatorTextColor"/>
+        <attr name="indicatorTextSize"/>
+        <attr name="indicatorTextTypeface"/>
+        <attr name="indicatorTextStyle"/>
     </declare-styleable>
 
 
@@ -131,10 +131,10 @@
     </style>
 
     <style name="AtlasMessageComposer">
-        <item name="textColor">@color/atlas_text_black</item>
-        <item name="textSize">@dimen/atlas_text_size_general</item>
-        <item name="textTypeface">normal</item>
-        <item name="textStyle">normal</item>
+        <item name="composerTextColor">@color/atlas_text_black</item>
+        <item name="composerTextSize">@dimen/atlas_text_size_general</item>
+        <item name="composerTextTypeface">normal</item>
+        <item name="composerTextStyle">normal</item>
     </style>
 
     <style name="AtlasMessageList">
@@ -169,10 +169,10 @@
     </style>
 
     <style name="AtlasTypingIndicator">
-        <item name="textColor">@color/atlas_text_black</item>
-        <item name="textSize">@dimen/atlas_text_size_general</item>
-        <item name="textTypeface">normal</item>
-        <item name="textStyle">normal</item>
+        <item name="indicatorTextColor">@color/atlas_text_black</item>
+        <item name="indicatorTextSize">@dimen/atlas_text_size_general</item>
+        <item name="indicatorTextTypeface">normal</item>
+        <item name="indicatorTextStyle">normal</item>
     </style>
 
 
@@ -216,10 +216,10 @@
     <attr name="avatarBackgroundColor" format="color|reference"/>
 
     <!-- message composer -->
-    <attr name="textColor" format="color|reference"/>
-    <attr name="textSize" format="dimension|reference"/>
-    <attr name="textTypeface" format="string|reference"/>
-    <attr name="textStyle">
+    <attr name="composerTextColor" format="color|reference"/>
+    <attr name="composerTextSize" format="dimension|reference"/>
+    <attr name="composerTextTypeface" format="string|reference"/>
+    <attr name="composerTextStyle">
         <flag name="normal" value="0"/>
         <flag name="bold" value="1"/>
         <flag name="italic" value="2"/>
@@ -264,6 +264,16 @@
     <attr name="chipTextColor" format="color|reference"/>
     <attr name="chipTextTypeface" format="string|reference"/>
     <attr name="chipTextStyle">
+        <flag name="normal" value="0"/>
+        <flag name="bold" value="1"/>
+        <flag name="italic" value="2"/>
+    </attr>
+
+    <!-- typing indicator -->
+    <attr name="indicatorTextColor" format="color|reference"/>
+    <attr name="indicatorTextSize" format="dimension|reference"/>
+    <attr name="indicatorTextTypeface" format="string|reference"/>
+    <attr name="indicatorTextStyle">
         <flag name="normal" value="0"/>
         <flag name="bold" value="1"/>
         <flag name="italic" value="2"/>

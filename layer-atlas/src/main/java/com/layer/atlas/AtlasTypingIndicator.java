@@ -111,10 +111,10 @@ public class AtlasTypingIndicator extends FrameLayout implements LayerTypingIndi
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasTypingIndicator, R.attr.AtlasTypingIndicator, defStyle);
         Resources r = context.getResources();
-        mTextColor = ta.getColor(R.styleable.AtlasTypingIndicator_textColor, r.getColor(R.color.atlas_text_black));
-        mTextStyle = ta.getInt(R.styleable.AtlasTypingIndicator_textStyle, Typeface.NORMAL);
-        mTextTypeface = Typeface.create(ta.getString(R.styleable.AtlasParticipantPicker_inputTextTypeface), mTextStyle);
-        mTextSize = ta.getDimension(R.styleable.AtlasTypingIndicator_textSize, r.getDimension(R.dimen.atlas_text_size_general));
+        mTextColor = ta.getColor(R.styleable.AtlasTypingIndicator_indicatorTextColor, r.getColor(R.color.atlas_text_black));
+        mTextStyle = ta.getInt(R.styleable.AtlasTypingIndicator_indicatorTextStyle, Typeface.NORMAL);
+        mTextTypeface = Typeface.create(ta.getString(R.styleable.AtlasTypingIndicator_indicatorTextTypeface), mTextStyle);
+        mTextSize = ta.getDimension(R.styleable.AtlasTypingIndicator_indicatorTextSize, r.getDimension(R.dimen.atlas_text_size_general));
         ta.recycle();
     }
 
