@@ -6,7 +6,7 @@
 
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library as well as an example app.
 
-Note: Atlas for Android is currently a **Preview Release**. This repository will be updated substantially in the coming weeks.
+Note: Atlas for Android is currently in **Preview Release** (Beta). There are many planned changes to the codebase, and support will not be offered until it is deemed ready for General Availability. We have temporarily disabled GitHub Issues until the project is further along.
 
 
 ###<a name="example_app"></a>Example App
