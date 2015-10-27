@@ -39,7 +39,7 @@ public class MessengerApp extends Application {
     //==============================================================================================
 
     // 1. Set your Layer App ID from the Developer Console to bypass the QR code flow
-    private static final String LAYER_APP_ID = null;
+    private static final String LAYER_APP_ID = "layer:///apps/staging/93db3886-3b00-11e5-83a8-2d4d00001241";
 
     // 2. Optionally replace the Google Cloud Messaging Sender ID (in the Developer Console too)
     private static final String GCM_SENDER_ID = "748607264448"; // Set your GCM Sender ID
