@@ -1,22 +1,47 @@
 apply plugin: 'com.android.library'
 
+apply from: project.file("version.gradle")
+
 android {
-    compileSdkVersion 14
-    buildToolsVersion "22.0.1"
+    compileSdkVersion 22
+    buildToolsVersion "23.0.2"
 
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 14
+        targetSdkVersion 22
+        versionName = "${version}"
     }
 
     lintOptions {
         abortOnError false
     }
+
+    packagingOptions {
+        exclude 'META-INF/LICENSE.txt'
+    }
+}
+
+repositories {
+    maven { url "https://raw.githubusercontent.com/layerhq/releases-android/master/releases/" }
+    jcenter()
 }
 
 dependencies {
-    compile(group: 'com.layer.sdk', name: 'layer-sdk', version: "0.16.0") {
-        exclude group: "com.android.support"
-    }
-    compile 'org.slf4j:slf4j-nop:1.5.8'
+    // Layer SDK
+    compile 'com.layer.sdk:layer-sdk:0.19.0'
+    compile 'org.slf4j:slf4j-nop:1.7.2'
+
+    // Image cache and loading
+    compile 'com.squareup.picasso:picasso:2.5.2'
+
+    // Image popup
+    compile 'com.davemorrissey.labs:subsampling-scale-image-view:3.4.1'
+
+    // Android UI
+    compile 'com.android.support:recyclerview-v7:22.+'
+    compile 'com.android.support:appcompat-v7:22.+'
+    compile 'com.android.support:design:22.+'
+
+    // Location
+    compile 'com.google.android.gms:play-services-location:8.3.0'
 }

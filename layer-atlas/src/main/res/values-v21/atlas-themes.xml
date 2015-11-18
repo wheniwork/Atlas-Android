@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Copyright 2015 Layer. All rights reserved.
+    
+     Licensed under the Apache License, Version 2.0 (the "License");
+     you may not use this file except in compliance with the License.
+     You may obtain a copy of the License at
+        
+          http://www.apache.org/licenses/LICENSE-2.0
+          
+     Unless required by applicable law or agreed to in writing, software
+     distributed under the License is distributed on an "AS IS" BASIS,
+     WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+     See the License for the specific language governing permissions and
+     limitations under the License.    
+-->
+<resources>
+
+    <!-- ########### -->
+    <!-- Atlas Style -->
+    <!-- ########### -->
+    <style name="Theme.Atlas.Light" parent="Theme.Atlas.Base.Light">
+        <item name="android:statusBarColor">@color/atlas_status_bar_background</item>
+        <item name="android:navigationBarColor">@color/atlas_navigation_bar_background</item>
+
+        <item name="android:windowTransitionBackgroundFadeDuration">333</item>
+        <item name="android:windowContentTransitions">true</item>
+
+        <item name="android:windowSharedElementEnterTransition">@transition/bounds</item>
+        <item name="android:windowSharedElementExitTransition">@transition/bounds</item>
+
+        <item name="android:timePickerDialogTheme">@style/AtlasAlertDialog</item>
+        <item name="android:datePickerDialogTheme">@style/AtlasAlertDialog</item>
+        <item name="android:alertDialogTheme">@style/AtlasAlertDialog</item>
+    </style>
+
+    <style name="AtlasAlertDialog" parent="android:Theme.Material.Light.Dialog.Alert">
+        <item name="android:colorPrimary">@color/atlas_dialog_primary</item>
+        <item name="android:colorAccent">@color/atlas_dialog_accent</item>
+    </style>
+
+</resources>

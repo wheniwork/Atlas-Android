@@ -14,6 +14,35 @@
      limitations under the License.    
 -->
 <resources>
+    <string name="atlas_message_item_unknown_user">Unknown</string>
+
+    <string name="atlas_message_item_read">Read</string>
+    <string name="atlas_message_item_delivered">Delivered</string>
+
+    <string name="atlas_notification_text">%1$s: %2$s</string>
+    <string name="atlas_notification_image">Attachment from %1$s: Image</string>
+    <string name="atlas_notification_location">Attachment from %1$s: Location</string>
+
+    <string name="atlas_gallery_sender_chooser">Attach Photo</string>
+
+    <string name="atlas_text_cell_factory_clipboard_description">Message</string>
+    <string name="atlas_text_cell_factory_copied_to_clipboard">Copied to clipboard</string>
+
+    <string name="atlas_message_preview_image">Attachment: Image</string>
+    <string name="atlas_message_preview_location">Attachment: Location</string>
+
+    <string name="atlas_time_today">Today</string>
+    <string name="atlas_time_yesterday">Yesterday</string>
+
+    <string-array name="atlas_time_days_of_week">
+        <item>Sunday</item>
+        <item>Monday</item>
+        <item>Tuesday</item>
+        <item>Wednesday</item>
+        <item>Thursday</item>
+        <item>Friday</item>
+        <item>Saturday</item>
+    </string-array>
 
     <string-array name="atlas_typing_indicator">
         <item>No one is typing</item>
@@ -22,5 +51,8 @@
         <item>Three people are typing…</item>
         <item>Many people are typing…</item>
     </string-array>
-    
+
+    <string name="atlas_message_composer_hint">Message</string>
+    <string name="atlas_message_composer_send_button">SEND</string>
+
 </resources>
