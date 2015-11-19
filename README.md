@@ -12,7 +12,7 @@ We are actively adding features for the following priorities:
 3. Video
 4. Automated UI tests
 
-See the list of branches and issues for updates.
+Please see the list of branches for work in progress.  If you don't see a feature you are interested in there, please start a branch and submit a pull request.
 
 ##<a name="key_concepts"></a>Key Concepts
 With Atlas, Messages have types.  One type might be rich text, and another might be a map location or photo.  Anything that can be packaged into a set of MIME Types and data can be represented by Atlas.
