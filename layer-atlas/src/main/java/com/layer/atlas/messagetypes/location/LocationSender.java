@@ -14,7 +14,9 @@ import com.google.android.gms.location.LocationServices;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.util.Log;
+import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessageOptions;
+import com.layer.sdk.messaging.MessagePart;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -57,8 +59,9 @@ public class LocationSender extends AttachmentSender {
                             .put(LocationCellFactory.KEY_LONGITUDE, location.getLongitude())
                             .put(LocationCellFactory.KEY_LABEL, myName);
                     String notification = getContext().getString(R.string.atlas_notification_location, myName);
-                    getConversation().send(getLayerClient().newMessage(new MessageOptions().pushNotificationMessage(notification), getLayerClient().newMessagePart(LocationCellFactory.MIME_TYPE, o.toString().getBytes())));
-                    if (Log.isLoggable(Log.VERBOSE)) Log.v("Location sent");
+                    MessagePart part = getLayerClient().newMessagePart(LocationCellFactory.MIME_TYPE, o.toString().getBytes());
+                    Message message = getLayerClient().newMessage(new MessageOptions().pushNotificationMessage(notification), part);
+                    send(message);
                 } catch (JSONException e) {
                     if (Log.isLoggable(Log.ERROR)) {
                         Log.e(e.getMessage(), e);

@@ -50,8 +50,7 @@ public class GallerySender extends AttachmentSender {
             String myName = getParticipantProvider().getParticipant(getLayerClient().getAuthenticatedUserId()).getName();
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), data.getData());
             message.getOptions().pushNotificationMessage(getContext().getString(R.string.atlas_notification_image, myName));
-            getConversation().send(message);
-            if (Log.isLoggable(Log.VERBOSE)) Log.v("Gallery image sent");
+            send(message);
         } catch (IOException e) {
             if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
         }

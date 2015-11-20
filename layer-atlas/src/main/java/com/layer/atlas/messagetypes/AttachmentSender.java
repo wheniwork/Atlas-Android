@@ -1,13 +1,8 @@
 package com.layer.atlas.messagetypes;
 
 import android.app.Activity;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Parcelable;
-
-import com.layer.atlas.provider.ParticipantProvider;
-import com.layer.sdk.LayerClient;
-import com.layer.sdk.messaging.Conversation;
 
 /**
  * AttachmentSenders populate the AtlasMessageComposer attachment menu and handle message sending
@@ -17,12 +12,6 @@ import com.layer.sdk.messaging.Conversation;
 public abstract class AttachmentSender extends MessageSender {
     private final String mTitle;
     private final Integer mIcon;
-
-    private Conversation mConversation;
-
-    private Context mContext;
-    private LayerClient mLayerClient;
-    private ParticipantProvider mParticipantProvider;
 
     public AttachmentSender(String title, Integer icon) {
         mTitle = title;
@@ -38,12 +27,6 @@ public abstract class AttachmentSender extends MessageSender {
      * @see #onActivityResult(Activity, int, int, Intent)
      */
     public abstract boolean requestSend();
-
-    public void init(Context context, LayerClient layerClient, ParticipantProvider participantProvider) {
-        mContext = context;
-        mLayerClient = layerClient;
-        mParticipantProvider = participantProvider;
-    }
 
     /**
      * Override to save instance state.
@@ -94,30 +77,5 @@ public abstract class AttachmentSender extends MessageSender {
      */
     public Integer getIcon() {
         return mIcon;
-    }
-
-    @Override
-    public void setConversation(Conversation conversation) {
-        mConversation = conversation;
-    }
-
-    @Override
-    protected Context getContext() {
-        return mContext;
-    }
-
-    @Override
-    protected LayerClient getLayerClient() {
-        return mLayerClient;
-    }
-
-    @Override
-    protected ParticipantProvider getParticipantProvider() {
-        return mParticipantProvider;
-    }
-
-    @Override
-    protected Conversation getConversation() {
-        return mConversation;
     }
 }

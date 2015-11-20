@@ -18,7 +18,7 @@ public class TextSender extends MessageSender {
         mMaxNotificationLength = maxNotificationLength;
     }
 
-    public boolean send(String text) {
+    public boolean requestSend(String text) {
         if (text == null || text.trim().length() == 0) {
             if (Log.isLoggable(Log.ERROR)) Log.e("No text to send");
             return false;
@@ -32,8 +32,6 @@ public class TextSender extends MessageSender {
         // Send message
         MessagePart part = getLayerClient().newMessagePart(text);
         Message message = getLayerClient().newMessage(new MessageOptions().pushNotificationMessage(notificationString), part);
-        getConversation().send(message);
-        if (Log.isLoggable(Log.VERBOSE)) Log.v("Text message sent");
-        return true;
+        return send(message);
     }
 }

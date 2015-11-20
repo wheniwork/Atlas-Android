@@ -40,6 +40,7 @@ import android.widget.PopupWindow;
 import android.widget.TextView;
 
 import com.layer.atlas.messagetypes.AttachmentSender;
+import com.layer.atlas.messagetypes.MessageSender;
 import com.layer.atlas.messagetypes.text.TextSender;
 import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.sdk.LayerClient;
@@ -59,6 +60,7 @@ public class AtlasMessageComposer extends FrameLayout {
 
     private TextSender mTextSender;
     private ArrayList<AttachmentSender> mAttachmentSenders = new ArrayList<AttachmentSender>();
+    private MessageSender.Callback mMessageSenderCallback;
 
     private PopupWindow mAttachmentMenu;
 
@@ -126,7 +128,7 @@ public class AtlasMessageComposer extends FrameLayout {
         mSendButton = (Button) findViewById(R.id.send_button);
         mSendButton.setOnClickListener(new OnClickListener() {
             public void onClick(View v) {
-                if (!mTextSender.send(mMessageEditText.getText().toString())) return;
+                if (!mTextSender.requestSend(mMessageEditText.getText().toString())) return;
                 mMessageEditText.setText("");
                 mSendButton.setEnabled(false);
             }
@@ -171,6 +173,7 @@ public class AtlasMessageComposer extends FrameLayout {
         mTextSender = textSender;
         mTextSender.init(this.getContext().getApplicationContext(), mLayerClient, mParticipantProvider);
         mTextSender.setConversation(mConversation);
+        if (mMessageSenderCallback != null) mTextSender.setCallback(mMessageSenderCallback);
         return this;
     }
 
@@ -187,10 +190,28 @@ public class AtlasMessageComposer extends FrameLayout {
             }
             sender.init(this.getContext().getApplicationContext(), mLayerClient, mParticipantProvider);
             sender.setConversation(mConversation);
+            if (mMessageSenderCallback != null) sender.setCallback(mMessageSenderCallback);
             mAttachmentSenders.add(sender);
             addAttachmentMenuItem(sender);
         }
         if (!mAttachmentSenders.isEmpty()) mAttachButton.setVisibility(View.VISIBLE);
+        return this;
+    }
+
+    /**
+     * Sets an optional callback for receiving MessageSender events.  If non-null, overrides any
+     * callbacks already set on MessageSenders.
+     *
+     * @param callback Callback to receive MessageSender events.
+     * @return This AtlasMessageComposer.
+     */
+    public AtlasMessageComposer setMessageSenderCallback(MessageSender.Callback callback) {
+        mMessageSenderCallback = callback;
+        if (mMessageSenderCallback == null) return this;
+        if (mTextSender != null) mTextSender.setCallback(callback);
+        for (AttachmentSender sender : mAttachmentSenders) {
+            sender.setCallback(callback);
+        }
         return this;
     }
 

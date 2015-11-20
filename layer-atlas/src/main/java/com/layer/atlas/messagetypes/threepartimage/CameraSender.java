@@ -62,8 +62,7 @@ public class CameraSender extends AttachmentSender {
             String myName = getParticipantProvider().getParticipant(getLayerClient().getAuthenticatedUserId()).getName();
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), new File(mPhotoFilePath.get()));
             message.getOptions().pushNotificationMessage(getContext().getString(R.string.atlas_notification_image, myName));
-            getConversation().send(message);
-            if (Log.isLoggable(Log.VERBOSE)) Log.v("Camera image sent");
+            send(message);
         } catch (IOException e) {
             if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);
         }
