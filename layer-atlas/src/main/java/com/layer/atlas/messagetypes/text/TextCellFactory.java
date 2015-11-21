@@ -45,6 +45,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
 
         TextView t = (TextView) v.findViewById(R.id.cell_text);
         t.setTextColor(context.getResources().getColor(isMe ? R.color.atlas_text_white : R.color.atlas_text_black));
+        t.setLinkTextColor(context.getResources().getColor(isMe ? R.color.atlas_text_white : R.color.atlas_text_black));
         return new CellHolder(v);
     }
 
