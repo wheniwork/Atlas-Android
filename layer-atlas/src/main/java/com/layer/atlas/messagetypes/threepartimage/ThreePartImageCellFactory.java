@@ -9,11 +9,11 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Parcel;
 import android.os.Parcelable;
+import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.layer.atlas.R;
@@ -26,6 +26,7 @@ import com.layer.atlas.util.picasso.transformations.RoundedTransform;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.RequestCreator;
 import com.squareup.picasso.Transformation;
@@ -44,7 +45,7 @@ import java.util.List;
 public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCellFactory.CellHolder, ThreePartImageCellFactory.Info> implements View.OnClickListener {
     private static final String PICASSO_TAG = ThreePartImageCellFactory.class.getSimpleName();
 
-    private static final int PLACEHOLDER_RES_ID = R.drawable.atlas_message_item_cell_placeholder;
+    private static final int PLACEHOLDER = R.drawable.atlas_message_item_cell_placeholder;
 
     private final WeakReference<Activity> mActivity;
     private final LayerClient mLayerClient;
@@ -79,15 +80,18 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
     public void bindCellHolder(final CellHolder cellHolder, final Info info, final Message message, CellHolderSpecs specs) {
         cellHolder.mImageView.setTag(info);
         cellHolder.mImageView.setOnClickListener(this);
+        MessagePart preview = ThreePartImageUtils.getPreviewPart(message);
 
         // Info width and height are the rotated width and height, though the content is not pre-rotated.
         int[] cellDims = Util.scaleDownInside(info.width, info.height, specs.maxWidth, specs.maxHeight);
-        cellHolder.mImageView.setLayoutParams(new FrameLayout.LayoutParams(cellDims[0], cellDims[1]));
-        RequestCreator creator = mPicasso.load(ThreePartImageUtils.getPreviewPart(message).getId()).tag(PICASSO_TAG)
-                .placeholder(PLACEHOLDER_RES_ID).noFade();
+        ViewGroup.LayoutParams params = cellHolder.mImageView.getLayoutParams();
+        params.width = cellDims[0];
+        params.height = cellDims[1];
+        cellHolder.mProgressBar.show();
+        RequestCreator creator = mPicasso.load(preview.getId()).tag(PICASSO_TAG).placeholder(PLACEHOLDER);
         switch (info.orientation) {
             case ThreePartImageUtils.ORIENTATION_0:
-                creator.resize(cellDims[0], cellDims[1]).rotate(0);
+                creator.resize(cellDims[0], cellDims[1]);
                 break;
             case ThreePartImageUtils.ORIENTATION_90:
                 creator.resize(cellDims[1], cellDims[0]).rotate(-90);
@@ -99,7 +103,17 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
                 creator.resize(cellDims[1], cellDims[0]).rotate(90);
                 break;
         }
-        creator.transform(mTransform).into(cellHolder.mImageView);
+        creator.transform(mTransform).into(cellHolder.mImageView, new Callback() {
+            @Override
+            public void onSuccess() {
+                cellHolder.mProgressBar.hide();
+            }
+
+            @Override
+            public void onError() {
+                cellHolder.mProgressBar.hide();
+            }
+        });
 
         cellHolder.mImageView.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
@@ -237,10 +251,11 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
 
     static class CellHolder extends AtlasCellFactory.CellHolder {
         ImageView mImageView;
+        ContentLoadingProgressBar mProgressBar;
 
         public CellHolder(View view) {
             mImageView = (ImageView) view.findViewById(R.id.cell_image);
+            mProgressBar = (ContentLoadingProgressBar) view.findViewById(R.id.cell_progress);
         }
     }
-
 }

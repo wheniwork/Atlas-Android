@@ -26,4 +26,15 @@
         android:transitionName="image"
         />
 
+    <android.support.v4.widget.ContentLoadingProgressBar
+        android:id="@+id/image_popup_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|center_horizontal"
+        android:indeterminate="false"
+        android:visibility="gone"
+        android:max="100"
+        />
+
 </FrameLayout>

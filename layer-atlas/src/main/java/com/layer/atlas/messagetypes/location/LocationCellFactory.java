@@ -3,11 +3,11 @@ package com.layer.atlas.messagetypes.location;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import com.layer.atlas.R;
@@ -18,6 +18,7 @@ import com.layer.atlas.util.Util;
 import com.layer.atlas.util.picasso.transformations.RoundedTransform;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Transformation;
 
@@ -33,7 +34,7 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
     public static final String KEY_LONGITUDE = "lon";
     public static final String KEY_LABEL = "label";
 
-    private static final int PLACEHOLDER_RES_ID = R.drawable.atlas_message_item_cell_placeholder;
+    private static final int PLACEHOLDER = R.drawable.atlas_message_item_cell_placeholder;
     private static final double GOLDEN_RATIO = (1.0 + Math.sqrt(5.0)) / 2.0;
 
     private final Picasso mPicasso;
@@ -90,10 +91,23 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
         int mapWidth = Math.min(640, specs.maxWidth);
         int mapHeight = (int) Math.round((double) mapWidth / GOLDEN_RATIO);
         int[] cellDims = Util.scaleDownInside(specs.maxWidth, (int) Math.round((double) specs.maxWidth / GOLDEN_RATIO), specs.maxWidth, specs.maxHeight);
-        cellHolder.mImageView.setLayoutParams(new FrameLayout.LayoutParams(cellDims[0], cellDims[1]));
+        ViewGroup.LayoutParams params = cellHolder.mImageView.getLayoutParams();
+        params.width = cellDims[0];
+        params.height = cellDims[1];
+        cellHolder.mProgressBar.show();
         mPicasso.load("https://maps.googleapis.com/maps/api/staticmap?zoom=16&maptype=roadmap&scale=2&center=" + location.mLatitude + "," + location.mLongitude + "&markers=color:red%7C" + location.mLatitude + "," + location.mLongitude + "&size=" + mapWidth + "x" + mapHeight)
-                .tag(PICASSO_TAG).noFade().placeholder(PLACEHOLDER_RES_ID)
-                .resize(cellDims[0], cellDims[1]).transform(mTransform).into(cellHolder.mImageView);
+                .tag(PICASSO_TAG).placeholder(PLACEHOLDER).resize(cellDims[0], cellDims[1])
+                .transform(mTransform).into(cellHolder.mImageView, new Callback() {
+            @Override
+            public void onSuccess() {
+                cellHolder.mProgressBar.hide();
+            }
+
+            @Override
+            public void onError() {
+                cellHolder.mProgressBar.hide();
+            }
+        });
     }
 
     @Override
@@ -130,9 +144,11 @@ public class LocationCellFactory extends AtlasCellFactory<LocationCellFactory.Ce
 
     static class CellHolder extends AtlasCellFactory.CellHolder {
         ImageView mImageView;
+        ContentLoadingProgressBar mProgressBar;
 
         public CellHolder(View view) {
             mImageView = (ImageView) view.findViewById(R.id.cell_image);
+            mProgressBar = (ContentLoadingProgressBar) view.findViewById(R.id.cell_progress);
         }
     }
 }
