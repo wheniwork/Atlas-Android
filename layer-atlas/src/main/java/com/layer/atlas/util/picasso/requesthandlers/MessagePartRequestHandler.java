@@ -20,7 +20,6 @@ import static com.squareup.picasso.Picasso.LoadedFrom;
  * the part, and waits for completion.
  */
 public class MessagePartRequestHandler extends com.squareup.picasso.RequestHandler {
-    private final static String TAG = MessagePartRequestHandler.class.getSimpleName();
     private final LayerClient mLayerClient;
 
     public MessagePartRequestHandler(LayerClient layerClient) {
@@ -42,7 +41,7 @@ public class MessagePartRequestHandler extends com.squareup.picasso.RequestHandl
         Queryable queryable = mLayerClient.get(request.uri);
         if (!(queryable instanceof MessagePart)) return null;
         MessagePart part = (MessagePart) queryable;
-        if (part.isContentReady()) return new Result(part.getDataStream(), LoadedFrom.MEMORY);
+        if (part.isContentReady()) return new Result(part.getDataStream(), LoadedFrom.DISK);
         if (!Util.downloadMessagePart(mLayerClient, part, 3, TimeUnit.MINUTES)) return null;
         return new Result(part.getDataStream(), LoadedFrom.NETWORK);
     }

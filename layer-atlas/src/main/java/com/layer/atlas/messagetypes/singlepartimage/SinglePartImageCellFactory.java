@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Build;
+import android.support.v4.widget.ContentLoadingProgressBar;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import com.layer.atlas.util.picasso.transformations.RoundedTransform;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessagePart;
+import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
 import com.squareup.picasso.Transformation;
 
@@ -30,7 +32,7 @@ import java.lang.ref.WeakReference;
  */
 public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImageCellFactory.CellHolder, SinglePartImageCellFactory.PartId> implements View.OnClickListener {
     private static final String PICASSO_TAG = SinglePartImageCellFactory.class.getSimpleName();
-    private static final int PLACEHOLDER_RES_ID = com.layer.atlas.R.drawable.atlas_message_item_cell_placeholder;
+    private static final int PLACEHOLDER = com.layer.atlas.R.drawable.atlas_message_item_cell_placeholder;
 
     private final WeakReference<Activity> mActivity;
     private final LayerClient mLayerClient;
@@ -60,9 +62,20 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
     public void bindCellHolder(final CellHolder cellHolder, PartId index, Message message, CellHolderSpecs specs) {
         cellHolder.mImageView.setTag(index);
         cellHolder.mImageView.setOnClickListener(this);
-        mPicasso.load(index.mId).tag(PICASSO_TAG).placeholder(PLACEHOLDER_RES_ID).noFade()
+        cellHolder.mProgressBar.show();
+        mPicasso.load(index.mId).tag(PICASSO_TAG).placeholder(PLACEHOLDER)
                 .centerInside().resize(specs.maxWidth, specs.maxHeight).onlyScaleDown()
-                .transform(mTransform).into(cellHolder.mImageView);
+                .transform(mTransform).into(cellHolder.mImageView, new Callback() {
+            @Override
+            public void onSuccess() {
+                cellHolder.mProgressBar.hide();
+            }
+
+            @Override
+            public void onError() {
+                cellHolder.mProgressBar.hide();
+            }
+        });
     }
 
     @Override
@@ -124,9 +137,11 @@ public class SinglePartImageCellFactory extends AtlasCellFactory<SinglePartImage
 
     public static class CellHolder extends AtlasCellFactory.CellHolder {
         ImageView mImageView;
+        ContentLoadingProgressBar mProgressBar;
 
         public CellHolder(View view) {
             mImageView = (ImageView) view.findViewById(R.id.cell_image);
+            mProgressBar = (ContentLoadingProgressBar) view.findViewById(R.id.cell_progress);
         }
     }
 
