@@ -1,5 +1,12 @@
 # Atlas Android
 
+## 0.2.2
+
+### Features
+ * Added `ContentLoadingProgressBar` for image and location cells, as well as the image popup ([issue #32](https://github.com/layerhq/Atlas-Android/issues/32)).
+ * `TextCellFactory` parses text for clickable links, emails, addresses, and phone numbers.
+
+
 ## 0.2.1
 
 ### Features
