@@ -54,6 +54,8 @@ public class AtlasAddressBar extends LinearLayout {
     private AvailableConversationAdapter mAvailableConversationAdapter;
     private final Set<String> mSelectedParticipantIds = new LinkedHashSet<String>();
 
+    private boolean showConversations;
+
     public AtlasAddressBar(Context context, AttributeSet attrs) {
         this(context, attrs, 0);
     }
@@ -147,6 +149,16 @@ public class AtlasAddressBar extends LinearLayout {
     public AtlasAddressBar refresh() {
         if (mAvailableConversationAdapter == null) return this;
         mAvailableConversationAdapter.refresh(getSearchFilter(), mSelectedParticipantIds);
+        return this;
+    }
+
+    public AtlasAddressBar setShowConversations(boolean showConversations) {
+        this.showConversations = showConversations;
+        return this;
+    }
+
+    public AtlasAddressBar setIgnoredParticipants(Set<String> ignoredParticipants) {
+        mSelectedParticipantIds.addAll(ignoredParticipants);
         return this;
     }
 
@@ -365,6 +377,12 @@ public class AtlasAddressBar extends LinearLayout {
             // TODO: compute add/remove/move and notify those instead of complete notify
             notifyDataSetChanged();
 
+            if (showConversations) {
+                queryConversations(selectedParticipantIds);
+            }
+        }
+
+        private void queryConversations(Set<String> selectedParticipantIds) {
             // Filter down to only those conversations including the selected participants, hiding one-on-one conversations
             Query.Builder<Conversation> builder = Query.builder(Conversation.class)
                     .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING));
