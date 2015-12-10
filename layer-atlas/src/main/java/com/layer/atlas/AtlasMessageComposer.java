@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
+import android.graphics.Typeface;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -28,6 +29,7 @@ import android.support.v4.graphics.drawable.DrawableCompat;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -43,6 +45,7 @@ import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.messagetypes.MessageSender;
 import com.layer.atlas.messagetypes.text.TextSender;
 import com.layer.atlas.provider.ParticipantProvider;
+import com.layer.atlas.util.EditTextUtil;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.listeners.LayerTypingIndicatorListener;
 import com.layer.sdk.messaging.Conversation;
@@ -66,6 +69,12 @@ public class AtlasMessageComposer extends FrameLayout {
 
     // styles
     private boolean mEnabled;
+    private int textColor;
+    private float textSize;
+    private Typeface typeFace;
+    private int textStyle;
+    private int underlineColor;
+    private int cursorColor;
 
     public AtlasMessageComposer(Context context) {
         super(context);
@@ -215,6 +224,12 @@ public class AtlasMessageComposer extends FrameLayout {
         return this;
     }
 
+    public AtlasMessageComposer setTypeface(Typeface typeface) {
+        this.typeFace = typeface;
+        applyTypeface();
+        return this;
+    }
+
     /**
      * Must be called from Activity's onActivityResult to allow attachment senders to manage results
      * from e.g. selecting a gallery photo or taking a camera image.
@@ -245,16 +260,33 @@ public class AtlasMessageComposer extends FrameLayout {
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessageComposer, R.attr.AtlasMessageComposer, defStyle);
         mEnabled = ta.getBoolean(R.styleable.AtlasMessageComposer_android_enabled, true);
+        this.textColor = ta.getColor(R.styleable.AtlasMessageComposer_inputTextColor, context.getResources().getColor(R.color.atlas_text_black));
+        this.textSize = ta.getDimensionPixelSize(R.styleable.AtlasMessageComposer_inputTextSize, context.getResources().getDimensionPixelSize(R.dimen.atlas_text_size_input));
+        this.textStyle = ta.getInt(R.styleable.AtlasMessageComposer_inputTextStyle, Typeface.NORMAL);
+        String typeFaceName = ta.getString(R.styleable.AtlasMessageComposer_inputTextTypeface);
+        this.typeFace = typeFaceName != null ? Typeface.create(typeFaceName, textStyle) : null;
+        this.underlineColor = ta.getColor(R.styleable.AtlasMessageComposer_inputUnderlineColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
+        this.cursorColor = ta.getColor(R.styleable.AtlasMessageComposer_inputCursorColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
         ta.recycle();
     }
 
     private void applyStyle() {
         setEnabled(mEnabled);
 
+        mMessageEditText.setTextColor(textColor);
+        mMessageEditText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
+        EditTextUtil.setCursorDrawableColor(mMessageEditText, cursorColor);
+        EditTextUtil.setUnderlineColor(mMessageEditText, underlineColor);
+        applyTypeface();
+
         ColorStateList list = getResources().getColorStateList(R.color.atlas_message_composer_attach_button);
         Drawable d = DrawableCompat.wrap(mAttachButton.getDrawable().mutate());
         DrawableCompat.setTintList(d, list);
         mAttachButton.setImageDrawable(d);
+    }
+
+    private void applyTypeface() {
+        mMessageEditText.setTypeface(typeFace, textStyle);
     }
 
     private void addAttachmentMenuItem(AttachmentSender sender) {

@@ -1,7 +1,6 @@
 package com.layer.atlas.adapters;
 
 import android.content.Context;
-import android.graphics.Typeface;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,6 +10,7 @@ import android.widget.TextView;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.provider.ParticipantProvider;
+import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
@@ -38,6 +38,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     private final DateFormat mDateFormat;
     private final DateFormat mTimeFormat;
+    private ConversationStyle conversationStyle;
 
     public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso) {
         this(context, client, participantProvider, picasso, null);
@@ -91,6 +92,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         return this;
     }
 
+    public void setStyle(ConversationStyle conversationStyle) {
+        this.conversationStyle = conversationStyle;
+    }
+
     private void syncInitialMessages(final int start, final int length) {
         new Thread(new Runnable() {
             @Override
@@ -133,9 +138,11 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-        ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false));
+        ViewHolder viewHolder = new ViewHolder(mInflater.inflate(ViewHolder.RESOURCE_ID, parent, false), conversationStyle);
         viewHolder.setClickListener(mViewHolderClickListener);
-        viewHolder.mAvatarCluster.init(mParticipantProvider, mPicasso);
+        viewHolder.mAvatarCluster
+                .init(mParticipantProvider, mPicasso)
+                .setStyle(conversationStyle.getAvatarStyle());
         return viewHolder;
     }
 
@@ -151,13 +158,13 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         participantIds.remove(mLayerClient.getAuthenticatedUserId());
         viewHolder.mAvatarCluster.setParticipants(participantIds);
         viewHolder.mTitleView.setText(Util.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
+        viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
             viewHolder.mMessageView.setText(null);
             viewHolder.mTimeView.setText(null);
         } else {
             viewHolder.mMessageView.setText(Util.getLastMessageString(context, lastMessage));
-            viewHolder.mTitleView.setTypeface(null, (conversation.getTotalUnreadMessageCount() > 0) ? Typeface.BOLD : Typeface.NORMAL);
             if (lastMessage.getSentAt() == null) {
                 viewHolder.mTimeView.setText(null);
             } else {
@@ -254,18 +261,30 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         protected TextView mMessageView;
         protected TextView mTimeView;
 
+        protected ConversationStyle conversationStyle;
         protected Conversation mConversation;
         protected OnClickListener mClickListener;
 
-        public ViewHolder(View itemView) {
+        public ViewHolder(View itemView, ConversationStyle conversationStyle) {
             super(itemView);
             itemView.setOnClickListener(this);
             itemView.setOnLongClickListener(this);
+            this.conversationStyle = conversationStyle;
 
             mAvatarCluster = (AtlasAvatar) itemView.findViewById(R.id.avatar);
             mTitleView = (TextView) itemView.findViewById(R.id.title);
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
+            itemView.setBackgroundColor(conversationStyle.getCellBackgroundColor());
+        }
+
+        public void applyStyle(boolean unread) {
+            mTitleView.setTextColor(unread ? conversationStyle.getTitleUnreadTextColor() : conversationStyle.getTitleTextColor());
+            mTitleView.setTypeface(unread ? conversationStyle.getTitleUnreadTextTypeface() : conversationStyle.getTitleTextTypeface(), unread ? conversationStyle.getTitleUnreadTextStyle() : conversationStyle.getTitleTextStyle());
+            mMessageView.setTextColor(unread ? conversationStyle.getSubtitleTextColor() : conversationStyle.getSubtitleTextColor());
+            mMessageView.setTypeface(unread ? conversationStyle.getSubtitleUnreadTextTypeface() : conversationStyle.getSubtitleTextTypeface(), unread ? conversationStyle.getSubtitleUnreadTextStyle() : conversationStyle.getSubtitleTextStyle());
+            mTimeView.setTextColor(conversationStyle.getDateTextColor());
+            mTimeView.setTypeface(conversationStyle.getDateTextTypeface());
         }
 
         protected ViewHolder setClickListener(OnClickListener clickListener) {

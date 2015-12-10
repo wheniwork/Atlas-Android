@@ -40,6 +40,8 @@
         android:maxLines="3"
         android:minHeight="@dimen/atlas_input_height"
         android:textSize="@dimen/atlas_text_size_input"
+        android:background="@drawable/atlas_edit_text_background"
+        android:textCursorDrawable="@drawable/atlas_edit_text_cursor"
         />
 
     <Button
