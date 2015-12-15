@@ -36,6 +36,7 @@
         <item name="dateTextTypeface">normal</item>
         <item name="avatarTextColor">@color/atlas_text_black</item>
         <item name="avatarBackgroundColor">@color/atlas_avatar_background</item>
+        <item name="avatarBorderColor">@color/atlas_avatar_border</item>
     </style>
 
     <style name="AtlasMessageComposer">
@@ -72,7 +73,10 @@
         <item name="listTextColor">@color/atlas_text_black</item>
         <item name="listTextTypeface">normal</item>
         <item name="listTextStyle">normal</item>
+        <item name="chipTypeface">normal</item>
+        <item name="chipStyle">normal</item>
         <item name="avatarBackgroundColor">@color/atlas_avatar_background</item>
+        <item name="avatarBorderColor">@color/atlas_avatar_border</item>
         <item name="avatarTextColor">@color/atlas_text_black</item>
         <item name="avatarTextTypeface">normal</item>
         <item name="avatarTextStyle">normal</item>

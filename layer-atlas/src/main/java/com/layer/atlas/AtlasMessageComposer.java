@@ -69,12 +69,12 @@ public class AtlasMessageComposer extends FrameLayout {
 
     // styles
     private boolean mEnabled;
-    private int textColor;
-    private float textSize;
-    private Typeface typeFace;
-    private int textStyle;
-    private int underlineColor;
-    private int cursorColor;
+    private int mTextColor;
+    private float mTextSize;
+    private Typeface mTypeFace;
+    private int mTextStyle;
+    private int mUnderlineColor;
+    private int mCursorColor;
 
     public AtlasMessageComposer(Context context) {
         super(context);
@@ -225,7 +225,7 @@ public class AtlasMessageComposer extends FrameLayout {
     }
 
     public AtlasMessageComposer setTypeface(Typeface typeface) {
-        this.typeFace = typeface;
+        this.mTypeFace = typeface;
         applyTypeface();
         return this;
     }
@@ -260,23 +260,23 @@ public class AtlasMessageComposer extends FrameLayout {
     private void parseStyle(Context context, AttributeSet attrs, int defStyle) {
         TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessageComposer, R.attr.AtlasMessageComposer, defStyle);
         mEnabled = ta.getBoolean(R.styleable.AtlasMessageComposer_android_enabled, true);
-        this.textColor = ta.getColor(R.styleable.AtlasMessageComposer_inputTextColor, context.getResources().getColor(R.color.atlas_text_black));
-        this.textSize = ta.getDimensionPixelSize(R.styleable.AtlasMessageComposer_inputTextSize, context.getResources().getDimensionPixelSize(R.dimen.atlas_text_size_input));
-        this.textStyle = ta.getInt(R.styleable.AtlasMessageComposer_inputTextStyle, Typeface.NORMAL);
+        this.mTextColor = ta.getColor(R.styleable.AtlasMessageComposer_inputTextColor, context.getResources().getColor(R.color.atlas_text_black));
+        this.mTextSize = ta.getDimensionPixelSize(R.styleable.AtlasMessageComposer_inputTextSize, context.getResources().getDimensionPixelSize(R.dimen.atlas_text_size_input));
+        this.mTextStyle = ta.getInt(R.styleable.AtlasMessageComposer_inputTextStyle, Typeface.NORMAL);
         String typeFaceName = ta.getString(R.styleable.AtlasMessageComposer_inputTextTypeface);
-        this.typeFace = typeFaceName != null ? Typeface.create(typeFaceName, textStyle) : null;
-        this.underlineColor = ta.getColor(R.styleable.AtlasMessageComposer_inputUnderlineColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
-        this.cursorColor = ta.getColor(R.styleable.AtlasMessageComposer_inputCursorColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
+        this.mTypeFace = typeFaceName != null ? Typeface.create(typeFaceName, mTextStyle) : null;
+        this.mUnderlineColor = ta.getColor(R.styleable.AtlasMessageComposer_inputUnderlineColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
+        this.mCursorColor = ta.getColor(R.styleable.AtlasMessageComposer_inputCursorColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
         ta.recycle();
     }
 
     private void applyStyle() {
         setEnabled(mEnabled);
 
-        mMessageEditText.setTextColor(textColor);
-        mMessageEditText.setTextSize(TypedValue.COMPLEX_UNIT_PX, textSize);
-        EditTextUtil.setCursorDrawableColor(mMessageEditText, cursorColor);
-        EditTextUtil.setUnderlineColor(mMessageEditText, underlineColor);
+        mMessageEditText.setTextColor(mTextColor);
+        mMessageEditText.setTextSize(TypedValue.COMPLEX_UNIT_PX, mTextSize);
+        EditTextUtil.setCursorDrawableColor(mMessageEditText, mCursorColor);
+        EditTextUtil.setUnderlineColor(mMessageEditText, mUnderlineColor);
         applyTypeface();
 
         ColorStateList list = getResources().getColorStateList(R.color.atlas_message_composer_attach_button);
@@ -286,7 +286,7 @@ public class AtlasMessageComposer extends FrameLayout {
     }
 
     private void applyTypeface() {
-        mMessageEditText.setTypeface(typeFace, textStyle);
+        mMessageEditText.setTypeface(mTypeFace, mTextStyle);
     }
 
     private void addAttachmentMenuItem(AttachmentSender sender) {

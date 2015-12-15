@@ -107,7 +107,7 @@ public class AtlasAvatar extends View {
 
     public AtlasAvatar setStyle(AvatarStyle avatarStyle) {
         mPaintBackground.setColor(avatarStyle.getAvatarBackgroundColor());
-        mPaintBorder.setColor(getResources().getColor(R.color.atlas_avatar_border));
+        mPaintBorder.setColor(avatarStyle.getAvatarBorderColor());
         mPaintInitials.setColor(avatarStyle.getAvatarTextColor());
         mPaintInitials.setTypeface(avatarStyle.getAvatarTextTypeface());
         return this;

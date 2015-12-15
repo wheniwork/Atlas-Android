@@ -42,13 +42,13 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     public CellHolder createCellHolder(ViewGroup cellView, boolean isMe, LayoutInflater layoutInflater) {
         View v = layoutInflater.inflate(R.layout.atlas_message_item_cell_text, cellView, true);
         v.setBackgroundResource(isMe ? R.drawable.atlas_message_item_cell_me : R.drawable.atlas_message_item_cell_them);
-        ((GradientDrawable) v.getBackground()).setColor(isMe ? messageStyle.getMyBubbleColor(): messageStyle.getOtherBubbleColor());
+        ((GradientDrawable) v.getBackground()).setColor(isMe ? mMessageStyle.getMyBubbleColor(): mMessageStyle.getOtherBubbleColor());
 
         TextView t = (TextView) v.findViewById(R.id.cell_text);
-        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, isMe ? messageStyle.getMyTextSize() : messageStyle.getOtherTextSize());
-        t.setTextColor(isMe ? messageStyle.getMyTextColor() : messageStyle.getOtherTextColor());
-        t.setLinkTextColor(isMe ? messageStyle.getMyTextColor() : messageStyle.getOtherTextColor());
-        t.setTypeface(isMe ? messageStyle.getMyTextTypeface() : messageStyle.getOtherTextTypeface(), isMe ? messageStyle.getMyTextStyle() : messageStyle.getOtherTextStyle());
+        t.setTextSize(TypedValue.COMPLEX_UNIT_PX, isMe ? mMessageStyle.getMyTextSize() : mMessageStyle.getOtherTextSize());
+        t.setTextColor(isMe ? mMessageStyle.getMyTextColor() : mMessageStyle.getOtherTextColor());
+        t.setLinkTextColor(isMe ? mMessageStyle.getMyTextColor() : mMessageStyle.getOtherTextColor());
+        t.setTypeface(isMe ? mMessageStyle.getMyTextTypeface() : mMessageStyle.getOtherTextTypeface(), isMe ? mMessageStyle.getMyTextStyle() : mMessageStyle.getOtherTextStyle());
         return new CellHolder(v);
     }
 

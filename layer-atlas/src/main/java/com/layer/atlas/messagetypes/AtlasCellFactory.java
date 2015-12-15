@@ -17,7 +17,7 @@ import com.layer.sdk.messaging.Message;
  */
 public abstract class AtlasCellFactory<Tholder extends AtlasCellFactory.CellHolder, Tcache extends AtlasCellFactory.ParsedContent> {
     private final LruCache<String, Tcache> mCache;
-    protected MessageStyle messageStyle;
+    protected MessageStyle mMessageStyle;
 
     /**
      * Constructs an AtlasCellFactory with a parsed content cache of `cacheBytes` size.
@@ -80,7 +80,7 @@ public abstract class AtlasCellFactory<Tholder extends AtlasCellFactory.CellHold
     public abstract void bindCellHolder(Tholder cellHolder, Tcache cached, Message message, CellHolderSpecs specs);
 
     public void setStyle(MessageStyle messageStyle) {
-        this.messageStyle = messageStyle;
+        this.mMessageStyle = messageStyle;
     }
 
     /**

@@ -39,6 +39,7 @@
         <attr name="dateTextTypeface" />
         <attr name="avatarTextColor" />
         <attr name="avatarBackgroundColor" />
+        <attr name="avatarBorderColor" />
     </declare-styleable>
 
     <declare-styleable name="AtlasMessageComposer">
@@ -75,7 +76,10 @@
         <attr name="listTextColor" />
         <attr name="listTextTypeface" />
         <attr name="listTextStyle" />
+        <attr name="chipTypeface" />
+        <attr name="chipStyle" />
         <attr name="avatarBackgroundColor" />
+        <attr name="avatarBorderColor" />
         <attr name="avatarTextColor" />
         <attr name="avatarTextTypeface" />
         <attr name="avatarTextStyle" />
@@ -125,6 +129,7 @@
     <attr name="dateTimeTextTypeface" format="string|reference" />
     <attr name="avatarTextColor" format="color|reference" />
     <attr name="avatarBackgroundColor" format="color|reference" />
+    <attr name="avatarBorderColor" format="color|reference" />
     <attr name="avatarTextTypeface" format="string|reference" />
     <attr name="avatarTextStyle">
         <flag name="normal" value="0" />
@@ -169,6 +174,12 @@
     <attr name="listTextColor" format="color|reference" />
     <attr name="listTextTypeface" format="string|reference" />
     <attr name="listTextStyle">
+        <flag name="normal" value="0" />
+        <flag name="bold" value="1" />
+        <flag name="italic" value="2" />
+    </attr>
+    <attr name="chipTypeface" format="string|reference" />
+    <attr name="chipStyle">
         <flag name="normal" value="0" />
         <flag name="bold" value="1" />
         <flag name="italic" value="2" />

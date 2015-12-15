@@ -91,7 +91,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     private int mFooterPosition = 0;
 
     //Stye
-    private MessageStyle messageStyle;
+    private MessageStyle mMessageStyle;
 
     private RecyclerView mRecyclerView;
 
@@ -145,7 +145,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     }
 
     public void setStyle(MessageStyle messageStyle) {
-        this.messageStyle = messageStyle;
+        this.mMessageStyle = messageStyle;
     }
 
     public void setFooterView(View footerView) {
@@ -201,7 +201,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
      */
     public AtlasMessagesAdapter addCellFactories(AtlasCellFactory... cellFactories) {
         for (AtlasCellFactory CellFactory : cellFactories) {
-            CellFactory.setStyle(messageStyle);
+            CellFactory.setStyle(mMessageStyle);
             mCellFactories.add(CellFactory);
 
             mViewTypeCount++;

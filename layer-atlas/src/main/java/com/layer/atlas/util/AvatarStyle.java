@@ -4,33 +4,40 @@ import android.graphics.Typeface;
 
 public final class AvatarStyle {
 
-    private int avatarBackgroundColor;
-    private int avatarTextColor;
-    private Typeface avatarTextTypeface;
+    private int mAvatarBackgroundColor;
+    private int mAvatarBorderColor;
+    private int mAvatarTextColor;
+    private Typeface mAvatarTextTypeface;
 
     private AvatarStyle(Builder builder) {
-        avatarBackgroundColor = builder.avatarBackgroundColor;
-        avatarTextColor = builder.avatarTextColor;
-        avatarTextTypeface = builder.avatarTextTypeface;
+        mAvatarBackgroundColor = builder.avatarBackgroundColor;
+        mAvatarTextColor = builder.avatarTextColor;
+        mAvatarTextTypeface = builder.avatarTextTypeface;
+        mAvatarBorderColor = builder.avatarBorderColor;
     }
 
     public void setAvatarTextTypeface(Typeface avatarTextTypeface) {
-        this.avatarTextTypeface = avatarTextTypeface;
+        this.mAvatarTextTypeface = avatarTextTypeface;
     }
 
     public int getAvatarBackgroundColor() {
-        return avatarBackgroundColor;
+        return mAvatarBackgroundColor;
     }
 
     public int getAvatarTextColor() {
-        return avatarTextColor;
+        return mAvatarTextColor;
     }
 
     public Typeface getAvatarTextTypeface() {
-        return avatarTextTypeface;
+        return mAvatarTextTypeface;
+    }
+
+    public int getAvatarBorderColor() {
+        return mAvatarBorderColor;
     }
 
     public static final class Builder {
+        private int avatarBorderColor;
         private int avatarBackgroundColor;
         private int avatarTextColor;
         private Typeface avatarTextTypeface;
@@ -50,6 +57,11 @@ public final class AvatarStyle {
 
         public Builder avatarTextTypeface(Typeface val) {
             avatarTextTypeface = val;
+            return this;
+        }
+
+        public Builder avatarBorderColor(int val) {
+            avatarBorderColor = val;
             return this;
         }
 

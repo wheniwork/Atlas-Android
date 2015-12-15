@@ -3,77 +3,77 @@ package com.layer.atlas.messagetypes;
 import android.graphics.Typeface;
 
 public class MessageStyle {
-    private int myBubbleColor;
-    private int myTextColor;
-    private int myTextStyle;
-    private float myTextSize;
-    private Typeface myTextTypeface;
+    private int mMyBubbleColor;
+    private int mMyTextColor;
+    private int mMyTextStyle;
+    private float mMyTextSize;
+    private Typeface mMyTextTypeface;
 
-    private int otherBubbleColor;
-    private int otherTextColor;
-    private int otherTextStyle;
-    private float otherTextSize;
-    private Typeface otherTextTypeface;
+    private int mOtherBubbleColor;
+    private int mOtherTextColor;
+    private int mOtherTextStyle;
+    private float mOtherTextSize;
+    private Typeface mOtherTextTypeface;
 
     private MessageStyle(Builder builder) {
-        myBubbleColor = builder.myBubbleColor;
-        myTextColor = builder.myTextColor;
-        myTextStyle = builder.myTextStyle;
-        myTextSize = builder.myTextSize;
+        mMyBubbleColor = builder.myBubbleColor;
+        mMyTextColor = builder.myTextColor;
+        mMyTextStyle = builder.myTextStyle;
+        mMyTextSize = builder.myTextSize;
         setMyTextTypeface(builder.myTextTypeface);
-        otherBubbleColor = builder.otherBubbleColor;
-        otherTextColor = builder.otherTextColor;
-        otherTextStyle = builder.otherTextStyle;
-        otherTextSize = builder.otherTextSize;
+        mOtherBubbleColor = builder.otherBubbleColor;
+        mOtherTextColor = builder.otherTextColor;
+        mOtherTextStyle = builder.otherTextStyle;
+        mOtherTextSize = builder.otherTextSize;
         setOtherTextTypeface(builder.otherTextTypeface);
     }
 
     public void setMyTextTypeface(Typeface myTextTypeface) {
-        this.myTextTypeface = myTextTypeface;
+        this.mMyTextTypeface = myTextTypeface;
     }
 
     public void setOtherTextTypeface(Typeface otherTextTypeface) {
-        this.otherTextTypeface = otherTextTypeface;
+        this.mOtherTextTypeface = otherTextTypeface;
     }
 
     public int getMyBubbleColor() {
-        return myBubbleColor;
+        return mMyBubbleColor;
     }
 
     public int getMyTextColor() {
-        return myTextColor;
+        return mMyTextColor;
     }
 
     public int getMyTextStyle() {
-        return myTextStyle;
+        return mMyTextStyle;
     }
 
     public float getMyTextSize() {
-        return myTextSize;
+        return mMyTextSize;
     }
 
     public Typeface getMyTextTypeface() {
-        return myTextTypeface;
+        return mMyTextTypeface;
     }
 
     public int getOtherBubbleColor() {
-        return otherBubbleColor;
+        return mOtherBubbleColor;
     }
 
     public int getOtherTextColor() {
-        return otherTextColor;
+        return mOtherTextColor;
     }
 
     public int getOtherTextStyle() {
-        return otherTextStyle;
+        return mOtherTextStyle;
     }
 
     public float getOtherTextSize() {
-        return otherTextSize;
+        return mOtherTextSize;
     }
 
     public Typeface getOtherTextTypeface() {
-        return otherTextTypeface;
+        return mOtherTextTypeface;
     }
 
     public static final class Builder {

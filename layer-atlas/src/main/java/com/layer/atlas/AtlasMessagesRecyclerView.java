@@ -43,7 +43,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     private LinearLayoutManager mLayoutManager;
     private ItemTouchHelper mSwipeItemTouchHelper;
 
-    private MessageStyle messageStyle;
+    private MessageStyle mMessageStyle;
 
     public AtlasMessagesRecyclerView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
@@ -72,7 +72,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
                         autoScroll();
                     }
                 });
-        mAdapter.setStyle(messageStyle);
+        mAdapter.setStyle(mMessageStyle);
         super.setAdapter(mAdapter);
 
         // Don't flash items when changing content
@@ -150,8 +150,8 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     }
 
     public AtlasMessagesRecyclerView setTextTypeface(Typeface myTypeface, Typeface otherTypeface) {
-        messageStyle.setMyTextTypeface(myTypeface);
-        messageStyle.setOtherTextTypeface(otherTypeface);
+        mMessageStyle.setMyTextTypeface(myTypeface);
+        mMessageStyle.setOtherTextTypeface(otherTypeface);
         return this;
     }
 
@@ -216,6 +216,6 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         messageStyleBuilder.otherBubbleColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_theirBubbleColor, context.getResources().getColor(R.color.atlas_color_primary_gray)));
 
         ta.recycle();
-        this.messageStyle = messageStyleBuilder.build();
+        this.mMessageStyle = messageStyleBuilder.build();
     }
 }

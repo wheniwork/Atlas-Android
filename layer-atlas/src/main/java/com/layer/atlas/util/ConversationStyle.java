@@ -4,130 +4,130 @@ import android.graphics.Typeface;
 
 public final class ConversationStyle {
 
-    private int titleTextColor;
-    private int titleTextStyle;
-    private Typeface titleTextTypeface;
-    private int titleUnreadTextColor;
-    private int titleUnreadTextStyle;
-    private Typeface titleUnreadTextTypeface;
-    private int subtitleTextColor;
-    private int subtitleTextStyle;
-    private Typeface subtitleTextTypeface;
-    private int subtitleUnreadTextColor;
-    private int subtitleUnreadTextStyle;
-    private Typeface subtitleUnreadTextTypeface;
-    private int cellBackgroundColor;
-    private int cellUnreadBackgroundColor;
-    private Typeface dateTextTypeface;
-    private int dateTextColor;
-    private AvatarStyle avatarStyle;
+    private int mTitleTextColor;
+    private int mTitleTextStyle;
+    private Typeface mTitleTextTypeface;
+    private int mTitleUnreadTextColor;
+    private int mTitleUnreadTextStyle;
+    private Typeface mTitleUnreadTextTypeface;
+    private int mSubtitleTextColor;
+    private int mSubtitleTextStyle;
+    private Typeface mSubtitleTextTypeface;
+    private int mSubtitleUnreadTextColor;
+    private int mSubtitleUnreadTextStyle;
+    private Typeface mSubtitleUnreadTextTypeface;
+    private int mCellBackgroundColor;
+    private int mCellUnreadBackgroundColor;
+    private Typeface mDateTextTypeface;
+    private int mDateTextColor;
+    private AvatarStyle mAvatarStyle;
 
     private ConversationStyle(Builder builder) {
-        titleTextColor = builder.titleTextColor;
-        titleTextStyle = builder.titleTextStyle;
+        mTitleTextColor = builder.titleTextColor;
+        mTitleTextStyle = builder.titleTextStyle;
         setTitleTextTypeface(builder.titleTextTypeface);
-        titleUnreadTextColor = builder.titleUnreadTextColor;
-        titleUnreadTextStyle = builder.titleUnreadTextStyle;
+        mTitleUnreadTextColor = builder.titleUnreadTextColor;
+        mTitleUnreadTextStyle = builder.titleUnreadTextStyle;
         setTitleUnreadTextTypeface(builder.titleUnreadTextTypeface);
-        subtitleTextColor = builder.subtitleTextColor;
-        subtitleTextStyle = builder.subtitleTextStyle;
+        mSubtitleTextColor = builder.subtitleTextColor;
+        mSubtitleTextStyle = builder.subtitleTextStyle;
         setSubtitleTextTypeface(builder.subtitleTextTypeface);
-        subtitleUnreadTextColor = builder.subtitleUnreadTextColor;
-        subtitleUnreadTextStyle = builder.subtitleUnreadTextStyle;
+        mSubtitleUnreadTextColor = builder.subtitleUnreadTextColor;
+        mSubtitleUnreadTextStyle = builder.subtitleUnreadTextStyle;
         setSubtitleUnreadTextTypeface(builder.subtitleUnreadTextTypeface);
-        cellBackgroundColor = builder.cellBackgroundColor;
-        cellUnreadBackgroundColor = builder.cellUnreadBackgroundColor;
+        mCellBackgroundColor = builder.cellBackgroundColor;
+        mCellUnreadBackgroundColor = builder.cellUnreadBackgroundColor;
         setDateTextTypeface(builder.dateTextTypeface);
-        dateTextColor = builder.dateTextColor;
-        avatarStyle = builder.avatarStyle;
+        mDateTextColor = builder.dateTextColor;
+        mAvatarStyle = builder.avatarStyle;
     }
 
     public void setTitleTextTypeface(Typeface titleTextTypeface) {
-        this.titleTextTypeface = titleTextTypeface;
+        this.mTitleTextTypeface = titleTextTypeface;
     }
 
     public void setTitleUnreadTextTypeface(Typeface titleUnreadTextTypeface) {
-        this.titleUnreadTextTypeface = titleUnreadTextTypeface;
+        this.mTitleUnreadTextTypeface = titleUnreadTextTypeface;
     }
 
     public void setSubtitleTextTypeface(Typeface subtitleTextTypeface) {
-        this.subtitleTextTypeface = subtitleTextTypeface;
+        this.mSubtitleTextTypeface = subtitleTextTypeface;
     }
 
     public void setSubtitleUnreadTextTypeface(Typeface subtitleUnreadTextTypeface) {
-        this.subtitleUnreadTextTypeface = subtitleUnreadTextTypeface;
+        this.mSubtitleUnreadTextTypeface = subtitleUnreadTextTypeface;
     }
 
     public void setDateTextTypeface(Typeface dateTextTypeface) {
-        this.dateTextTypeface = dateTextTypeface;
+        this.mDateTextTypeface = dateTextTypeface;
     }
 
     public int getTitleTextColor() {
-        return titleTextColor;
+        return mTitleTextColor;
     }
 
     public int getTitleTextStyle() {
-        return titleTextStyle;
+        return mTitleTextStyle;
     }
 
     public Typeface getTitleTextTypeface() {
-        return titleTextTypeface;
+        return mTitleTextTypeface;
     }
 
     public int getTitleUnreadTextColor() {
-        return titleUnreadTextColor;
+        return mTitleUnreadTextColor;
     }
 
     public int getTitleUnreadTextStyle() {
-        return titleUnreadTextStyle;
+        return mTitleUnreadTextStyle;
     }
 
     public Typeface getTitleUnreadTextTypeface() {
-        return titleUnreadTextTypeface;
+        return mTitleUnreadTextTypeface;
     }
 
     public int getSubtitleTextColor() {
-        return subtitleTextColor;
+        return mSubtitleTextColor;
     }
 
     public int getSubtitleTextStyle() {
-        return subtitleTextStyle;
+        return mSubtitleTextStyle;
     }
 
     public Typeface getSubtitleTextTypeface() {
-        return subtitleTextTypeface;
+        return mSubtitleTextTypeface;
     }
 
     public int getSubtitleUnreadTextColor() {
-        return subtitleUnreadTextColor;
+        return mSubtitleUnreadTextColor;
     }
 
     public int getSubtitleUnreadTextStyle() {
-        return subtitleUnreadTextStyle;
+        return mSubtitleUnreadTextStyle;
     }
 
     public Typeface getSubtitleUnreadTextTypeface() {
-        return subtitleUnreadTextTypeface;
+        return mSubtitleUnreadTextTypeface;
     }
 
     public int getCellBackgroundColor() {
-        return cellBackgroundColor;
+        return mCellBackgroundColor;
     }
 
     public int getCellUnreadBackgroundColor() {
-        return cellUnreadBackgroundColor;
+        return mCellUnreadBackgroundColor;
     }
 
     public Typeface getDateTextTypeface() {
-        return dateTextTypeface;
+        return mDateTextTypeface;
     }
 
     public int getDateTextColor() {
-        return dateTextColor;
+        return mDateTextColor;
     }
 
     public AvatarStyle getAvatarStyle() {
-        return avatarStyle;
+        return mAvatarStyle;
     }
 
     public static final class Builder {
