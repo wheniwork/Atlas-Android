@@ -162,6 +162,10 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
+    public void setFocus() {
+        mFilter.requestFocus();
+    }
+
     private boolean selectParticipant(String participantId) {
         if (mSelectedParticipantIds.contains(participantId)) return true;
         if (mSelectedParticipantIds.size() >= 24) return false;
