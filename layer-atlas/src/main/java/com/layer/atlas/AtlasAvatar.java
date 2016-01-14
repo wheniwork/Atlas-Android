@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 
 import com.layer.atlas.provider.Participant;
 import com.layer.atlas.provider.ParticipantProvider;
+import com.layer.atlas.util.AvatarStyle;
 import com.layer.atlas.util.Util;
 import com.layer.atlas.util.picasso.transformations.CircleTransform;
 import com.squareup.picasso.Picasso;
@@ -101,6 +102,14 @@ public class AtlasAvatar extends View {
         mPaintBorder.setColor(getResources().getColor(R.color.atlas_avatar_border));
         mPaintInitials.setColor(getResources().getColor(R.color.atlas_avatar_text));
 
+        return this;
+    }
+
+    public AtlasAvatar setStyle(AvatarStyle avatarStyle) {
+        mPaintBackground.setColor(avatarStyle.getAvatarBackgroundColor());
+        mPaintBorder.setColor(avatarStyle.getAvatarBorderColor());
+        mPaintInitials.setColor(avatarStyle.getAvatarTextColor());
+        mPaintInitials.setTypeface(avatarStyle.getAvatarTextTypeface());
         return this;
     }
 

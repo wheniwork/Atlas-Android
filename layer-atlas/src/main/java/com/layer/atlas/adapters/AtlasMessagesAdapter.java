@@ -16,6 +16,7 @@ import android.widget.TextView;
 import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
+import com.layer.atlas.messagetypes.MessageStyle;
 import com.layer.atlas.provider.Participant;
 import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.atlas.util.Util;
@@ -89,6 +90,9 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     private View mFooterView;
     private int mFooterPosition = 0;
 
+    //Stye
+    private MessageStyle mMessageStyle;
+
     private RecyclerView mRecyclerView;
 
     public AtlasMessagesAdapter(Context context, LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
@@ -138,6 +142,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     public AtlasMessagesAdapter setRecyclerView(RecyclerView recyclerView) {
         mRecyclerView = recyclerView;
         return this;
+    }
+
+    public void setStyle(MessageStyle messageStyle) {
+        this.mMessageStyle = messageStyle;
     }
 
     public void setFooterView(View footerView) {
@@ -193,6 +201,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
      */
     public AtlasMessagesAdapter addCellFactories(AtlasCellFactory... cellFactories) {
         for (AtlasCellFactory CellFactory : cellFactories) {
+            CellFactory.setStyle(mMessageStyle);
             mCellFactories.add(CellFactory);
 
             mViewTypeCount++;
