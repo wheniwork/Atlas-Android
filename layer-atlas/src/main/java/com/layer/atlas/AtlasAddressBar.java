@@ -142,7 +142,7 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    public Set<String> getSelectedParticipanIds() {
+    public Set<String> getSelectedParticipantsIds() {
         return new LinkedHashSet<String>(mSelectedParticipantIds);
     }
 
@@ -157,12 +157,12 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    public AtlasAddressBar setSelectedParticipants(Set<String> ignoredParticipants) {
-        mSelectedParticipantIds.addAll(ignoredParticipants);
+    public AtlasAddressBar setSelectedParticipants(Set<String> selectedParticipants) {
+        mSelectedParticipantIds.addAll(selectedParticipants);
         return this;
     }
 
-    public void setFocus() {
+    public void requestFilterFocus() {
         mFilter.requestFocus();
     }
 
