@@ -142,7 +142,7 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    public Set<String> getSelectedParticipantsIds() {
+    public Set<String> getSelectedParticipantIds() {
         return new LinkedHashSet<String>(mSelectedParticipantIds);
     }
 
