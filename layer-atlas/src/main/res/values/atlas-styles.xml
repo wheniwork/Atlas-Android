@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2015 Layer. All rights reserved.
+<?xml version="1.0" encoding="utf-8"?><!-- Copyright 2015 Layer. All rights reserved.
     
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -18,21 +17,72 @@
     <!-- ############################## -->
     <!-- Default Atlas Component Styles -->
     <!-- ############################## -->
-    <style name="AtlasConversationList">
+    <style name="AtlasConversationsRecyclerView">
+        <item name="cellTitleTextColor">@color/atlas_text_black</item>
+        <item name="cellTitleTextTypeface">normal</item>
+        <item name="cellTitleTextStyle">normal</item>
+        <item name="cellTitleUnreadTextColor">@color/atlas_text_black</item>
+        <item name="cellTitleUnreadTextTypeface">normal</item>
+        <item name="cellTitleUnreadTextStyle">bold</item>
+        <item name="cellSubtitleTextColor">@color/atlas_text_black</item>
+        <item name="cellSubtitleTextTypeface">normal</item>
+        <item name="cellSubtitleTextStyle">normal</item>
+        <item name="cellSubtitleUnreadTextColor">@color/atlas_text_black</item>
+        <item name="cellSubtitleUnreadTextTypeface">normal</item>
+        <item name="cellSubtitleUnreadTextStyle">bold</item>
+        <item name="cellBackgroundColor">@android:color/transparent</item>
+        <item name="cellUnreadBackgroundColor">@android:color/transparent</item>
+        <item name="dateTextColor">@color/atlas_text_blue</item>
+        <item name="dateTextTypeface">normal</item>
+        <item name="avatarTextColor">@color/atlas_text_black</item>
+        <item name="avatarBackgroundColor">@color/atlas_avatar_background</item>
+        <item name="avatarBorderColor">@color/atlas_avatar_border</item>
     </style>
 
     <style name="AtlasMessageComposer">
+        <item name="inputTextColor">@color/atlas_text_black</item>
+        <item name="inputTextSize">@dimen/atlas_text_size_input</item>
+        <item name="inputTextTypeface">normal</item>
+        <item name="inputTextStyle">normal</item>
         <item name="android:enabled">true</item>
+        <item name="inputUnderlineColor">@color/atlas_color_primary_blue</item>
+        <item name="inputCursorColor">@color/atlas_color_primary_blue</item>
     </style>
 
-    <style name="AtlasMessageList">
+    <style name="AtlasMessagesRecyclerView">
+        <item name="myBubbleColor">@color/atlas_color_primary_blue</item>
+        <item name="myTextColor">@color/atlas_text_white</item>
+        <item name="myTextSize">@dimen/atlas_text_size_message_item</item>
+        <item name="myTextTypeface">normal</item>
+        <item name="myTextStyle">normal</item>
+        <item name="theirBubbleColor">@color/atlas_color_primary_gray</item>
+        <item name="theirTextColor">@color/atlas_text_black</item>
+        <item name="theirTextSize">@dimen/atlas_text_size_message_item</item>
+        <item name="theirTextTypeface">normal</item>
+        <item name="theirTextStyle">normal</item>
     </style>
 
-    <style name="AtlasParticipantPicker">
+    <style name="AtlasAddressBar">
+        <item name="inputTextColor">@color/atlas_text_black</item>
+        <item name="inputTextTypeface">normal</item>
+        <item name="inputTextStyle">normal</item>
+        <item name="inputTextSize">@dimen/atlas_text_size_input</item>
+        <item name="inputUnderlineColor">@color/atlas_color_primary_blue</item>
+        <item name="inputCursorColor">@color/atlas_color_primary_blue</item>
+        <item name="listTextSize">@dimen/atlas_text_size_input</item>
+        <item name="listTextColor">@color/atlas_text_black</item>
+        <item name="listTextTypeface">normal</item>
+        <item name="listTextStyle">normal</item>
+        <item name="chipTypeface">normal</item>
+        <item name="chipStyle">normal</item>
+        <item name="avatarBackgroundColor">@color/atlas_avatar_background</item>
+        <item name="avatarBorderColor">@color/atlas_avatar_border</item>
+        <item name="avatarTextColor">@color/atlas_text_black</item>
+        <item name="avatarTextTypeface">normal</item>
+        <item name="avatarTextStyle">normal</item>
     </style>
 
-    <style name="AtlasTypingIndicator">
-    </style>
+    <style name="AtlasTypingIndicator"></style>
 
 
     <!-- ########## -->

@@ -16,6 +16,8 @@
 package com.layer.atlas;
 
 import android.content.Context;
+import android.content.res.TypedArray;
+import android.graphics.Typeface;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.helper.ItemTouchHelper;
@@ -24,6 +26,7 @@ import android.view.View;
 
 import com.layer.atlas.adapters.AtlasMessagesAdapter;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
+import com.layer.atlas.messagetypes.MessageStyle;
 import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.atlas.util.itemanimators.NoChangeAnimator;
 import com.layer.atlas.util.views.SwipeableItem;
@@ -40,8 +43,11 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     private LinearLayoutManager mLayoutManager;
     private ItemTouchHelper mSwipeItemTouchHelper;
 
+    private MessageStyle mMessageStyle;
+
     public AtlasMessagesRecyclerView(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+        parseStyle(getContext(), attrs, defStyle);
     }
 
     public AtlasMessagesRecyclerView(Context context, AttributeSet attrs) {
@@ -66,6 +72,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
                         autoScroll();
                     }
                 });
+        mAdapter.setStyle(mMessageStyle);
         super.setAdapter(mAdapter);
 
         // Don't flash items when changing content
@@ -85,7 +92,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
 
     @Override
     public void setAdapter(Adapter adapter) {
-        throw new RuntimeException("AtlasMessageList sets its own Adapter");
+        throw new RuntimeException("AtlasMessagesRecyclerView sets its own Adapter");
     }
 
     /**
@@ -108,7 +115,7 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
      * Conversation.
      *
      * @param conversation Conversation to display Messages for.
-     * @return This AtlasMessageList.
+     * @return This AtlasMessagesRecyclerView.
      */
     public AtlasMessagesRecyclerView setConversation(Conversation conversation) {
         mAdapter.setQuery(Query.builder(Message.class)
@@ -139,6 +146,12 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
      */
     public AtlasMessagesRecyclerView addCellFactories(AtlasCellFactory... cellFactories) {
         mAdapter.addCellFactories(cellFactories);
+        return this;
+    }
+
+    public AtlasMessagesRecyclerView setTextTypeface(Typeface myTypeface, Typeface otherTypeface) {
+        mMessageStyle.setMyTextTypeface(myTypeface);
+        mMessageStyle.setOtherTextTypeface(otherTypeface);
         return this;
     }
 
@@ -180,5 +193,29 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         int visible = findLastVisibleItemPosition();
         // -3 because -1 seems too finicky
         if (visible >= (end - 3)) scrollToPosition(end);
+    }
+
+    public void parseStyle(Context context, AttributeSet attrs, int defStyle) {
+        TypedArray ta = context.getTheme().obtainStyledAttributes(attrs, R.styleable.AtlasMessagesRecyclerView, R.attr.AtlasMessagesRecyclerView, defStyle);
+        MessageStyle.Builder messageStyleBuilder = new MessageStyle.Builder();
+        messageStyleBuilder.myTextColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_myTextColor, context.getResources().getColor(R.color.atlas_text_black)));
+        int myTextStyle = ta.getInt(R.styleable.AtlasMessagesRecyclerView_myTextStyle, Typeface.NORMAL);
+        messageStyleBuilder.myTextStyle(myTextStyle);
+        String myTextTypefaceName = ta.getString(R.styleable.AtlasMessagesRecyclerView_myTextTypeface);
+        messageStyleBuilder.myTextTypeface(myTextTypefaceName != null ? Typeface.create(myTextTypefaceName, myTextStyle) : null);
+        messageStyleBuilder.myTextSize(ta.getDimensionPixelSize(R.styleable.AtlasMessagesRecyclerView_myTextSize, context.getResources().getDimensionPixelSize(R.dimen.atlas_text_size_message_item)));
+
+        messageStyleBuilder.otherTextColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_theirTextColor, context.getResources().getColor(R.color.atlas_color_primary_blue)));
+        int otherTextStyle = ta.getInt(R.styleable.AtlasMessagesRecyclerView_theirTextStyle, Typeface.NORMAL);
+        messageStyleBuilder.otherTextStyle(otherTextStyle);
+        String otherTextTypefaceName = ta.getString(R.styleable.AtlasMessagesRecyclerView_theirTextTypeface);
+        messageStyleBuilder.otherTextTypeface(otherTextTypefaceName != null ? Typeface.create(otherTextTypefaceName, otherTextStyle) : null);
+        messageStyleBuilder.otherTextSize(ta.getDimensionPixelSize(R.styleable.AtlasMessagesRecyclerView_theirTextSize, context.getResources().getDimensionPixelSize(R.dimen.atlas_text_size_message_item)));
+
+        messageStyleBuilder.myBubbleColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_myBubbleColor, context.getResources().getColor(R.color.atlas_color_primary_blue)));
+        messageStyleBuilder.otherBubbleColor(ta.getColor(R.styleable.AtlasMessagesRecyclerView_theirBubbleColor, context.getResources().getColor(R.color.atlas_color_primary_gray)));
+
+        ta.recycle();
+        this.mMessageStyle = messageStyleBuilder.build();
     }
 }

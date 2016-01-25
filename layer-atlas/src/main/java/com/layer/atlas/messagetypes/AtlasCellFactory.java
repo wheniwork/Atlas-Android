@@ -17,6 +17,7 @@ import com.layer.sdk.messaging.Message;
  */
 public abstract class AtlasCellFactory<Tholder extends AtlasCellFactory.CellHolder, Tcache extends AtlasCellFactory.ParsedContent> {
     private final LruCache<String, Tcache> mCache;
+    protected MessageStyle mMessageStyle;
 
     /**
      * Constructs an AtlasCellFactory with a parsed content cache of `cacheBytes` size.
@@ -77,6 +78,10 @@ public abstract class AtlasCellFactory<Tholder extends AtlasCellFactory.CellHold
      * @param specs      Information about the CellHolder.
      */
     public abstract void bindCellHolder(Tholder cellHolder, Tcache cached, Message message, CellHolderSpecs specs);
+
+    public void setStyle(MessageStyle messageStyle) {
+        this.mMessageStyle = messageStyle;
+    }
 
     /**
      * Override to handle RecyclerView scrolling.  Example: pause and resume image loading while

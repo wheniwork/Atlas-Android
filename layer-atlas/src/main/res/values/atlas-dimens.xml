@@ -45,6 +45,7 @@
     <dimen name="atlas_text_size_message_item">14sp</dimen>
     <dimen name="atlas_text_size_message_item_metadata">12sp</dimen>
     <dimen name="atlas_text_size_chip">13sp</dimen>
+    <dimen name="atlas_cursor_width">1dp</dimen>
 
 
     <!-- ####################################################################################### -->

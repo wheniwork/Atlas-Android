@@ -4,10 +4,10 @@
     <!-- Atlas Style -->
     <!-- ########### -->
     <style name="Theme.Atlas.Base.Light" parent="Theme.AppCompat.Light.DarkActionBar">
-        <item name="AtlasConversationList">@style/AtlasConversationList</item>
+        <item name="AtlasConversationsRecyclerView">@style/AtlasConversationsRecyclerView</item>
         <item name="AtlasMessageComposer">@style/AtlasMessageComposer</item>
-        <item name="AtlasMessageList">@style/AtlasMessageList</item>
-        <item name="AtlasParticipantPicker">@style/AtlasParticipantPicker</item>
+        <item name="AtlasMessagesRecyclerView">@style/AtlasMessagesRecyclerView</item>
+        <item name="AtlasAddressBar">@style/AtlasAddressBar</item>
         <item name="AtlasTypingIndicator">@style/AtlasTypingIndicator</item>
 
         <item name="colorPrimary">@color/atlas_action_bar_background</item>
