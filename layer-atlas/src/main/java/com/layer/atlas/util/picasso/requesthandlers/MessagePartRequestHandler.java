@@ -2,6 +2,7 @@ package com.layer.atlas.util.picasso.requesthandlers;
 
 import android.net.Uri;
 
+import com.layer.atlas.util.Log;
 import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.MessagePart;

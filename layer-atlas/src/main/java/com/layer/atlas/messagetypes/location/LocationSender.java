@@ -2,12 +2,12 @@ package com.layer.atlas.messagetypes.location;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
+import android.support.annotation.RequiresPermission;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GoogleApiAvailability;
@@ -18,7 +18,9 @@ import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
+import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.atlas.util.Log;
+import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessageOptions;
 import com.layer.sdk.messaging.MessagePart;
@@ -28,17 +30,23 @@ import org.json.JSONObject;
 
 import java.lang.ref.WeakReference;
 
+import static android.support.v4.app.ActivityCompat.requestPermissions;
+import static android.support.v4.content.ContextCompat.checkSelfPermission;
+
 /**
  * LocationSender creates JSON MessagePart with latitude, longitude, and label.  Google's fused
  * location API is used for gathering location at send time and may trigger a dialog for updating
- * Google Play Services.
+ * Google Play Services.  Requires `Manifest.permission.ACCESS_FINE_LOCATION` for getting device
+ * location.
  */
 public class LocationSender extends AttachmentSender {
-    private static final int GOOGLE_API_REQUEST_CODE = 47000;
-    public static final int LOCATION_REQUEST_CODE = 47;
+    private static final String PERMISSION = Manifest.permission.ACCESS_FINE_LOCATION;
+    private static final int ACTIVITY_REQUEST_CODE = 30;
+    public static final int PERMISSION_REQUEST_CODE = 31;
 
     private static GoogleApiClient sGoogleApiClient;
-    private final WeakReference<Activity> mActivity;
+
+    private WeakReference<Activity> mActivity = new WeakReference<Activity>(null);
 
     public LocationSender(int titleResId, Integer iconResId, Activity activity) {
         this(activity.getString(titleResId), iconResId, activity);
@@ -50,84 +58,10 @@ public class LocationSender extends AttachmentSender {
         init(activity);
     }
 
-    /**
-     * Asynchronously requests a fresh location and sends a location Message.
-     *
-     * @return `true`
-     */
-    @Override
-    public boolean requestSend() {
-        if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending location");
-        if (hasLocationPermission()) {
-            return getFreshLocation(new SenderLocationListener(this));
-        } else {
-            Activity activity = mActivity.get();
-            if (activity == null) {
-                if (Log.isLoggable(Log.ERROR)) Log.e("Activity went out of scope.");
-                return false;
-            } else {
-                ActivityCompat.requestPermissions(activity,
-                        new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
-                        LOCATION_REQUEST_CODE);
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode == LOCATION_REQUEST_CODE) {
-            if (grantResults.length > 0
-                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                getFreshLocation(new SenderLocationListener(this));
-            } else {
-                if (Log.isLoggable(Log.VERBOSE)) Log.v("Location permission denied");
-            }
-        }
-        return true;
-    }
-
-    @Override
-    public boolean onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
-        if (requestCode != GOOGLE_API_REQUEST_CODE) return false;
-        init(activity);
-        return true;
-    }
-
-    private void onLocationChanged(Location location) {
-        if (Log.isLoggable(Log.VERBOSE)) Log.v("Got fresh location");
-        try {
-            String myName = getParticipantProvider().getParticipant(getLayerClient().getAuthenticatedUserId()).getName();
-            JSONObject o = new JSONObject()
-                    .put(LocationCellFactory.KEY_LATITUDE, location.getLatitude())
-                    .put(LocationCellFactory.KEY_LONGITUDE, location.getLongitude())
-                    .put(LocationCellFactory.KEY_LABEL, myName);
-            String notification = getContext().getString(R.string.atlas_notification_location, myName);
-            MessagePart part = getLayerClient().newMessagePart(LocationCellFactory.MIME_TYPE, o.toString().getBytes());
-            Message message = getLayerClient().newMessage(new MessageOptions().pushNotificationMessage(notification), part);
-            send(message);
-        } catch (JSONException e) {
-            if (Log.isLoggable(Log.ERROR)) {
-                Log.e(e.getMessage(), e);
-            }
-        }
-    }
-
-    private boolean hasLocationPermission() {
-        Activity activity = mActivity.get();
-        if (activity == null) {
-            if (Log.isLoggable(Log.ERROR)) Log.e("Activity went out of scope.");
-            return false;
-        } else {
-            int hasFineLocationPermission = ContextCompat.checkSelfPermission(activity, Manifest.permission.ACCESS_FINE_LOCATION);
-            return hasFineLocationPermission == PackageManager.PERMISSION_GRANTED;
-        }
-    }
-
     private void init(final Activity activity) {
         // If the client has already been created, ensure connected and return.
         if (sGoogleApiClient != null) {
-            if (!sGoogleApiClient.isConnected()) connectGoogleApi();
+            if (!sGoogleApiClient.isConnected()) sGoogleApiClient.connect();
             return;
         }
 
@@ -141,14 +75,14 @@ public class LocationSender extends AttachmentSender {
                     .addOnConnectionFailedListener(googleApiCallbacks)
                     .addApi(LocationServices.API)
                     .build();
-            connectGoogleApi();
+            sGoogleApiClient.connect();
             return;
         }
 
         // If the correct Google Play Services are not available, redirect to proper solution.
         if (GooglePlayServicesUtil.isUserRecoverableError(errorCode)) {
             GoogleApiAvailability.getInstance()
-                    .getErrorDialog(activity, errorCode, GOOGLE_API_REQUEST_CODE)
+                    .getErrorDialog(activity, errorCode, ACTIVITY_REQUEST_CODE)
                     .show();
             return;
         }
@@ -156,14 +90,7 @@ public class LocationSender extends AttachmentSender {
         if (Log.isLoggable(Log.ERROR)) Log.e("Cannot update Google Play Services: " + errorCode);
     }
 
-    private static void connectGoogleApi() {
-        sGoogleApiClient.connect();
-    }
-
-    private static void disconnectGoogleApi() {
-        sGoogleApiClient.disconnect();
-    }
-
+    @RequiresPermission(PERMISSION)
     private static boolean getFreshLocation(LocationListener listener) {
         if (sGoogleApiClient == null) {
             if (Log.isLoggable(Log.ERROR)) Log.e("GoogleApiClient not initialized");
@@ -186,19 +113,69 @@ public class LocationSender extends AttachmentSender {
         return false;
     }
 
-    private static class SenderLocationListener implements LocationListener {
+    @RequiresPermission(PERMISSION)
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode != PERMISSION_REQUEST_CODE) return;
+        if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
+            if (Log.isLoggable(Log.VERBOSE)) Log.v("Location permission denied");
+            return;
+        }
+        getFreshLocation(new SenderLocationListener(this));
+    }
 
+    /**
+     * Asynchronously requests a fresh location and sends a location Message.
+     */
+    @RequiresPermission(PERMISSION)
+    @Override
+    public boolean requestSend() {
+        Activity activity = mActivity.get();
+        if (activity == null) return false;
+        if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending location");
+        if (checkSelfPermission(activity, PERMISSION) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(activity, new String[]{PERMISSION}, PERMISSION_REQUEST_CODE);
+            return true;
+        }
+        return getFreshLocation(new SenderLocationListener(this));
+    }
+
+    @Override
+    public boolean onActivityResult(Activity activity, int requestCode, int resultCode, Intent data) {
+        if (requestCode != ACTIVITY_REQUEST_CODE) return false;
+        init(activity);
+        return true;
+    }
+
+    private static class SenderLocationListener implements LocationListener {
         private final WeakReference<LocationSender> mLocationSenderReference;
 
         public SenderLocationListener(LocationSender locationsender) {
-            this.mLocationSenderReference = new WeakReference<LocationSender>(locationsender);
+            mLocationSenderReference = new WeakReference<LocationSender>(locationsender);
         }
 
         @Override
         public void onLocationChanged(Location location) {
-            LocationSender locationSender = mLocationSenderReference.get();
-            if (locationSender != null) {
-                locationSender.onLocationChanged(location);
+            if (Log.isLoggable(Log.VERBOSE)) Log.v("Got fresh location");
+            LocationSender sender = mLocationSenderReference.get();
+            if (sender == null) return;
+            Context context = sender.getContext();
+            LayerClient client = sender.getLayerClient();
+            ParticipantProvider participantProvider = sender.getParticipantProvider();
+            try {
+                String myName = participantProvider.getParticipant(client.getAuthenticatedUserId()).getName();
+                JSONObject o = new JSONObject()
+                        .put(LocationCellFactory.KEY_LATITUDE, location.getLatitude())
+                        .put(LocationCellFactory.KEY_LONGITUDE, location.getLongitude())
+                        .put(LocationCellFactory.KEY_LABEL, myName);
+                String notification = context.getString(R.string.atlas_notification_location, myName);
+                MessagePart part = client.newMessagePart(LocationCellFactory.MIME_TYPE, o.toString().getBytes());
+                Message message = client.newMessage(new MessageOptions().pushNotificationMessage(notification), part);
+                sender.send(message);
+            } catch (JSONException e) {
+                if (Log.isLoggable(Log.ERROR)) {
+                    Log.e(e.getMessage(), e);
+                }
             }
         }
     }
