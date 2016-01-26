@@ -69,7 +69,34 @@ The Atlas library is located in the `layer-atlas` directory.  The table below de
 </table>
 
 ##<a name="installation"></a>Installation
-Maven publication coming soon.  In the meantime, include this repository as a git submodule or similar, as in the [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger).
+Maven publication coming soon.  In the meantime, you can follow the instructions below to include this reporsitory as a git submodule. For example, check [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger). 
+
+    	1. Create a new Android  Application Project via Android Studio
+    		○ Use default settings and create a project with a blank activity.
+    		○ You can also use an existing Android Application project
+    	2. If the project is not already part of git, add it to git. `git init`
+    	3. Include the Atlas-Android project as a submodule : git submodule add https://github.com/layerhq/Atlas-Android.git
+    		a. Wait for completion
+    		b. You can check status by using the command `git diff --cached --submodule`
+    	4. Add Atlas-Android project to your android application project:
+    		a. Option 1:
+    			i. Android Studio | File | Project Structure… | + (to add new module) | Import Gradle Project | Next | Browse to `Atlas-Android` that was cloned in step 3 | Ok | Finish
+    		b. Option 2:
+    			i. In Android Studio | Gradle Scripts | open `Settings.gradle (Project Settings)
+    			ii. Add the following 2 lines
+    				include ':app', ':layer-atlas'
+    				project(':layer-atlas').projectDir = new File('Atlas-Android/layer-atlas')
+    		c. Sync project with Gradle files (You can find the button on Android Studio's toolbar)
+    		d. On sync completion, you would see `layer-atlas` added to your android application project
+    	5. Specify layer android sdk as a repository for your app
+    		a. Android Studio | build.gradle (Module: app) | double click to open
+    		b. Add the following line
+    			repositories {
+    			    maven { url "https://raw.githubusercontent.com/layerhq/releases-android/master/releases/" }
+    			    jcenter()
+    			}
+    		c. Sync project with Gradle files (You can find the button on Android Studio's toolbar)
+        6. You are all set. Now, you can start using Layer Android SDK & Layer Android Atlas in your project.
 
 ###<a name="libraries"></a>Libraries
 
