@@ -1,7 +1,11 @@
 package com.layer.atlas.messagetypes.threepartimage;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 
 import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
@@ -13,6 +17,7 @@ import java.lang.ref.WeakReference;
 
 public class GallerySender extends AttachmentSender {
     public static final int REQUEST_CODE = 47001;
+    public static final int GALLERY_REQUEST_CODE = 48;
 
     private final WeakReference<Activity> mActivity;
 
@@ -32,9 +37,26 @@ public class GallerySender extends AttachmentSender {
             if (Log.isLoggable(Log.ERROR)) Log.e("Activity went out of scope.");
             return false;
         }
-        if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending gallery image");
-        Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
-        activity.startActivityForResult(Intent.createChooser(intent, getContext().getString(R.string.atlas_gallery_sender_chooser)), REQUEST_CODE);
+        if (hasGalleryPermission()) {
+            startGalleryIntent();
+        } else {
+            ActivityCompat.requestPermissions(activity,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    GALLERY_REQUEST_CODE);
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        if (requestCode == GALLERY_REQUEST_CODE) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                startGalleryIntent();
+            } else {
+                if (Log.isLoggable(Log.VERBOSE)) Log.v("Gallery permission denied");
+            }
+        }
         return true;
     }
 
@@ -57,5 +79,26 @@ public class GallerySender extends AttachmentSender {
         return true;
     }
 
+    private void startGalleryIntent() {
+        if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending gallery image");
+        Activity activity = mActivity.get();
+        if (activity == null) {
+            if (Log.isLoggable(Log.ERROR)) Log.e("Activity went out of scope.");
+            return;
+        }
+        Intent intent = new Intent(Intent.ACTION_PICK, android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        activity.startActivityForResult(Intent.createChooser(intent, getContext().getString(R.string.atlas_gallery_sender_chooser)), REQUEST_CODE);
+    }
+
+    private boolean hasGalleryPermission() {
+        Activity activity = mActivity.get();
+        if (activity == null) {
+            if (Log.isLoggable(Log.ERROR)) Log.e("Activity went out of scope.");
+            return false;
+        } else {
+            int hasGalleryPermission = ContextCompat.checkSelfPermission(activity, Manifest.permission.READ_EXTERNAL_STORAGE);
+            return hasGalleryPermission == PackageManager.PERMISSION_GRANTED;
+        }
+    }
 
 }

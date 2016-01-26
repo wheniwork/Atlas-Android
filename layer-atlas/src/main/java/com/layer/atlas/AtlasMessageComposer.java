@@ -247,6 +247,12 @@ public class AtlasMessageComposer extends FrameLayout {
         return this;
     }
 
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        for (AttachmentSender sender : mAttachmentSenders) {
+            sender.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
     @Override
     public void setEnabled(boolean enabled) {
         if (mAttachButton != null) mAttachButton.setEnabled(enabled);
