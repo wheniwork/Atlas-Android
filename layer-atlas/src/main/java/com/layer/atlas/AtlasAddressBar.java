@@ -59,6 +59,8 @@ public class AtlasAddressBar extends LinearLayout {
     private AvailableConversationAdapter mAvailableConversationAdapter;
     private final Set<String> mSelectedParticipantIds = new LinkedHashSet<String>();
 
+    private boolean mShowConversations;
+
     // styles
     private int mInputTextSize;
     private int mInputTextColor;
@@ -174,7 +176,7 @@ public class AtlasAddressBar extends LinearLayout {
         return this;
     }
 
-    public Set<String> getSelectedParticipanIds() {
+    public Set<String> getSelectedParticipantIds() {
         return new LinkedHashSet<String>(mSelectedParticipantIds);
     }
 
@@ -182,6 +184,20 @@ public class AtlasAddressBar extends LinearLayout {
         if (mAvailableConversationAdapter == null) return this;
         mAvailableConversationAdapter.refresh(getSearchFilter(), mSelectedParticipantIds);
         return this;
+    }
+
+    public AtlasAddressBar setShowConversations(boolean showConversations) {
+        this.mShowConversations = showConversations;
+        return this;
+    }
+
+    public AtlasAddressBar setSelectedParticipants(Set<String> selectedParticipants) {
+        mSelectedParticipantIds.addAll(selectedParticipants);
+        return this;
+    }
+
+    public void requestFilterFocus() {
+        mFilter.requestFocus();
     }
 
     private boolean selectParticipant(String participantId) {
@@ -450,6 +466,12 @@ public class AtlasAddressBar extends LinearLayout {
             // TODO: compute add/remove/move and notify those instead of complete notify
             notifyDataSetChanged();
 
+            if (mShowConversations) {
+                queryConversations(selectedParticipantIds);
+            }
+        }
+
+        private void queryConversations(Set<String> selectedParticipantIds) {
             // Filter down to only those conversations including the selected participants, hiding one-on-one conversations
             Query.Builder<Conversation> builder = Query.builder(Conversation.class)
                     .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING));
