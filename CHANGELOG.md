@@ -1,7 +1,15 @@
 # Atlas Android
 
+## 0.2.4
+
+### Features
+  * Updated to Android API 23 for `compileSdkVersion` and `targetSdkVersion`.
+  * Added dynamic permission handling to AttachmentSenders.
+
+
 ## 0.2.3
 
+### Features
   * Added styling through XML attributes ([issue #28](https://github.com/layerhq/Atlas-Android/issues/28)).
 
 

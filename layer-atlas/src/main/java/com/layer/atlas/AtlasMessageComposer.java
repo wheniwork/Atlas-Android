@@ -247,6 +247,14 @@ public class AtlasMessageComposer extends FrameLayout {
         return this;
     }
 
+    /**
+     * Must be called from Activity's onRequestPermissionsResult to allow attachment senders to
+     * manage dynamic permisttions.
+     *
+     * @param requestCode  The request code passed in requestPermissions(android.app.Activity, String[], int)
+     * @param permissions  The requested permissions. Never null.
+     * @param grantResults The grant results for the corresponding permissions which is either PERMISSION_GRANTED or PERMISSION_DENIED. Never null.
+     */
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         for (AttachmentSender sender : mAttachmentSenders) {
             sender.onRequestPermissionsResult(requestCode, permissions, grantResults);

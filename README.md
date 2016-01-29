@@ -1,16 +1,15 @@
 #Atlas
 
-##<a name="overview"></a>Preview Release Overview
+##<a name="overview"></a>Overview
 
 Atlas is an open source framework of customizable UI components for use with the Layer SDK designed to get messaging tested and integrated quickly.  This repository contains the Atlas library.  For a fully-featured messaging app, see the open source [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger) project, which uses this Atlas library and the Layer SDK.
 
 ###Feature Priorities
 We are actively adding features for the following priorities:
 
-1. Configurable styling
-2. Animated GIFs
-3. Video
-4. Automated UI tests
+1. Animated GIFs
+2. Video
+3. Automated UI tests
 
 Please see the list of branches for work in progress.  If you don't see a feature you are interested in there, please start a branch and submit a pull request.
 

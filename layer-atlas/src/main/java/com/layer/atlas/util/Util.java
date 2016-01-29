@@ -301,7 +301,7 @@ public class Util {
         if (part.isContentReady()) return true;
 
         final CountDownLatch latch = new CountDownLatch(1);
-        final LayerProgressListener listener = new LayerProgressListener.BackgroundThread() {
+        final LayerProgressListener listener = new LayerProgressListener.BackgroundThread.Weak() {
             @Override
             public void onProgressStart(MessagePart messagePart, Operation operation) {
 
@@ -322,19 +322,15 @@ public class Util {
                 latch.countDown();
             }
         };
-        try {
-            part.download(listener);
-            if (!part.isContentReady()) {
-                try {
-                    latch.await(timeLength, timeUnit);
-                } catch (InterruptedException e) {
-                    if (Log.isLoggable(Log.ERROR)) {
-                        Log.e(e.getMessage(), e);
-                    }
+        part.download(listener);
+        if (!part.isContentReady()) {
+            try {
+                latch.await(timeLength, timeUnit);
+            } catch (InterruptedException e) {
+                if (Log.isLoggable(Log.ERROR)) {
+                    Log.e(e.getMessage(), e);
                 }
             }
-        } finally {
-            layerClient.unregisterProgressListener(part, listener);
         }
         return part.isContentReady();
     }
