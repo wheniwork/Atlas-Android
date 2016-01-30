@@ -58,7 +58,7 @@ public class CameraSender extends AttachmentSender {
     public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode != PERMISSION_REQUEST_CODE) return;
         if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-            if (Log.isLoggable(Log.VERBOSE)) Log.v("Gallery permission denied");
+            if (Log.isLoggable(Log.VERBOSE)) Log.v("Camera permission denied");
             return;
         }
         Activity activity = mActivity.get();
