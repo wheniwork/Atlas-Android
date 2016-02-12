@@ -1,9 +1,7 @@
 package com.layer.atlas.messagetypes.threepartimage;
 
-import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -19,17 +17,17 @@ import java.io.IOException;
 import java.lang.ref.WeakReference;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static android.support.v4.app.ActivityCompat.requestPermissions;
-import static android.support.v4.content.ContextCompat.checkSelfPermission;
-
 /**
- * CameraSender creates a ThreePartImage from the device's camera.  Requires
- * `Manifest.permission.CAMERA` to take photos.
+ * CameraSender creates a ThreePartImage from the device's camera.
+ *
+ * Note: If your AndroidManifest declares that it uses the CAMERA permission, then CameraSender will
+ * require that the CAMERA permission is also granted.  If your AndroidManifest does not declare
+ * that it uses the CAMERA permission, then CameraSender will not require the CAMERA permission to
+ * be granted. See http://developer.android.com/reference/android/provider/MediaStore.html#ACTION_IMAGE_CAPTURE
+ * for details.
  */
 public class CameraSender extends AttachmentSender {
-    private static final String PERMISSION = Manifest.permission.CAMERA;
     public static final int ACTIVITY_REQUEST_CODE = 20;
-    public static final int PERMISSION_REQUEST_CODE = 21;
 
     private WeakReference<Activity> mActivity = new WeakReference<Activity>(null);
 
@@ -55,26 +53,10 @@ public class CameraSender extends AttachmentSender {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-        if (requestCode != PERMISSION_REQUEST_CODE) return;
-        if (grantResults.length == 0 || grantResults[0] != PackageManager.PERMISSION_GRANTED) {
-            if (Log.isLoggable(Log.VERBOSE)) Log.v("Camera permission denied");
-            return;
-        }
-        Activity activity = mActivity.get();
-        if (activity == null) return;
-        startCameraIntent(activity);
-    }
-
-    @Override
     public boolean requestSend() {
         Activity activity = mActivity.get();
         if (activity == null) return false;
         if (Log.isLoggable(Log.VERBOSE)) Log.v("Sending camera image");
-        if (checkSelfPermission(activity, PERMISSION) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(activity, new String[]{PERMISSION}, PERMISSION_REQUEST_CODE);
-            return true;
-        }
         startCameraIntent(activity);
         return true;
     }
