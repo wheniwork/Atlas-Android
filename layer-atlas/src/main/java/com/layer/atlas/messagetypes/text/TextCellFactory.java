@@ -17,6 +17,7 @@ import com.layer.atlas.util.Util;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Actor;
 import com.layer.sdk.messaging.Message;
+import com.layer.sdk.messaging.MessagePart;
 
 public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder, TextCellFactory.TextInfo> implements View.OnLongClickListener {
     public final static String MIME_TYPE = "text/plain";
@@ -30,7 +31,9 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     }
 
     public static String getMessagePreview(Context context, Message message) {
-        return new String(message.getMessageParts().get(0).getData());
+        MessagePart part = message.getMessageParts().get(0);
+        // For large text content, the MessagePart may not be downloaded yet.
+        return part.isContentReady() ? new String(part.getData()) : "";
     }
 
     @Override
@@ -42,7 +45,7 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
     public CellHolder createCellHolder(ViewGroup cellView, boolean isMe, LayoutInflater layoutInflater) {
         View v = layoutInflater.inflate(R.layout.atlas_message_item_cell_text, cellView, true);
         v.setBackgroundResource(isMe ? R.drawable.atlas_message_item_cell_me : R.drawable.atlas_message_item_cell_them);
-        ((GradientDrawable) v.getBackground()).setColor(isMe ? mMessageStyle.getMyBubbleColor(): mMessageStyle.getOtherBubbleColor());
+        ((GradientDrawable) v.getBackground()).setColor(isMe ? mMessageStyle.getMyBubbleColor() : mMessageStyle.getOtherBubbleColor());
 
         TextView t = (TextView) v.findViewById(R.id.cell_text);
         t.setTextSize(TypedValue.COMPLEX_UNIT_PX, isMe ? mMessageStyle.getMyTextSize() : mMessageStyle.getOtherTextSize());
@@ -54,7 +57,8 @@ public class TextCellFactory extends AtlasCellFactory<TextCellFactory.CellHolder
 
     @Override
     public TextInfo parseContent(LayerClient layerClient, ParticipantProvider participantProvider, Message message) {
-        String text = new String(message.getMessageParts().get(0).getData());
+        MessagePart part = message.getMessageParts().get(0);
+        String text = part.isContentReady() ? new String(part.getData()) : "";
         String name;
         Actor sender = message.getSender();
         if (sender.getName() != null) {
