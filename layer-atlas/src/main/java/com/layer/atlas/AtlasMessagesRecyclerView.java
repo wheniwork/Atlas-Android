@@ -112,16 +112,25 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
 
     /**
      * Updates the underlying AtlasMessagesAdapter with a Query for Messages in the given
-     * Conversation.
+     * Conversation filtered by the optional Predicates.
      *
      * @param conversation Conversation to display Messages for.
+     * @param predicates Predicates to further filter the Message Query.
      * @return This AtlasMessagesRecyclerView.
      */
-    public AtlasMessagesRecyclerView setConversation(Conversation conversation) {
-        mAdapter.setQuery(Query.builder(Message.class)
-                .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
-                .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING))
-                .build()).refresh();
+    public AtlasMessagesRecyclerView setConversation(Conversation conversation, Predicate... predicates) {
+        Query.Builder<Message> queryBuilder =
+          Query.builder(Message.class)
+               .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
+               .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING));
+
+        if (predicates != null) {
+            for (Predicate predicate : predicates) {
+                queryBuilder.predicate(predicate);
+            }
+        }
+
+        mAdapter.setQuery(queryBuilder.build()).refresh();
         return this;
     }
 
