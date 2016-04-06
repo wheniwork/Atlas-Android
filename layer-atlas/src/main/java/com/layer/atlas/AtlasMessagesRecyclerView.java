@@ -59,12 +59,17 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
     }
 
     public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+        return init(layerClient, participantProvider, picasso, new AtlasMessagesAdapter.Options(getContext()));
+    }
+
+    public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso,
+                                          AtlasMessagesAdapter.Options options) {
         mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mLayoutManager.setStackFromEnd(true);
         setLayoutManager(mLayoutManager);
 
         // Create an adapter that auto-scrolls if we're already at the bottom
-        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, participantProvider, picasso)
+        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, participantProvider, picasso, options)
                 .setRecyclerView(this)
                 .setOnMessageAppendListener(new AtlasMessagesAdapter.OnMessageAppendListener() {
                     @Override

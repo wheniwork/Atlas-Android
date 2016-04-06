@@ -81,8 +81,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     // Dates and Clustering
     private final Map<Uri, Cluster> mClusterCache = new HashMap<Uri, Cluster>();
-    private final DateFormat mDateFormat;
-    private final DateFormat mTimeFormat;
 
     // Read and delivery receipts
     private Map<Message.RecipientStatus, MessagePosition> mReceiptMap = new HashMap<Message.RecipientStatus, MessagePosition>();
@@ -95,14 +93,20 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
     private RecyclerView mRecyclerView;
 
+    private Options mOptions;
+
     public AtlasMessagesAdapter(Context context, LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+        this(context, layerClient, participantProvider, picasso, new Options(context));
+    }
+
+    public AtlasMessagesAdapter(Context context, LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso,
+                                Options options) {
         mLayerClient = layerClient;
         mParticipantProvider = participantProvider;
         mPicasso = picasso;
         mLayoutInflater = LayoutInflater.from(context);
         mUiThreadHandler = new Handler(Looper.getMainLooper());
-        mDateFormat = android.text.format.DateFormat.getDateFormat(context);
-        mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
+        mOptions = options;
         mDisplayMetrics = context.getResources().getDisplayMetrics();
 
         mQueryController = layerClient.newRecyclerViewController(null, null, this);
@@ -285,7 +289,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             if (sentAt == null) sentAt = new Date();
             String timeBarDayText = Util.formatTimeDay(viewHolder.mCell.getContext(), sentAt);
             viewHolder.mTimeGroupDay.setText(timeBarDayText);
-            String timeBarTimeText = mTimeFormat.format(sentAt.getTime());
+            String timeBarTimeText = mOptions.getDateFormat().format(sentAt.getTime());
             viewHolder.mTimeGroupTime.setText(" " + timeBarTimeText);
             viewHolder.mTimeGroup.setVisibility(View.VISIBLE);
             viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
@@ -726,5 +730,45 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
          * @param message The item appended to the AtlasQueryAdapter.
          */
         void onMessageAppend(AtlasMessagesAdapter adapter, Message message);
+    }
+
+    /**
+     * Options for overriding the default formatting for inline dates/times, message sent times, and
+     * chat message layouts
+     */
+    public static class Options {
+
+        private DateFormat dateFormat;
+        private DateFormat timeFomat;
+        private boolean showMessageTimes;
+
+        public Options(Context context) {
+            this(android.text.format.DateFormat.getTimeFormat(context),
+                 android.text.format.DateFormat.getTimeFormat(context), false);
+        }
+
+      /**
+       * Customize options for inline dates/times and message sent times
+       * @param dateFormat DateFormat for inline dates/times shown in message list
+       * @param timeFomat DateFormat for message sent times
+       * @param showMessageTimes Whether to show message sent times
+       */
+        public Options(DateFormat dateFormat, DateFormat timeFomat, boolean showMessageTimes) {
+            this.dateFormat = dateFormat;
+            this.timeFomat = timeFomat;
+            this.showMessageTimes = showMessageTimes;
+        }
+
+        public DateFormat getDateFormat() {
+            return dateFormat;
+        }
+
+        public DateFormat getTimeFomat() {
+            return timeFomat;
+        }
+
+        public boolean showMessageTimes() {
+            return showMessageTimes;
+        }
     }
 }
