@@ -127,6 +127,7 @@ public class Util {
     }
 
     public static String getInitials(String fullName) {
+        if(fullName == null || fullName.isEmpty()) return "";
         if (fullName.contains(" ")) {
             String[] names = fullName.split(" ");
             int count = 0;
