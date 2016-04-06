@@ -68,7 +68,7 @@ The Atlas library is located in the `layer-atlas` directory.  The table below de
 </table>
 
 ##<a name="installation"></a>Installation
-Maven publication coming soon.  In the meantime, include this repository as a git submodule or similar, as in the [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger).
+Include this repository as a git submodule or similar, as in the [Atlas Messenger](https://github.com/layerhq/Atlas-Android-Messenger).
 
 ###<a name="libraries"></a>Libraries
 
