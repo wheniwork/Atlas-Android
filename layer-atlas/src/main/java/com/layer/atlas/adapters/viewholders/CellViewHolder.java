@@ -1,6 +1,7 @@
 package com.layer.atlas.adapters.viewholders;
 
 import android.support.annotation.IdRes;
+import android.support.annotation.StringRes;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Space;
@@ -20,22 +21,22 @@ import com.squareup.picasso.Picasso;
  */
 public class CellViewHolder extends ViewHolder {
 
-  private Message mMessage;
+  protected Message mMessage;
 
   // View cache
-  private TextView mUserName;
-  private TextView mSentAt;
-  private View mTimeGroup;
-  private TextView mTimeGroupDay;
-  private TextView mTimeGroupTime;
-  private Space mClusterSpaceGap;
-  private AtlasAvatar mAvatar;
-  private ViewGroup mCell;
-  private TextView mReceipt;
+  protected TextView mUserName;
+  protected TextView mSentAt;
+  protected View mTimeGroup;
+  protected TextView mTimeGroupDay;
+  protected TextView mTimeGroupTime;
+  protected Space mClusterSpaceGap;
+  protected AtlasAvatar mAvatar;
+  protected ViewGroup mCell;
+  protected TextView mReceipt;
 
   // Cell
-  private AtlasCellFactory.CellHolder mCellHolder;
-  private AtlasCellFactory.CellHolderSpecs mCellHolderSpecs;
+  protected AtlasCellFactory.CellHolder mCellHolder;
+  protected AtlasCellFactory.CellHolderSpecs mCellHolderSpecs;
 
   public CellViewHolder(View itemView, ParticipantProvider participantProvider, Picasso picasso) {
     this(itemView, participantProvider, picasso, R.id.sender, R.id.sent_at, R.id.time_group,
@@ -105,8 +106,32 @@ public class CellViewHolder extends ViewHolder {
     return mCell;
   }
 
-  public TextView getReceipt() {
-    return mReceipt;
+  /**
+   * Override to customize the read receipt message. By default, this will only show read receipts
+   * for messages sent by the current user.
+   * @param resource String resource to use for receipt message
+   */
+  public void setReadReceiptText(@StringRes int resource) {
+    if (mCellHolderSpecs.isMe) {
+      mReceipt.setVisibility(View.VISIBLE);
+      mReceipt.setText(resource);
+    } else {
+      mReceipt.setVisibility(View.GONE);
+    }
+  }
+
+  /**
+   * Override to customize the delivered receipt message. By default, this will only show delivered
+   * receipts for messages sent by the current user.
+   * @param resource String resource to use for delivered message
+   */
+  public void setDeliveredReceiptText(@StringRes int resource) {
+    if (mCellHolderSpecs.isMe) {
+      mReceipt.setVisibility(View.VISIBLE);
+      mReceipt.setText(resource);
+    } else {
+      mReceipt.setVisibility(View.GONE);
+    }
   }
 
   public AtlasCellFactory.CellHolder getCellHolder() {
@@ -123,5 +148,15 @@ public class CellViewHolder extends ViewHolder {
 
   public void setCellHolderSpecs(AtlasCellFactory.CellHolderSpecs cellHolderSpecs) {
     this.mCellHolderSpecs = cellHolderSpecs;
+  }
+
+  protected int getReadCount() {
+    int readCount = 0;
+    for (Message.RecipientStatus status : mMessage.getRecipientStatus().values()) {
+      if (status == Message.RecipientStatus.READ) {
+        readCount++;
+      }
+    }
+    return readCount;
   }
 }

@@ -303,22 +303,17 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             viewHolder.getTimeGroup().setVisibility(View.GONE);
         }
 
+        // Read and delivery receipts
+        MessagePosition delivered = mReceiptMap.get(Message.RecipientStatus.DELIVERED);
+
+        if (delivered != null && message == delivered.mMessage) {
+            viewHolder.setDeliveredReceiptText(R.string.atlas_message_item_delivered);
+        } else {
+            viewHolder.setReadReceiptText(R.string.atlas_message_item_read);
+        }
+
         // Sender-dependent elements
         if (cellType.mMe) {
-            // Read and delivery receipts
-            MessagePosition read = mReceiptMap.get(Message.RecipientStatus.READ);
-            MessagePosition delivered = mReceiptMap.get(Message.RecipientStatus.DELIVERED);
-
-            if (read != null && message == read.mMessage) {
-                viewHolder.getReceipt().setVisibility(View.VISIBLE);
-                viewHolder.getReceipt().setText(R.string.atlas_message_item_read);
-            } else if (delivered != null && message == delivered.mMessage) {
-                viewHolder.getReceipt().setVisibility(View.VISIBLE);
-                viewHolder.getReceipt().setText(R.string.atlas_message_item_delivered);
-            } else {
-                viewHolder.getReceipt().setVisibility(View.GONE);
-            }
-
             // Unsent and sent
             if (!message.isSent()) {
                 viewHolder.getCell().setAlpha(0.5f);
