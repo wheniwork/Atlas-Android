@@ -4,17 +4,17 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
+import android.support.annotation.LayoutRes;
 import android.support.v7.widget.RecyclerView;
 import android.util.DisplayMetrics;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.Space;
-import android.widget.TextView;
 
-import com.layer.atlas.AtlasAvatar;
 import com.layer.atlas.R;
+import com.layer.atlas.adapters.viewholders.CellViewHolder;
+import com.layer.atlas.adapters.viewholders.ViewHolder;
 import com.layer.atlas.messagetypes.AtlasCellFactory;
 import com.layer.atlas.messagetypes.MessageStyle;
 import com.layer.atlas.provider.Participant;
@@ -60,7 +60,7 @@ import java.util.Set;
  *
  * @see AtlasCellFactory
  */
-public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdapter.ViewHolder> implements AtlasBaseAdapter<Message>, RecyclerViewController.Callback {
+public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> implements AtlasBaseAdapter<Message>, RecyclerViewController.Callback {
     private final static int VIEW_TYPE_FOOTER = 0;
 
     protected final LayerClient mLayerClient;
@@ -244,10 +244,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         }
 
         CellType cellType = mCellTypesByViewType.get(viewType);
-        int rootResId = cellType.mMe ? CellViewHolder.RESOURCE_ID_ME : CellViewHolder.RESOURCE_ID_THEM;
-        CellViewHolder rootViewHolder = new CellViewHolder(mLayoutInflater.inflate(rootResId, parent, false), mParticipantProvider, mPicasso);
-        rootViewHolder.mCellHolder = cellType.mCellFactory.createCellHolder(rootViewHolder.mCell, cellType.mMe, mLayoutInflater);
-        rootViewHolder.mCellHolderSpecs = new AtlasCellFactory.CellHolderSpecs();
+        int rootResId = cellType.mMe ? mOptions.getLayoutResourceMe() : mOptions.getLayoutResourceThem();
+        CellViewHolder rootViewHolder = mOptions.getViewHolder(mLayoutInflater.inflate(rootResId, parent, false), mParticipantProvider, mPicasso);
+        rootViewHolder.setCellHolder(cellType.mCellFactory.createCellHolder(rootViewHolder.getCell(), cellType.mMe, mLayoutInflater));
+        rootViewHolder.setCellHolderSpecs(new AtlasCellFactory.CellHolderSpecs());
         return rootViewHolder;
     }
 
@@ -264,16 +264,16 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     }
 
     public void bindFooter(ViewHolder viewHolder) {
-        viewHolder.mRoot.removeAllViews();
+        viewHolder.getRoot().removeAllViews();
         if (mFooterView.getParent() != null) {
             ((ViewGroup) mFooterView.getParent()).removeView(mFooterView);
         }
-        viewHolder.mRoot.addView(mFooterView);
+        viewHolder.getRoot().addView(mFooterView);
     }
 
     public void bindCellViewHolder(CellViewHolder viewHolder, int position) {
         Message message = getItem(position);
-        viewHolder.mMessage = message;
+        viewHolder.setMessage(message);
         CellType cellType = mCellTypesByViewType.get(viewHolder.getItemViewType());
         boolean oneOnOne = message.getConversation().getParticipants().size() == 2;
 
@@ -281,26 +281,26 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         Cluster cluster = getClustering(message, position);
         if (cluster.mClusterWithPrevious == null) {
             // No previous message, so no gap
-            viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
-            viewHolder.mTimeGroup.setVisibility(View.GONE);
+            viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
+            viewHolder.getTimeGroup().setVisibility(View.GONE);
         } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_HOUR) {
             // Crossed into a new day, or > 1hr lull in conversation
             Date sentAt = message.getSentAt();
             if (sentAt == null) sentAt = new Date();
-            String timeBarDayText = Util.formatTimeDay(viewHolder.mCell.getContext(), sentAt);
-            viewHolder.mTimeGroupDay.setText(timeBarDayText);
+            String timeBarDayText = Util.formatTimeDay(viewHolder.getCell().getContext(), sentAt);
+            viewHolder.getTimeGroupDay().setText(timeBarDayText);
             String timeBarTimeText = mOptions.getDateFormat().format(sentAt.getTime());
-            viewHolder.mTimeGroupTime.setText(" " + timeBarTimeText);
-            viewHolder.mTimeGroup.setVisibility(View.VISIBLE);
-            viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
+            viewHolder.getTimeGroupTime().setText(" " + timeBarTimeText);
+            viewHolder.getTimeGroup().setVisibility(View.VISIBLE);
+            viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
         } else if (cluster.mClusterWithPrevious == ClusterType.LESS_THAN_MINUTE) {
             // Same sender with < 1m gap
-            viewHolder.mClusterSpaceGap.setVisibility(View.GONE);
-            viewHolder.mTimeGroup.setVisibility(View.GONE);
+            viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
+            viewHolder.getTimeGroup().setVisibility(View.GONE);
         } else if (cluster.mClusterWithPrevious == ClusterType.NEW_SENDER || cluster.mClusterWithPrevious == ClusterType.LESS_THAN_HOUR) {
             // New sender or > 1m gap
-            viewHolder.mClusterSpaceGap.setVisibility(View.VISIBLE);
-            viewHolder.mTimeGroup.setVisibility(View.GONE);
+            viewHolder.getClusterSpaceGap().setVisibility(View.VISIBLE);
+            viewHolder.getTimeGroup().setVisibility(View.GONE);
         }
 
         // Sender-dependent elements
@@ -310,20 +310,20 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             MessagePosition delivered = mReceiptMap.get(Message.RecipientStatus.DELIVERED);
 
             if (read != null && message == read.mMessage) {
-                viewHolder.mReceipt.setVisibility(View.VISIBLE);
-                viewHolder.mReceipt.setText(R.string.atlas_message_item_read);
+                viewHolder.getReceipt().setVisibility(View.VISIBLE);
+                viewHolder.getReceipt().setText(R.string.atlas_message_item_read);
             } else if (delivered != null && message == delivered.mMessage) {
-                viewHolder.mReceipt.setVisibility(View.VISIBLE);
-                viewHolder.mReceipt.setText(R.string.atlas_message_item_delivered);
+                viewHolder.getReceipt().setVisibility(View.VISIBLE);
+                viewHolder.getReceipt().setText(R.string.atlas_message_item_delivered);
             } else {
-                viewHolder.mReceipt.setVisibility(View.GONE);
+                viewHolder.getReceipt().setVisibility(View.GONE);
             }
 
             // Unsent and sent
             if (!message.isSent()) {
-                viewHolder.mCell.setAlpha(0.5f);
+                viewHolder.getCell().setAlpha(0.5f);
             } else {
-                viewHolder.mCell.setAlpha(1.0f);
+                viewHolder.getCell().setAlpha(1.0f);
             }
         } else {
             message.markAsRead();
@@ -331,52 +331,53 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
             if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER)) {
                 Actor sender = message.getSender();
                 if (sender.getName() != null) {
-                    viewHolder.mUserName.setText(sender.getName());
+                    viewHolder.getUserName().setText(sender.getName());
                 } else {
                     Participant participant = mParticipantProvider.getParticipant(sender.getUserId());
-                    viewHolder.mUserName.setText(participant != null ? participant.getName() : viewHolder.itemView.getResources().getString(R.string.atlas_message_item_unknown_user));
+                    viewHolder.getUserName().setText(participant != null ? participant.getName() : viewHolder.itemView.getResources().getString(R.string.atlas_message_item_unknown_user));
                 }
-                viewHolder.mUserName.setVisibility(View.VISIBLE);
-                viewHolder.mSentAt.setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
-                viewHolder.mSentAt.setText(mOptions.getTimeFomat().format(message.getSentAt()));
+                viewHolder.getUserName().setVisibility(View.VISIBLE);
+                viewHolder.getSentAt().setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
+                viewHolder.getSentAt().setText(mOptions.getTimeFomat().format(message.getSentAt()));
             } else {
-                viewHolder.mUserName.setVisibility(View.GONE);
+                viewHolder.getUserName().setVisibility(View.GONE);
+                viewHolder.getSentAt().setVisibility(View.GONE);
             }
 
             // Avatars
             if (oneOnOne) {
                 // Not in one-on-one conversations
-                viewHolder.mAvatar.setVisibility(View.GONE);
+                viewHolder.getAvatar().setVisibility(View.GONE);
             } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
                 // Last message in cluster
-                viewHolder.mAvatar.setVisibility(View.VISIBLE);
-                viewHolder.mAvatar.setParticipants(message.getSender().getUserId());
+                viewHolder.getAvatar().setVisibility(View.VISIBLE);
+                viewHolder.getAvatar().setParticipants(message.getSender().getUserId());
             } else {
                 // Invisible for clustered messages to preserve proper spacing
-                viewHolder.mAvatar.setVisibility(View.INVISIBLE);
+                viewHolder.getAvatar().setVisibility(View.INVISIBLE);
             }
         }
 
         // CellHolder
-        AtlasCellFactory.CellHolder cellHolder = viewHolder.mCellHolder;
+        AtlasCellFactory.CellHolder cellHolder = viewHolder.getCellHolder();
         cellHolder.setMessage(message);
 
         // Cell dimensions
-        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) viewHolder.mCell.getLayoutParams();
-        int maxWidth = mRecyclerView.getWidth() - viewHolder.mRoot.getPaddingLeft() - viewHolder.mRoot.getPaddingRight() - params.leftMargin - params.rightMargin;
+        LinearLayout.LayoutParams params = (LinearLayout.LayoutParams) viewHolder.getCell().getLayoutParams();
+        int maxWidth = mRecyclerView.getWidth() - viewHolder.getRoot().getPaddingLeft() - viewHolder.getRoot().getPaddingRight() - params.leftMargin - params.rightMargin;
         if (!oneOnOne && !cellType.mMe) {
             // Subtract off avatar width if needed
-            ViewGroup.MarginLayoutParams avatarParams = (ViewGroup.MarginLayoutParams) viewHolder.mAvatar.getLayoutParams();
+            ViewGroup.MarginLayoutParams avatarParams = (ViewGroup.MarginLayoutParams) viewHolder.getAvatar().getLayoutParams();
             maxWidth -= avatarParams.width + avatarParams.rightMargin + avatarParams.leftMargin;
         }
         // TODO: subtract spacing rather than multiply by 0.8 to handle screen sizes more cleanly
         int maxHeight = (int) Math.round(0.8 * mRecyclerView.getHeight());
 
-        viewHolder.mCellHolderSpecs.isMe = cellType.mMe;
-        viewHolder.mCellHolderSpecs.position = position;
-        viewHolder.mCellHolderSpecs.maxWidth = maxWidth;
-        viewHolder.mCellHolderSpecs.maxHeight = maxHeight;
-        cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, mParticipantProvider, message), message, viewHolder.mCellHolderSpecs);
+        viewHolder.getCellHolderSpecs().isMe = cellType.mMe;
+        viewHolder.getCellHolderSpecs().position = position;
+        viewHolder.getCellHolderSpecs().maxWidth = maxWidth;
+        viewHolder.getCellHolderSpecs().maxHeight = maxHeight;
+        cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, mParticipantProvider, message), message, viewHolder.getCellHolderSpecs());
     }
 
     @Override
@@ -403,7 +404,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     @Override
     public Message getItem(RecyclerView.ViewHolder viewHolder) {
         if (!(viewHolder instanceof CellViewHolder)) return null;
-        return ((CellViewHolder) viewHolder).mMessage;
+        return ((CellViewHolder) viewHolder).getMessage();
     }
 
 
@@ -602,55 +603,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
     // Inner classes
     //==============================================================================================
 
-    static class ViewHolder extends RecyclerView.ViewHolder {
-        public final static int RESOURCE_ID_FOOTER = R.layout.atlas_message_item_footer;
-
-        // View cache
-        protected ViewGroup mRoot;
-
-        public ViewHolder(View itemView) {
-            super(itemView);
-            mRoot = (ViewGroup) itemView.findViewById(R.id.swipeable);
-        }
-    }
-
-    static class CellViewHolder extends ViewHolder {
-        public final static int RESOURCE_ID_ME = R.layout.atlas_message_item_me;
-        public final static int RESOURCE_ID_THEM = R.layout.atlas_message_item_them;
-
-        protected Message mMessage;
-
-        // View cache
-        protected TextView mUserName;
-        protected TextView mSentAt;
-        protected View mTimeGroup;
-        protected TextView mTimeGroupDay;
-        protected TextView mTimeGroupTime;
-        protected Space mClusterSpaceGap;
-        protected AtlasAvatar mAvatar;
-        protected ViewGroup mCell;
-        protected TextView mReceipt;
-
-        // Cell
-        protected AtlasCellFactory.CellHolder mCellHolder;
-        protected AtlasCellFactory.CellHolderSpecs mCellHolderSpecs;
-
-        public CellViewHolder(View itemView, ParticipantProvider participantProvider, Picasso picasso) {
-            super(itemView);
-            mUserName = (TextView) itemView.findViewById(R.id.sender);
-            mSentAt = (TextView) itemView.findViewById(R.id.sent_at);
-            mTimeGroup = itemView.findViewById(R.id.time_group);
-            mTimeGroupDay = (TextView) itemView.findViewById(R.id.time_group_day);
-            mTimeGroupTime = (TextView) itemView.findViewById(R.id.time_group_time);
-            mClusterSpaceGap = (Space) itemView.findViewById(R.id.cluster_space);
-            mCell = (ViewGroup) itemView.findViewById(R.id.cell);
-            mReceipt = (TextView) itemView.findViewById(R.id.receipt);
-
-            mAvatar = ((AtlasAvatar) itemView.findViewById(R.id.avatar));
-            if (mAvatar != null) mAvatar.init(participantProvider, picasso);
-        }
-    }
-
     private enum ClusterType {
         NEW_SENDER,
         LESS_THAN_MINUTE,
@@ -745,10 +697,13 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         private DateFormat dateFormat;
         private DateFormat timeFomat;
         private boolean showMessageTimes;
+        private int layoutResourceMe;
+        private int layoutResourceThem;
 
         public Options(Context context) {
             this(android.text.format.DateFormat.getTimeFormat(context),
-                 android.text.format.DateFormat.getTimeFormat(context), false);
+                 android.text.format.DateFormat.getTimeFormat(context), false,
+                 R.layout.atlas_message_item_me, R.layout.atlas_message_item_them);
         }
 
       /**
@@ -756,11 +711,16 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
        * @param dateFormat DateFormat for inline dates/times shown in message list
        * @param timeFomat DateFormat for message sent times
        * @param showMessageTimes Whether to show message sent times
+       * @param layoutResourceMe Layout resource id for messages sent by the current user
+       * @param layoutResourceThem Layout resource id for messages sent by other users
        */
-        public Options(DateFormat dateFormat, DateFormat timeFomat, boolean showMessageTimes) {
+        public Options(DateFormat dateFormat, DateFormat timeFomat, boolean showMessageTimes,
+                       @LayoutRes int layoutResourceMe, @LayoutRes int layoutResourceThem) {
             this.dateFormat = dateFormat;
             this.timeFomat = timeFomat;
             this.showMessageTimes = showMessageTimes;
+            this.layoutResourceMe = layoutResourceMe;
+            this.layoutResourceThem = layoutResourceThem;
         }
 
         public DateFormat getDateFormat() {
@@ -773,6 +733,20 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
         public boolean showMessageTimes() {
             return showMessageTimes;
+        }
+
+        @LayoutRes
+        public int getLayoutResourceMe() {
+            return layoutResourceMe;
+        }
+
+        @LayoutRes
+        public int getLayoutResourceThem() {
+            return layoutResourceThem;
+        }
+
+        public CellViewHolder getViewHolder(View itemView, ParticipantProvider participantProvider, Picasso picasso) {
+            return new CellViewHolder(itemView, participantProvider, picasso);
         }
     }
 }
