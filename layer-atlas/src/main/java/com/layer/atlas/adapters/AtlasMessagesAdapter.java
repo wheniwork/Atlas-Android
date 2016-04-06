@@ -337,6 +337,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
                     viewHolder.mUserName.setText(participant != null ? participant.getName() : viewHolder.itemView.getResources().getString(R.string.atlas_message_item_unknown_user));
                 }
                 viewHolder.mUserName.setVisibility(View.VISIBLE);
+                viewHolder.mSentAt.setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
+                viewHolder.mSentAt.setText(mOptions.getTimeFomat().format(message.getSentAt()));
             } else {
                 viewHolder.mUserName.setVisibility(View.GONE);
             }
@@ -620,6 +622,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
 
         // View cache
         protected TextView mUserName;
+        protected TextView mSentAt;
         protected View mTimeGroup;
         protected TextView mTimeGroupDay;
         protected TextView mTimeGroupTime;
@@ -635,6 +638,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<AtlasMessagesAdap
         public CellViewHolder(View itemView, ParticipantProvider participantProvider, Picasso picasso) {
             super(itemView);
             mUserName = (TextView) itemView.findViewById(R.id.sender);
+            mSentAt = (TextView) itemView.findViewById(R.id.sent_at);
             mTimeGroup = itemView.findViewById(R.id.time_group);
             mTimeGroupDay = (TextView) itemView.findViewById(R.id.time_group_day);
             mTimeGroupTime = (TextView) itemView.findViewById(R.id.time_group_time);

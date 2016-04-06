@@ -66,6 +66,7 @@
     <dimen name="atlas_message_item_receipt_margin">12dp</dimen>
     <dimen name="atlas_message_item_sender_margin_left">40dp</dimen>
     <dimen name="atlas_message_item_sender_margin_bottom">1dp</dimen>
+    <dimen name="atlas_message_item_sent_at_margin_left">4dp</dimen>
     <dimen name="atlas_message_cluster_space">2dp</dimen>
     <dimen name="atlas_message_cluster_space_gap">16dp</dimen>
 
