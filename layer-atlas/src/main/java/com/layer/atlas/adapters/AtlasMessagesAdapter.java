@@ -289,7 +289,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             if (sentAt == null) sentAt = new Date();
             String timeBarDayText = Util.formatTimeDay(viewHolder.getCell().getContext(), sentAt);
             viewHolder.getTimeGroupDay().setText(timeBarDayText);
-            String timeBarTimeText = mOptions.getDateFormat().format(sentAt.getTime());
+            String timeBarTimeText = mOptions.getInlineTimeFormat().format(sentAt.getTime());
             viewHolder.getTimeGroupTime().setText(" " + timeBarTimeText);
             viewHolder.getTimeGroup().setVisibility(View.VISIBLE);
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
@@ -333,7 +333,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                 }
                 viewHolder.getUserName().setVisibility(View.VISIBLE);
                 viewHolder.getSentAt().setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
-                viewHolder.getSentAt().setText(mOptions.getTimeFomat().format(message.getSentAt()));
+                viewHolder.getSentAt().setText(mOptions.getMessageTimeFormat().format(message.getSentAt()));
             } else {
                 viewHolder.getUserName().setVisibility(View.GONE);
                 viewHolder.getSentAt().setVisibility(View.GONE);
@@ -689,8 +689,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
      */
     public static class Options {
 
-        private DateFormat dateFormat;
-        private DateFormat timeFomat;
+        private DateFormat inlineTimeFormat;
+        private DateFormat messageTimeFormat;
         private boolean showMessageTimes;
         private int layoutResourceMe;
         private int layoutResourceThem;
@@ -703,27 +703,27 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
       /**
        * Customize options for inline dates/times and message sent times
-       * @param dateFormat DateFormat for inline dates/times shown in message list
-       * @param timeFomat DateFormat for message sent times
+       * @param inlineTimeFormat DateFormat for inline times shown in message list
+       * @param messageTimeFormat DateFormat for message sent times
        * @param showMessageTimes Whether to show message sent times
        * @param layoutResourceMe Layout resource id for messages sent by the current user
        * @param layoutResourceThem Layout resource id for messages sent by other users
        */
-        public Options(DateFormat dateFormat, DateFormat timeFomat, boolean showMessageTimes,
+        public Options(DateFormat inlineTimeFormat, DateFormat messageTimeFormat, boolean showMessageTimes,
                        @LayoutRes int layoutResourceMe, @LayoutRes int layoutResourceThem) {
-            this.dateFormat = dateFormat;
-            this.timeFomat = timeFomat;
+            this.inlineTimeFormat = inlineTimeFormat;
+            this.messageTimeFormat = messageTimeFormat;
             this.showMessageTimes = showMessageTimes;
             this.layoutResourceMe = layoutResourceMe;
             this.layoutResourceThem = layoutResourceThem;
         }
 
-        public DateFormat getDateFormat() {
-            return dateFormat;
+        public DateFormat getInlineTimeFormat() {
+            return inlineTimeFormat;
         }
 
-        public DateFormat getTimeFomat() {
-            return timeFomat;
+        public DateFormat getMessageTimeFormat() {
+            return messageTimeFormat;
         }
 
         public boolean showMessageTimes() {
