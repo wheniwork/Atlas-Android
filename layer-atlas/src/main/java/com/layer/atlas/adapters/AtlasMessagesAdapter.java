@@ -283,8 +283,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             // No previous message, so no gap
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
-        } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_HOUR) {
-            // Crossed into a new day, or > 1hr lull in conversation
+        } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == mOptions.getGapClusterType()) {
+            // Crossed into a new day, or > specified lull (default 1hr) in conversation
             Date sentAt = message.getSentAt();
             if (sentAt == null) sentAt = new Date();
             String timeBarDayText = Util.formatTimeDay(viewHolder.getCell().getContext(), sentAt);
@@ -297,7 +297,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             // Same sender with < 1m gap
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
-        } else if (cluster.mClusterWithPrevious == ClusterType.NEW_SENDER || cluster.mClusterWithPrevious == ClusterType.LESS_THAN_HOUR) {
+        } else if (cluster.mIsNewSender || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_MINUTE) {
             // New sender or > 1m gap
             viewHolder.getClusterSpaceGap().setVisibility(View.VISIBLE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
@@ -323,7 +323,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         } else {
             message.markAsRead();
             // Sender name, only for first message in cluster
-            if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER)) {
+            if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mIsNewSender)) {
                 Actor sender = message.getSender();
                 if (sender.getName() != null) {
                     viewHolder.getUserName().setText(sender.getName());
@@ -420,6 +420,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         if (previousMessage != null) {
             result.mDateBoundaryWithPrevious = isDateBoundary(previousMessage.getSentAt(), message.getSentAt());
             result.mClusterWithPrevious = ClusterType.fromMessages(previousMessage, message);
+            result.mIsNewSender = !previousMessage.getSender().equals(message.getSender());
 
             Cluster previousCluster = mClusterCache.get(previousMessage.getId());
             if (previousCluster == null) {
@@ -441,6 +442,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         if (nextMessage != null) {
             result.mDateBoundaryWithNext = isDateBoundary(message.getSentAt(), nextMessage.getSentAt());
             result.mClusterWithNext = ClusterType.fromMessages(message, nextMessage);
+            result.mIsNewSender = !message.getSender().equals(nextMessage.getSender());
 
             Cluster nextCluster = mClusterCache.get(nextMessage.getId());
             if (nextCluster == null) {
@@ -598,26 +600,25 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
     // Inner classes
     //==============================================================================================
 
-    private enum ClusterType {
-        NEW_SENDER,
+    public enum ClusterType {
         LESS_THAN_MINUTE,
-        LESS_THAN_HOUR,
+        MORE_THAN_MINUTE,
+        MORE_THAN_HALF_HOUR,
         MORE_THAN_HOUR;
 
         private static final long MILLIS_MINUTE = 60 * 1000;
+        private static final long MILLIS_HALF_HOUR = 30 * MILLIS_MINUTE;
         private static final long MILLIS_HOUR = 60 * MILLIS_MINUTE;
 
         public static ClusterType fromMessages(Message older, Message newer) {
-            // Different users?
-            if (!older.getSender().equals(newer.getSender())) return NEW_SENDER;
-
             // Time clustering for same user?
             Date oldSentAt = older.getSentAt();
             Date newSentAt = newer.getSentAt();
             if (oldSentAt == null || newSentAt == null) return LESS_THAN_MINUTE;
             long delta = Math.abs(newSentAt.getTime() - oldSentAt.getTime());
             if (delta <= MILLIS_MINUTE) return LESS_THAN_MINUTE;
-            if (delta <= MILLIS_HOUR) return LESS_THAN_HOUR;
+            if (delta > MILLIS_MINUTE && delta < MILLIS_HALF_HOUR) return MORE_THAN_MINUTE;
+            if (delta >= MILLIS_HALF_HOUR && delta < MILLIS_HOUR) return MORE_THAN_HALF_HOUR;
             return MORE_THAN_HOUR;
         }
     }
@@ -628,6 +629,8 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
         public boolean mDateBoundaryWithNext;
         public ClusterType mClusterWithNext;
+
+        public boolean mIsNewSender;
     }
 
     private static class MessagePosition {
@@ -690,13 +693,14 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
     public static class Options {
 
         private DateFormat inlineTimeFormat;
+        private ClusterType gapClusterType;
         private DateFormat messageTimeFormat;
         private boolean showMessageTimes;
         private int layoutResourceMe;
         private int layoutResourceThem;
 
         public Options(Context context) {
-            this(android.text.format.DateFormat.getTimeFormat(context),
+            this(android.text.format.DateFormat.getTimeFormat(context), ClusterType.MORE_THAN_HOUR,
                  android.text.format.DateFormat.getTimeFormat(context), false,
                  R.layout.atlas_message_item_me, R.layout.atlas_message_item_them);
         }
@@ -704,14 +708,17 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
       /**
        * Customize options for inline dates/times and message sent times
        * @param inlineTimeFormat DateFormat for inline times shown in message list
+       * @param gapClusterType ClusterType to use when showing the inline time between gaps in the conversation
        * @param messageTimeFormat DateFormat for message sent times
        * @param showMessageTimes Whether to show message sent times
        * @param layoutResourceMe Layout resource id for messages sent by the current user
        * @param layoutResourceThem Layout resource id for messages sent by other users
        */
-        public Options(DateFormat inlineTimeFormat, DateFormat messageTimeFormat, boolean showMessageTimes,
+        public Options(DateFormat inlineTimeFormat, ClusterType gapClusterType,
+                       DateFormat messageTimeFormat, boolean showMessageTimes,
                        @LayoutRes int layoutResourceMe, @LayoutRes int layoutResourceThem) {
             this.inlineTimeFormat = inlineTimeFormat;
+            this.gapClusterType = gapClusterType;
             this.messageTimeFormat = messageTimeFormat;
             this.showMessageTimes = showMessageTimes;
             this.layoutResourceMe = layoutResourceMe;
@@ -742,6 +749,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
         public CellViewHolder getViewHolder(View itemView, ParticipantProvider participantProvider, Picasso picasso) {
             return new CellViewHolder(itemView, participantProvider, picasso);
+        }
+
+        public ClusterType getGapClusterType() {
+            return gapClusterType;
         }
     }
 }
