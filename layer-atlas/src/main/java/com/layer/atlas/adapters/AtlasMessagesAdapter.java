@@ -443,6 +443,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                 }
             }
             previousCluster.mClusterWithNext = result.mClusterWithPrevious;
+            previousCluster.mIsNewSender = result.mIsNewSender;
             previousCluster.mDateBoundaryWithNext = result.mDateBoundaryWithPrevious;
         }
 
@@ -465,6 +466,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                 }
             }
             nextCluster.mClusterWithPrevious = result.mClusterWithNext;
+            nextCluster.mIsNewSender = result.mIsNewSender;
             nextCluster.mDateBoundaryWithPrevious = result.mDateBoundaryWithNext;
         }
 
