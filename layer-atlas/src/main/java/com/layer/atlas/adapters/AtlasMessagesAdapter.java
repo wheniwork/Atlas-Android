@@ -320,6 +320,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             } else {
                 viewHolder.getCell().setAlpha(1.0f);
             }
+            setSentAtTime(viewHolder, message);
         } else {
             message.markAsRead();
             // Sender name, only for first message in cluster
@@ -332,8 +333,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                     viewHolder.getUserName().setText(participant != null ? participant.getName() : viewHolder.itemView.getResources().getString(R.string.atlas_message_item_unknown_user));
                 }
                 viewHolder.getUserName().setVisibility(View.VISIBLE);
-                viewHolder.getSentAt().setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
-                viewHolder.getSentAt().setText(mOptions.getMessageTimeFormat().format(message.getSentAt()));
+                setSentAtTime(viewHolder, message);
             } else {
                 viewHolder.getUserName().setVisibility(View.GONE);
                 viewHolder.getSentAt().setVisibility(View.GONE);
@@ -373,6 +373,15 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         viewHolder.getCellHolderSpecs().maxWidth = maxWidth;
         viewHolder.getCellHolderSpecs().maxHeight = maxHeight;
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, mParticipantProvider, message), message, viewHolder.getCellHolderSpecs());
+    }
+
+    private void setSentAtTime(CellViewHolder viewHolder, Message message) {
+        if (viewHolder.getSentAt() == null) {
+            return;
+        }
+
+        viewHolder.getSentAt().setVisibility(mOptions.showMessageTimes() ? View.VISIBLE : View.GONE);
+        viewHolder.getSentAt().setText(mOptions.getMessageTimeFormat().format(message.getSentAt()));
     }
 
     @Override
