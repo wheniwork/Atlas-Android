@@ -297,7 +297,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             // Same sender with < 1m gap
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
-        } else if (cluster.mIsNewSender || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_MINUTE) {
+        } else if (cluster.mClusterWithPrevious == ClusterType.NEW_SENDER || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_MINUTE) {
             // New sender or > 1m gap
             viewHolder.getClusterSpaceGap().setVisibility(View.VISIBLE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
@@ -324,7 +324,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         } else {
             message.markAsRead();
             // Sender name, only for first message in cluster
-            if (!oneOnOne && (cluster.mClusterWithPrevious == null || cluster.mIsNewSender)) {
+            if (!oneOnOne && isFirstMessage(cluster)) {
                 Actor sender = message.getSender();
                 if (sender.getName() != null) {
                     viewHolder.getUserName().setText(sender.getName());
@@ -373,6 +373,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         viewHolder.getCellHolderSpecs().maxWidth = maxWidth;
         viewHolder.getCellHolderSpecs().maxHeight = maxHeight;
         cellType.mCellFactory.bindCellHolder(cellHolder, cellType.mCellFactory.getParsedContent(mLayerClient, mParticipantProvider, message), message, viewHolder.getCellHolderSpecs());
+    }
+
+    private boolean isFirstMessage(com.layer.atlas.adapters.AtlasMessagesAdapter.Cluster cluster) {
+        return cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER;
     }
 
     private void setSentAtTime(CellViewHolder viewHolder, Message message) {
@@ -429,7 +433,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         if (previousMessage != null) {
             result.mDateBoundaryWithPrevious = isDateBoundary(previousMessage.getSentAt(), message.getSentAt());
             result.mClusterWithPrevious = ClusterType.fromMessages(previousMessage, message);
-            result.mIsNewSender = !previousMessage.getSender().equals(message.getSender());
 
             Cluster previousCluster = mClusterCache.get(previousMessage.getId());
             if (previousCluster == null) {
@@ -443,7 +446,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                 }
             }
             previousCluster.mClusterWithNext = result.mClusterWithPrevious;
-            previousCluster.mIsNewSender = result.mIsNewSender;
             previousCluster.mDateBoundaryWithNext = result.mDateBoundaryWithPrevious;
         }
 
@@ -452,7 +454,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         if (nextMessage != null) {
             result.mDateBoundaryWithNext = isDateBoundary(message.getSentAt(), nextMessage.getSentAt());
             result.mClusterWithNext = ClusterType.fromMessages(message, nextMessage);
-            result.mIsNewSender = !message.getSender().equals(nextMessage.getSender());
 
             Cluster nextCluster = mClusterCache.get(nextMessage.getId());
             if (nextCluster == null) {
@@ -466,7 +467,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
                 }
             }
             nextCluster.mClusterWithPrevious = result.mClusterWithNext;
-            nextCluster.mIsNewSender = result.mIsNewSender;
             nextCluster.mDateBoundaryWithPrevious = result.mDateBoundaryWithNext;
         }
 
@@ -612,6 +612,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
     //==============================================================================================
 
     public enum ClusterType {
+        NEW_SENDER,
         LESS_THAN_MINUTE,
         MORE_THAN_MINUTE,
         MORE_THAN_HALF_HOUR,
@@ -622,6 +623,9 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         private static final long MILLIS_HOUR = 60 * MILLIS_MINUTE;
 
         public static ClusterType fromMessages(Message older, Message newer) {
+            // Different users?
+            if (!older.getSender().equals(newer.getSender())) return NEW_SENDER;
+
             // Time clustering for same user?
             Date oldSentAt = older.getSentAt();
             Date newSentAt = newer.getSentAt();
@@ -640,8 +644,6 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
         public boolean mDateBoundaryWithNext;
         public ClusterType mClusterWithNext;
-
-        public boolean mIsNewSender;
     }
 
     private static class MessagePosition {
