@@ -106,6 +106,10 @@ public class CellViewHolder extends ViewHolder {
     return mCell;
   }
 
+  public TextView getReceipt() {
+    return mReceipt;
+  }
+
   /**
    * Override to customize the read receipt message. By default, this will only show read receipts
    * for messages sent by the current user.

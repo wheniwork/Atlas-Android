@@ -304,12 +304,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         }
 
         // Read and delivery receipts
-        MessagePosition delivered = mReceiptMap.get(Message.RecipientStatus.DELIVERED);
-
-        if (delivered != null && message == delivered.mMessage) {
-            viewHolder.setDeliveredReceiptText(R.string.atlas_message_item_delivered);
+        if (isLastMessage(cluster)) {
+            setReceipt(viewHolder, message);
         } else {
-            viewHolder.setReadReceiptText(R.string.atlas_message_item_read);
+            viewHolder.getReceipt().setVisibility(View.GONE);
         }
 
         // Sender-dependent elements
@@ -320,7 +318,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             } else {
                 viewHolder.getCell().setAlpha(1.0f);
             }
-            setSentAtTime(viewHolder, message);
+
+            if (isFirstMessage(cluster)) {
+                setSentAtTime(viewHolder, message);
+            } else {
+                viewHolder.getSentAt().setVisibility(View.GONE);
+            }
         } else {
             message.markAsRead();
             // Sender name, only for first message in cluster
@@ -343,7 +346,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             if (oneOnOne) {
                 // Not in one-on-one conversations
                 viewHolder.getAvatar().setVisibility(View.GONE);
-            } else if (cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE) {
+            } else if (isLastMessage(cluster)) {
                 // Last message in cluster
                 viewHolder.getAvatar().setVisibility(View.VISIBLE);
                 viewHolder.getAvatar().setParticipants(message.getSender().getUserId());
@@ -377,6 +380,21 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
     private boolean isFirstMessage(com.layer.atlas.adapters.AtlasMessagesAdapter.Cluster cluster) {
         return cluster.mClusterWithPrevious == null || cluster.mClusterWithPrevious == ClusterType.NEW_SENDER;
+    }
+
+    private boolean isLastMessage(com.layer.atlas.adapters.AtlasMessagesAdapter.Cluster cluster) {
+        return cluster.mClusterWithNext == null || cluster.mClusterWithNext != ClusterType.LESS_THAN_MINUTE;
+    }
+
+    private void setReceipt(CellViewHolder viewHolder, Message message) {
+        // Read and delivery receipts
+        MessagePosition delivered = mReceiptMap.get(Message.RecipientStatus.DELIVERED);
+
+        if (delivered != null && message == delivered.mMessage) {
+            viewHolder.setDeliveredReceiptText(R.string.atlas_message_item_delivered);
+        } else {
+            viewHolder.setReadReceiptText(R.string.atlas_message_item_read);
+        }
     }
 
     private void setSentAtTime(CellViewHolder viewHolder, Message message) {
