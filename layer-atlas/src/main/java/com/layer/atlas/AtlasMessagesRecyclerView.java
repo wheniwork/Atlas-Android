@@ -58,10 +58,20 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         super(context);
     }
 
+    /**
+     * Initialize {@link AtlasMessagesRecyclerView} with the default {@link AtlasMessagesAdapter.Options}.
+     * This includes using the default system time/date format, showing an inline day/time when there
+     * is more than an hour gap in the conversation, not showing message sent times, and using the
+     * default Atlas me/them message layouts.
+     */
     public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
         return init(layerClient, participantProvider, picasso, new AtlasMessagesAdapter.Options(getContext()));
     }
 
+    /**
+     * Initialize {@link AtlasMessagesRecyclerView} with the specified {@link AtlasMessagesAdapter.Options}
+     * to customize the display of messages and their clustering behavior.
+     */
     public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso,
                                           AtlasMessagesAdapter.Options options) {
         mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
