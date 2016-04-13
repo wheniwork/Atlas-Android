@@ -249,7 +249,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
         };
     }
 
-    static class CellHolder extends AtlasCellFactory.CellHolder {
+    public static class CellHolder extends AtlasCellFactory.CellHolder {
         ImageView mImageView;
         ContentLoadingProgressBar mProgressBar;
 
