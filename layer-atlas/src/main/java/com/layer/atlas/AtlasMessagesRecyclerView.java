@@ -58,13 +58,28 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
         super(context);
     }
 
+    /**
+     * Initialize {@link AtlasMessagesRecyclerView} with the default {@link AtlasMessagesAdapter.Options}.
+     * This includes using the default system time/date format, showing an inline day/time when there
+     * is more than an hour gap in the conversation, not showing message sent times, and using the
+     * default Atlas me/them message layouts.
+     */
     public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+        return init(layerClient, participantProvider, picasso, new AtlasMessagesAdapter.Options(getContext()));
+    }
+
+    /**
+     * Initialize {@link AtlasMessagesRecyclerView} with the specified {@link AtlasMessagesAdapter.Options}
+     * to customize the display of messages and their clustering behavior.
+     */
+    public AtlasMessagesRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso,
+                                          AtlasMessagesAdapter.Options options) {
         mLayoutManager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         mLayoutManager.setStackFromEnd(true);
         setLayoutManager(mLayoutManager);
 
         // Create an adapter that auto-scrolls if we're already at the bottom
-        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, participantProvider, picasso)
+        mAdapter = new AtlasMessagesAdapter(getContext(), layerClient, participantProvider, picasso, options)
                 .setRecyclerView(this)
                 .setOnMessageAppendListener(new AtlasMessagesAdapter.OnMessageAppendListener() {
                     @Override
@@ -112,16 +127,25 @@ public class AtlasMessagesRecyclerView extends RecyclerView {
 
     /**
      * Updates the underlying AtlasMessagesAdapter with a Query for Messages in the given
-     * Conversation.
+     * Conversation filtered by the optional Predicates.
      *
      * @param conversation Conversation to display Messages for.
+     * @param predicates Predicates to further filter the Message Query.
      * @return This AtlasMessagesRecyclerView.
      */
-    public AtlasMessagesRecyclerView setConversation(Conversation conversation) {
-        mAdapter.setQuery(Query.builder(Message.class)
-                .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
-                .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING))
-                .build()).refresh();
+    public AtlasMessagesRecyclerView setConversation(Conversation conversation, Predicate... predicates) {
+        Query.Builder<Message> queryBuilder =
+          Query.builder(Message.class)
+               .predicate(new Predicate(Message.Property.CONVERSATION, Predicate.Operator.EQUAL_TO, conversation))
+               .sortDescriptor(new SortDescriptor(Message.Property.POSITION, SortDescriptor.Order.ASCENDING));
+
+        if (predicates != null) {
+            for (Predicate predicate : predicates) {
+                queryBuilder.predicate(predicate);
+            }
+        }
+
+        mAdapter.setQuery(queryBuilder.build()).refresh();
         return this;
     }
 
