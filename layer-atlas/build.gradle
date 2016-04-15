@@ -28,7 +28,7 @@ repositories {
 
 dependencies {
     // Layer SDK
-    compile('com.layer.sdk:layer-sdk:0.20.2') {
+    compile('com.layer.sdk:layer-sdk:0.20.3') {
         exclude group: 'com.google.android.gms', module: 'play-services-gcm'
     }
     compile 'org.slf4j:slf4j-nop:1.7.2'

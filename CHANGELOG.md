@@ -1,5 +1,26 @@
 # Atlas Android
 
+## 0.2.8
+
+### Major Changes
+  * Updated to Layer Android SDK Version 0.20.3
+
+## 0.2.7
+
+### Major Changes
+  * Updated to Layer Android SDK Version 0.20.2
+
+## 0.2.6
+
+### Major Changes
+  * Updated to Layer Android SDK Version 0.20.1
+
+## 0.2.5
+
+### Features
+  * Updated to Layer Android SDK Version 0.20.0 with support for `ALL_MY_DEVICES` deletion.
+  * Remove requirement for camera permission
+
 ## 0.2.4
 
 ### Features
