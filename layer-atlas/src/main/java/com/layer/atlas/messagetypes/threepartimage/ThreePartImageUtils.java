@@ -161,13 +161,13 @@ public class ThreePartImageUtils {
         // Create preview
         Bitmap sampledBitmap = BitmapFactory.decodeFile(file.getAbsolutePath(), previewOptions);
         Bitmap previewBitmap = Bitmap.createScaledBitmap(sampledBitmap, previewDim[0], previewDim[1], true);
-        sampledBitmap.recycle();
         File temp = new File(context.getCacheDir(), ThreePartImageUtils.class.getSimpleName() + "." + System.nanoTime() + ".jpg");
         FileOutputStream previewStream = new FileOutputStream(temp);
         if (Log.isLoggable(Log.VERBOSE)) {
             Log.v("Compressing preview to '" + temp.getAbsolutePath() + "'");
         }
         previewBitmap.compress(Bitmap.CompressFormat.JPEG, PREVIEW_COMPRESSION_QUALITY, previewStream);
+        sampledBitmap.recycle();
         previewBitmap.recycle();
         previewStream.close();
 
