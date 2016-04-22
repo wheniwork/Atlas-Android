@@ -85,16 +85,35 @@
             android:layout_height="@dimen/atlas_message_cluster_space_gap"
             />
 
-        <TextView
-            android:id="@+id/sender"
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginBottom="@dimen/atlas_message_item_sender_margin_bottom"
-            android:layout_marginLeft="@dimen/atlas_message_item_sender_margin_left"
-            android:text="[sender]"
-            android:textColor="@color/atlas_text_gray"
-            android:textSize="@dimen/atlas_text_size_message_item_metadata"
-            />
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/sender"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/atlas_message_item_sender_margin_bottom"
+                android:layout_marginLeft="@dimen/atlas_message_item_sender_margin_left"
+                android:text="[sender]"
+                android:textColor="@color/atlas_text_gray"
+                android:textSize="@dimen/atlas_text_size_message_item_metadata"
+                android:textStyle="bold"
+                />
+
+            <TextView
+                android:id="@+id/sent_at"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="@dimen/atlas_message_item_sender_margin_bottom"
+                android:layout_marginLeft="@dimen/atlas_message_item_sent_at_margin_left"
+                android:text="[sent at]"
+                android:textColor="@color/atlas_text_gray"
+                android:textSize="@dimen/atlas_text_size_message_item_metadata"
+                />
+
+        </LinearLayout>
 
         <LinearLayout
             android:layout_width="match_parent"
