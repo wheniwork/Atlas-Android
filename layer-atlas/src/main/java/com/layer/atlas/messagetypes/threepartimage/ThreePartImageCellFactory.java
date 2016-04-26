@@ -103,7 +103,7 @@ public class ThreePartImageCellFactory extends AtlasCellFactory<ThreePartImageCe
                 creator.resize(cellDims[1], cellDims[0]).rotate(90);
                 break;
         }
-        creator.transform(mTransform).into(cellHolder.mImageView, new Callback() {
+        creator.centerCrop().transform(mTransform).into(cellHolder.mImageView, new Callback() {
             @Override
             public void onSuccess() {
                 cellHolder.mProgressBar.hide();
