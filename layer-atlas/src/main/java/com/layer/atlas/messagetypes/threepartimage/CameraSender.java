@@ -101,4 +101,8 @@ public class CameraSender extends AttachmentSender {
         String path = ((Bundle) state).getString("photoFilePath");
         mPhotoFilePath.set(path);
     }
+
+    public String getPhotoFilePath() {
+        return mPhotoFilePath.get();
+    }
 }
