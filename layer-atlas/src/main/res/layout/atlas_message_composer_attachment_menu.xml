@@ -17,9 +17,5 @@
               android:layout_width="wrap_content"
               android:layout_height="wrap_content"
               android:orientation="vertical"
-              android:paddingBottom="@dimen/atlas_padding_narrow"
-              android:paddingLeft="@dimen/atlas_padding_normal"
-              android:paddingRight="@dimen/atlas_padding_normal"
-              android:paddingTop="@dimen/atlas_padding_narrow"
     >
 </LinearLayout>

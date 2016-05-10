@@ -17,6 +17,9 @@
               android:layout_width="match_parent"
               android:layout_height="@dimen/atlas_dropdown_item_height"
               android:orientation="horizontal"
+              android:background="?attr/selectableItemBackground"
+              android:paddingLeft="@dimen/atlas_padding_normal"
+              android:paddingRight="@dimen/atlas_padding_normal"
     >
 
     <ImageView

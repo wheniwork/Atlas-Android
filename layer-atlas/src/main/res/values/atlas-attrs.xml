@@ -50,6 +50,7 @@
         <attr name="android:enabled" />
         <attr name="inputUnderlineColor" />
         <attr name="inputCursorColor" />
+        <attr name="attachmentSendersBackground" format="color|reference" />
     </declare-styleable>
 
     <declare-styleable name="AtlasMessagesRecyclerView">
