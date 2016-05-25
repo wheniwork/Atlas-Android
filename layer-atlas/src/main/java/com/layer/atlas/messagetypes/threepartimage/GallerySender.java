@@ -11,6 +11,7 @@ import com.layer.atlas.R;
 import com.layer.atlas.messagetypes.AttachmentSender;
 import com.layer.atlas.util.Log;
 import com.layer.sdk.messaging.Message;
+import com.layer.sdk.messaging.PushNotificationPayload;
 
 import java.io.IOException;
 import java.lang.ref.WeakReference;
@@ -80,7 +81,11 @@ public class GallerySender extends AttachmentSender {
         try {
             String myName = getParticipantProvider().getParticipant(getLayerClient().getAuthenticatedUserId()).getName();
             Message message = ThreePartImageUtils.newThreePartImageMessage(activity, getLayerClient(), data.getData());
-            message.getOptions().pushNotificationMessage(getContext().getString(R.string.atlas_notification_image, myName));
+
+            PushNotificationPayload payload = new PushNotificationPayload.Builder()
+                    .text(getContext().getString(R.string.atlas_notification_image, myName))
+                    .build();
+            message.getOptions().defaultPushNotificationPayload(payload);
             send(message);
         } catch (IOException e) {
             if (Log.isLoggable(Log.ERROR)) Log.e(e.getMessage(), e);

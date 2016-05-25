@@ -6,6 +6,7 @@ import com.layer.atlas.util.Log;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessageOptions;
 import com.layer.sdk.messaging.MessagePart;
+import com.layer.sdk.messaging.PushNotificationPayload;
 
 public class TextSender extends MessageSender {
     private final int mMaxNotificationLength;
@@ -31,7 +32,10 @@ public class TextSender extends MessageSender {
 
         // Send message
         MessagePart part = getLayerClient().newMessagePart(text);
-        Message message = getLayerClient().newMessage(new MessageOptions().pushNotificationMessage(notificationString), part);
+        PushNotificationPayload payload = new PushNotificationPayload.Builder()
+                .text(notificationString)
+                .build();
+        Message message = getLayerClient().newMessage(new MessageOptions().defaultPushNotificationPayload(payload), part);
         return send(message);
     }
 }
