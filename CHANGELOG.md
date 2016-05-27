@@ -1,5 +1,11 @@
 # Atlas Android
 
+##
+
+### Bug Fixes
+  * A `ViewPager` can now contain `AtlasConversationsRecyclerView` without a manual `refresh()`
+    call (APPS-2444)
+
 ## 0.2.10
 
 ### Major Changes
