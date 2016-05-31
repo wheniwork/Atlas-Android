@@ -2,6 +2,9 @@
 
 ##
 
+### Major Changes
+  * Renamed `Log.setAlwaysLoggable` to `Log.setLoggingEnabled`
+
 ### Bug Fixes
   * A `ViewPager` can now contain `AtlasConversationsRecyclerView` without a manual `refresh()`
     call (APPS-2444)

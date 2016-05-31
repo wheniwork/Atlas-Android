@@ -22,14 +22,14 @@ public class Log {
      *
      * @param level Log level to check.
      * @return `true` if the provided log level is loggable.
-     * @see #setAlwaysLoggable(boolean)
+     * @see #setLoggingEnabled(boolean)
      */
     public static boolean isLoggable(int level) {
         return sAlwaysLoggable || android.util.Log.isLoggable(TAG, level);
     }
 
-    public static void setAlwaysLoggable(boolean alwaysOn) {
-        sAlwaysLoggable = alwaysOn;
+    public static void setLoggingEnabled(boolean enabled) {
+        sAlwaysLoggable = enabled;
     }
 
     public static void v(String message) {
