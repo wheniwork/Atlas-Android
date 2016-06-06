@@ -1,9 +1,10 @@
 # Atlas Android
 
-##
+## 0.2.11
 
 ### Major Changes
   * Renamed `Log.setAlwaysLoggable` to `Log.setLoggingEnabled`
+  * Updated to Layer Android SDK Version 0.21.1
 
 ### Bug Fixes
   * A `ViewPager` can now contain `AtlasConversationsRecyclerView` without a manual `refresh()`
@@ -14,6 +15,7 @@
 ### Major Changes
   * Updated to Layer Android SDK Version 0.21.0
   * Removed `Util.waitForContent` as that is now supported in the Layer SDK
+  * Publishing AAR so it can be included via Maven
 
 ### Features
   * Allowing customization of attachment menu background via `attachmentSendersBackground`
