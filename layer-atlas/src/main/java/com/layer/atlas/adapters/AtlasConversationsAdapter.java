@@ -40,18 +40,25 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     private final DateFormat mTimeFormat;
     private ConversationStyle conversationStyle;
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso) {
-        this(context, client, participantProvider, picasso, null);
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Predicate... predicates) {
+        this(context, client, participantProvider, picasso, null, predicates);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes) {
-        Query<Conversation> query = Query.builder(Conversation.class)
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes, Predicate... predicates) {
+        Query.Builder<Conversation> queryBuilder = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
                 .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
 
                 /* Sort by the last Message's receivedAt time */
-                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, SortDescriptor.Order.DESCENDING))
-                .build();
+                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, SortDescriptor.Order.DESCENDING));
+
+        if (predicates != null) {
+            for (Predicate predicate : predicates) {
+                queryBuilder.predicate(predicate);
+            }
+        }
+
+        Query<Conversation> query = queryBuilder.build();
         mQueryController = client.newRecyclerViewController(query, updateAttributes, this);
         mLayerClient = client;
         mParticipantProvider = participantProvider;
