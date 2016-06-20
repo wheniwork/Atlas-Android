@@ -1,6 +1,13 @@
+import java.util.regex.Pattern
+
 apply plugin: 'com.android.library'
+apply plugin: 'maven'
 
 apply from: project.file("version.gradle")
+
+ext.pomProjectName = 'Atlas library'
+ext.artifactIdName = 'layer-atlas'
+group 'com.layer.atlas'
 
 android {
     compileSdkVersion 23
@@ -26,9 +33,15 @@ repositories {
     jcenter()
 }
 
+ext {
+    org = "layerhq"
+    repo = "Atlas-Android"
+    groupFolder = "com/layer/atlas"
+}
+
 dependencies {
     // Layer SDK
-    compile('com.layer.sdk:layer-sdk:0.20.0') {
+    compile('com.layer.sdk:layer-sdk:0.21.1') {
         exclude group: 'com.google.android.gms', module: 'play-services-gcm'
     }
     compile 'org.slf4j:slf4j-nop:1.7.2'
@@ -50,3 +63,135 @@ dependencies {
     compile 'com.android.support:appcompat-v7:23.1.1'
     compile 'com.android.support:design:23.1.1'
 }
+
+def sdkPom() {
+    pom {
+        project {
+            name = pomProjectName
+            packaging "aar"
+            artifactId = artifactIdName
+
+            developers {
+                developer {
+                    name 'Amar Srinivasan'
+                    email 'amar@layer.com'
+                }
+                developer {
+                    name 'Peter Elliott'
+                    email 'peter@layer.com'
+                }
+            }
+        }
+    }
+}
+
+public String url() {
+    return "file://$rootDir/releases"
+}
+
+task androidJavadocs(type: Javadoc) {
+    source = android.sourceSets.main.java.srcDirs
+    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+
+    if (JavaVersion.current().isJava8Compatible()) {
+        allprojects {
+            tasks.withType(Javadoc) {
+                options.addStringOption('Xdoclint:none', '-quiet')
+            }
+        }
+    }
+}
+
+task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+    classifier = 'javadoc'
+    from androidJavadocs.destinationDir
+}
+
+task androidSourcesJar(type: Jar) {
+    classifier = 'sources'
+    from android.sourceSets.main.java.sourceFiles
+}
+
+task publishAar(type: Upload, description: "Upload android AAR library") {
+    configuration = configurations.archives
+    uploadDescriptor = true
+    repositories {
+        mavenDeployer {
+            repository(url: url())
+            pom = sdkPom()
+        }
+    }
+}
+
+artifacts {
+    archives androidSourcesJar
+    archives androidJavadocsJar
+}
+
+// Tasks for publishing a release to GitHub
+
+def getReleaseNotes(version) {
+    def capturing = false
+    def sb = new StringBuilder();
+    new File('./CHANGELOG.md').eachLine { line ->
+        if (line ==~ /^\#\#\s${Pattern.quote(version)}$/) {
+            capturing = true
+        } else if (line ==~ /^\#\#\s[\d\.]+$/) {
+            capturing = false
+        } else if (capturing) {
+            sb.append(line + "\n")
+        }
+    }
+
+    // Trim and escape backticks
+    return sb.toString()
+            .trim()
+            .replaceAll("`", "\\\\`")
+}
+
+def getGitHubToken() {
+    return hasProperty('GITHUB_TOKEN') ? GITHUB_TOKEN : "";
+}
+
+def getUploadCommand(filename) {
+    return "tools/github-release upload " +
+            "--security-token ${getGitHubToken()} " +
+            "--user $org " +
+            "--repo $repo " +
+            "--tag $version " +
+            "--name $filename " +
+            "--file releases/$groupFolder/$artifactIdName/$version/$filename"
+}
+
+task uploadReleaseNotes(type: Exec) {
+    workingDir "$rootDir"
+    commandLine "bash", "-c", "tools/github-release release " +
+            "--security-token ${getGitHubToken()} " +
+            "--user $org " +
+            "--repo $repo " +
+            "--tag $version " +
+            "--description \"${getReleaseNotes("$version")}\""
+}
+
+task uploadReleaseAar(type: Exec, dependsOn: [uploadReleaseNotes, publishAar]) {
+    workingDir "$rootDir"
+
+    def filename = "$artifactIdName-${version}.aar"
+    commandLine "bash", "-c", getUploadCommand(filename)
+}
+
+task uploadReleaseSources(type: Exec, dependsOn: [uploadReleaseNotes, publishAar]) {
+    workingDir "$rootDir"
+
+    def filename = "$artifactIdName-${version}-sources.jar"
+    commandLine "bash", "-c", getUploadCommand(filename)
+}
+
+task uploadReleaseJavadoc(type: Exec, dependsOn: [uploadReleaseNotes, publishAar]) {
+    workingDir "$rootDir"
+
+    def filename = "$artifactIdName-${version}-javadoc.jar"
+    commandLine "bash", "-c", getUploadCommand(filename)
+}
+
+task publishReleaseToGitHub(dependsOn:[uploadReleaseNotes, uploadReleaseAar, uploadReleaseSources, uploadReleaseJavadoc])

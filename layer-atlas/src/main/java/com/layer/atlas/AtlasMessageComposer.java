@@ -21,6 +21,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Parcel;
@@ -75,6 +76,7 @@ public class AtlasMessageComposer extends FrameLayout {
     private int mTextStyle;
     private int mUnderlineColor;
     private int mCursorColor;
+    private Drawable mAttachmentSendersBackground;
 
     public AtlasMessageComposer(Context context) {
         super(context);
@@ -281,6 +283,7 @@ public class AtlasMessageComposer extends FrameLayout {
         this.mTypeFace = typeFaceName != null ? Typeface.create(typeFaceName, mTextStyle) : null;
         this.mUnderlineColor = ta.getColor(R.styleable.AtlasMessageComposer_inputUnderlineColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
         this.mCursorColor = ta.getColor(R.styleable.AtlasMessageComposer_inputCursorColor, context.getResources().getColor(R.color.atlas_color_primary_blue));
+        this.mAttachmentSendersBackground = ta.getDrawable(R.styleable.AtlasMessageComposer_attachmentSendersBackground);
         ta.recycle();
     }
 
@@ -337,6 +340,8 @@ public class AtlasMessageComposer extends FrameLayout {
         mAttachmentMenu.setContentView(LayoutInflater.from(context).inflate(R.layout.atlas_message_composer_attachment_menu, null));
         mAttachmentMenu.setWindowLayoutMode(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         mAttachmentMenu.setOutsideTouchable(true);
+        mAttachmentMenu.setBackgroundDrawable(mAttachmentSendersBackground);
+        mAttachmentMenu.setFocusable(true);
     }
 
     @Override

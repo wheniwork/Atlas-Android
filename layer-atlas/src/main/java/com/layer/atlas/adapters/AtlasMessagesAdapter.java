@@ -283,13 +283,13 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             // No previous message, so no gap
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
             viewHolder.getTimeGroup().setVisibility(View.GONE);
-        } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == mOptions.getGapClusterType()) {
-            // Crossed into a new day, or > specified lull (default 1hr) in conversation
-            Date sentAt = message.getSentAt();
-            if (sentAt == null) sentAt = new Date();
-            String timeBarDayText = Util.formatTimeDay(viewHolder.getCell().getContext(), sentAt);
+        } else if (cluster.mDateBoundaryWithPrevious || cluster.mClusterWithPrevious == ClusterType.MORE_THAN_HOUR) {
+            // Crossed into a new day, or > 1hr lull in conversation
+            Date receivedAt = message.getReceivedAt();
+            if (receivedAt == null) receivedAt = new Date();
+            String timeBarDayText = Util.formatTimeDay(viewHolder.getCell().getContext(), receivedAt);
             viewHolder.getTimeGroupDay().setText(timeBarDayText);
-            String timeBarTimeText = mOptions.getInlineTimeFormat().format(sentAt.getTime());
+            String timeBarTimeText = mOptions.getInlineTimeFormat().format(receivedAt.getTime());
             viewHolder.getTimeGroupTime().setText(" " + timeBarTimeText);
             viewHolder.getTimeGroup().setVisibility(View.VISIBLE);
             viewHolder.getClusterSpaceGap().setVisibility(View.GONE);
@@ -449,7 +449,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         int previousPosition = position - 1;
         Message previousMessage = (previousPosition >= 0) ? getItem(previousPosition) : null;
         if (previousMessage != null) {
-            result.mDateBoundaryWithPrevious = isDateBoundary(previousMessage.getSentAt(), message.getSentAt());
+            result.mDateBoundaryWithPrevious = isDateBoundary(previousMessage.getReceivedAt(), message.getReceivedAt());
             result.mClusterWithPrevious = ClusterType.fromMessages(previousMessage, message);
 
             Cluster previousCluster = mClusterCache.get(previousMessage.getId());
@@ -470,7 +470,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         int nextPosition = position + 1;
         Message nextMessage = (nextPosition < getItemCount()) ? getItem(nextPosition) : null;
         if (nextMessage != null) {
-            result.mDateBoundaryWithNext = isDateBoundary(message.getSentAt(), nextMessage.getSentAt());
+            result.mDateBoundaryWithNext = isDateBoundary(message.getReceivedAt(), nextMessage.getReceivedAt());
             result.mClusterWithNext = ClusterType.fromMessages(message, nextMessage);
 
             Cluster nextCluster = mClusterCache.get(nextMessage.getId());
@@ -645,10 +645,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             if (!older.getSender().equals(newer.getSender())) return NEW_SENDER;
 
             // Time clustering for same user?
-            Date oldSentAt = older.getSentAt();
-            Date newSentAt = newer.getSentAt();
-            if (oldSentAt == null || newSentAt == null) return LESS_THAN_MINUTE;
-            long delta = Math.abs(newSentAt.getTime() - oldSentAt.getTime());
+            Date oldReceivedAt = older.getReceivedAt();
+            Date newReceivedAt = newer.getReceivedAt();
+            if (oldReceivedAt == null || newReceivedAt == null) return LESS_THAN_MINUTE;
+            long delta = Math.abs(newReceivedAt.getTime() - oldReceivedAt.getTime());
             if (delta <= MILLIS_MINUTE) return LESS_THAN_MINUTE;
             if (delta > MILLIS_MINUTE && delta < MILLIS_HALF_HOUR) return MORE_THAN_MINUTE;
             if (delta >= MILLIS_HALF_HOUR && delta < MILLIS_HOUR) return MORE_THAN_HALF_HOUR;

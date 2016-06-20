@@ -24,6 +24,7 @@ import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Message;
 import com.layer.sdk.messaging.MessageOptions;
 import com.layer.sdk.messaging.MessagePart;
+import com.layer.sdk.messaging.PushNotificationPayload;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -170,7 +171,10 @@ public class LocationSender extends AttachmentSender {
                         .put(LocationCellFactory.KEY_LABEL, myName);
                 String notification = context.getString(R.string.atlas_notification_location, myName);
                 MessagePart part = client.newMessagePart(LocationCellFactory.MIME_TYPE, o.toString().getBytes());
-                Message message = client.newMessage(new MessageOptions().pushNotificationMessage(notification), part);
+                PushNotificationPayload payload = new PushNotificationPayload.Builder()
+                        .text(notification)
+                        .build();
+                Message message = client.newMessage(new MessageOptions().defaultPushNotificationPayload(payload), part);
                 sender.send(message);
             } catch (JSONException e) {
                 if (Log.isLoggable(Log.ERROR)) {

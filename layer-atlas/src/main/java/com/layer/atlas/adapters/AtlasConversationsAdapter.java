@@ -49,8 +49,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 /* Only show conversations we're still a member of */
                 .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
 
-                /* Sort by the last Message's sentAt time */
-                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_SENT_AT, SortDescriptor.Order.DESCENDING))
+                /* Sort by the last Message's receivedAt time */
+                .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, SortDescriptor.Order.DESCENDING))
                 .build();
         mQueryController = client.newRecyclerViewController(query, updateAttributes, this);
         mLayerClient = client;
@@ -165,10 +165,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             viewHolder.mTimeView.setText(null);
         } else {
             viewHolder.mMessageView.setText(Util.getLastMessageString(context, lastMessage));
-            if (lastMessage.getSentAt() == null) {
+            if (lastMessage.getReceivedAt() == null) {
                 viewHolder.mTimeView.setText(null);
             } else {
-                viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getSentAt(), mTimeFormat, mDateFormat));
+                viewHolder.mTimeView.setText(Util.formatTime(context, lastMessage.getReceivedAt(), mTimeFormat, mDateFormat));
             }
         }
     }
