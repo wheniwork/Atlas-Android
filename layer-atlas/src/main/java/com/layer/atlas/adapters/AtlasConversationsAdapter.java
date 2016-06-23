@@ -261,7 +261,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     // Inner classes
     //==============================================================================================
 
-    static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
+    public static class ViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener, View.OnLongClickListener {
         // Layout to inflate
         public final static int RESOURCE_ID = R.layout.atlas_conversation_item;
 
