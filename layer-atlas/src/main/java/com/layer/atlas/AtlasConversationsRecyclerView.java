@@ -33,7 +33,6 @@ import com.layer.atlas.util.itemanimators.NoChangeAnimator;
 import com.layer.atlas.util.views.SwipeableItem;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
-import com.layer.sdk.query.Predicate;
 import com.squareup.picasso.Picasso;
 
 public class AtlasConversationsRecyclerView extends RecyclerView {
@@ -55,7 +54,11 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         super(context);
     }
 
-    public AtlasConversationsRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso, Predicate... predicates) {
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso) {
+        return init(layerClient, participantProvider, picasso, new AtlasConversationsAdapter.Options());
+    }
+
+    public AtlasConversationsRecyclerView init(LayerClient layerClient, ParticipantProvider participantProvider, Picasso picasso, AtlasConversationsAdapter.Options options) {
         // Linear layout manager
         LinearLayoutManager manager = new LinearLayoutManager(getContext(), LinearLayoutManager.VERTICAL, false);
         manager.setStackFromEnd(false);
@@ -64,7 +67,7 @@ public class AtlasConversationsRecyclerView extends RecyclerView {
         // Don't flash items when changing content
         setItemAnimator(new NoChangeAnimator());
 
-        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, participantProvider, picasso, predicates);
+        mAdapter = new AtlasConversationsAdapter(getContext(), layerClient, participantProvider, picasso, options);
         mAdapter.setStyle(conversationStyle);
         super.setAdapter(mAdapter);
         refresh();

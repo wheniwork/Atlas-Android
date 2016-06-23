@@ -40,11 +40,13 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
     private final DateFormat mTimeFormat;
     private ConversationStyle conversationStyle;
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Predicate... predicates) {
-        this(context, client, participantProvider, picasso, null, predicates);
+    private Options mOptions;
+
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Options options) {
+        this(context, client, participantProvider, picasso, null, options);
     }
 
-    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes, Predicate... predicates) {
+    public AtlasConversationsAdapter(Context context, LayerClient client, ParticipantProvider participantProvider, Picasso picasso, Collection<String> updateAttributes, Options options) {
         Query.Builder<Conversation> queryBuilder = Query.builder(Conversation.class)
                 /* Only show conversations we're still a member of */
                 .predicate(new Predicate(Conversation.Property.PARTICIPANT_COUNT, Predicate.Operator.GREATER_THAN, 1))
@@ -52,8 +54,8 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                 /* Sort by the last Message's receivedAt time */
                 .sortDescriptor(new SortDescriptor(Conversation.Property.LAST_MESSAGE_RECEIVED_AT, SortDescriptor.Order.DESCENDING));
 
-        if (predicates != null) {
-            for (Predicate predicate : predicates) {
+        if (options.getPredicates() != null) {
+            for (Predicate predicate : options.getPredicates()) {
                 queryBuilder.predicate(predicate);
             }
         }
@@ -66,6 +68,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         mInflater = LayoutInflater.from(context);
         mDateFormat = android.text.format.DateFormat.getDateFormat(context);
         mTimeFormat = android.text.format.DateFormat.getTimeFormat(context);
+        mOptions = options;
         mViewHolderClickListener = new ViewHolder.OnClickListener() {
             @Override
             public void onClick(ViewHolder viewHolder) {
@@ -164,7 +167,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         HashSet<String> participantIds = new HashSet<String>(conversation.getParticipants());
         participantIds.remove(mLayerClient.getAuthenticatedUserId());
         viewHolder.mAvatarCluster.setParticipants(participantIds);
-        viewHolder.mTitleView.setText(Util.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
+        viewHolder.mTitleView.setText(mOptions.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
         if (lastMessage == null) {
@@ -346,5 +349,23 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
          * @return true if the long-click was handled, false otherwise.
          */
         boolean onConversationLongClick(AtlasConversationsAdapter adapter, Conversation conversation);
+    }
+
+    public static class Options {
+        private Predicate[] predicates;
+
+        public Options(Predicate... predicates) {
+            this.predicates = predicates;
+        }
+
+        public Predicate[] getPredicates() {
+            return predicates;
+        }
+
+        public String getConversationTitle(LayerClient layerClient,
+                                           ParticipantProvider participantProvider,
+                                           Conversation conversation) {
+            return Util.getConversationTitle(layerClient, participantProvider, conversation);
+        }
     }
 }
