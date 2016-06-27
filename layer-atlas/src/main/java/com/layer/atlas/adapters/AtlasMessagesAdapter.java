@@ -343,7 +343,7 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
             }
 
             // Avatars
-            if (oneOnOne) {
+            if (oneOnOne && !mOptions.showOneOnOneAvatars()) {
                 // Not in one-on-one conversations
                 viewHolder.getAvatar().setVisibility(View.GONE);
             } else if (isLastMessage(cluster)) {
@@ -729,11 +729,12 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
         private boolean showMessageTimes;
         private int layoutResourceMe;
         private int layoutResourceThem;
+        private boolean showOneOnOneAvatars;
 
         public Options(Context context) {
             this(android.text.format.DateFormat.getTimeFormat(context), ClusterType.MORE_THAN_HOUR,
                  android.text.format.DateFormat.getTimeFormat(context), false,
-                 R.layout.atlas_message_item_me, R.layout.atlas_message_item_them);
+                 R.layout.atlas_message_item_me, R.layout.atlas_message_item_them, false);
         }
 
       /**
@@ -744,16 +745,19 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
        * @param showMessageTimes Whether to show message sent times
        * @param layoutResourceMe Layout resource id for messages sent by the current user
        * @param layoutResourceThem Layout resource id for messages sent by other users
+       * @param showOneOnOneAvatars Whether to show avatars in one-on-one conversations
        */
         public Options(DateFormat inlineTimeFormat, ClusterType gapClusterType,
                        DateFormat messageTimeFormat, boolean showMessageTimes,
-                       @LayoutRes int layoutResourceMe, @LayoutRes int layoutResourceThem) {
+                       @LayoutRes int layoutResourceMe, @LayoutRes int layoutResourceThem,
+                       boolean showOneOnOneAvatars) {
             this.inlineTimeFormat = inlineTimeFormat;
             this.gapClusterType = gapClusterType;
             this.messageTimeFormat = messageTimeFormat;
             this.showMessageTimes = showMessageTimes;
             this.layoutResourceMe = layoutResourceMe;
             this.layoutResourceThem = layoutResourceThem;
+            this.showOneOnOneAvatars = showOneOnOneAvatars;
         }
 
         public DateFormat getInlineTimeFormat() {
@@ -784,6 +788,10 @@ public class AtlasMessagesAdapter extends RecyclerView.Adapter<ViewHolder> imple
 
         public ClusterType getGapClusterType() {
             return gapClusterType;
+        }
+
+        public boolean showOneOnOneAvatars() {
+            return showOneOnOneAvatars;
         }
     }
 }
