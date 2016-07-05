@@ -39,7 +39,7 @@ ext {
 
 dependencies {
     // Layer SDK
-    compile('com.layer.sdk:layer-sdk:0.21.1') {
+    compile('com.layer.sdk:layer-sdk:0.21.2') {
         exclude group: 'com.google.android.gms', module: 'play-services-gcm'
     }
     compile 'org.slf4j:slf4j-nop:1.7.2'
