@@ -44,7 +44,7 @@ public class AtlasAvatar extends View {
     private final Paint mPaintBackground = new Paint();
 
     // TODO: make these styleable
-    private static final int MAX_AVATARS = 3;
+    private static final int MAX_AVATARS = 2;
     private static final float BORDER_SIZE_DP = 1f;
     private static final float MULTI_FRACTION = 26f / 40f;
 
