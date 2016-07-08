@@ -1,6 +1,7 @@
 package com.layer.atlas.adapters;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -166,7 +167,14 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         viewHolder.setConversation(conversation);
         HashSet<String> participantIds = new HashSet<String>(conversation.getParticipants());
         participantIds.remove(mLayerClient.getAuthenticatedUserId());
-        viewHolder.mAvatarCluster.setParticipants(participantIds);
+
+        Uri conversationIcon = mOptions.getConversationIconUri(conversation);
+        if (conversationIcon == null) {
+            viewHolder.mAvatarCluster.setParticipants(participantIds);
+        } else {
+            viewHolder.mAvatarCluster.setIconUri(conversationIcon);
+        }
+
         viewHolder.mTitleView.setText(mOptions.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
         viewHolder.applyStyle(conversation.getTotalUnreadMessageCount() > 0);
 
@@ -366,6 +374,14 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
                                            ParticipantProvider participantProvider,
                                            Conversation conversation) {
             return Util.getConversationTitle(layerClient, participantProvider, conversation);
+        }
+
+        /**
+         * Provide an icon to be used in place of the default user avatars
+         * @return an icon Uri to load instead of user avatars, null for the default behavior
+         */
+        public Uri getConversationIconUri(Conversation conversation) {
+            return null;
         }
     }
 }
