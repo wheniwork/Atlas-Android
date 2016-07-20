@@ -77,6 +77,8 @@ public class AtlasAvatar extends View {
     private Rect mRect = new Rect();
     private RectF mContentRect = new RectF();
 
+    private Uri mIconUri;
+
     public AtlasAvatar(Context context) {
         super(context);
     }
@@ -130,6 +132,26 @@ public class AtlasAvatar extends View {
         mParticipants.addAll(participantIds);
         update();
         return this;
+    }
+
+     /**
+      * Specify an icon Uri to use instead of user avatars
+      */
+     public void setIconUri(Uri uri) {
+        this.mIconUri = uri;
+
+        ImageTarget target = new ImageTarget(this);
+        target.setUrl(uri);
+        mImageTargets.put("", target);
+
+        mPendingLoads.clear();
+        mPendingLoads.add(target);
+
+        /* Lame, but the onDraw method expects the map to contain the same number of entries as the
+           image targets map */
+        mInitials.put("", "");
+
+        setClusterSizes();
     }
 
     public Set<String> getParticipants() {
