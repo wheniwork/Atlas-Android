@@ -46,11 +46,23 @@
         android:duplicateParentState="true"
         android:orientation="horizontal">
 
-        <com.layer.atlas.AtlasAvatar
-            android:id="@+id/avatar"
-            android:layout_width="@dimen/atlas_avatar_item_single"
-            android:layout_height="@dimen/atlas_avatar_item_single"
-            android:layout_margin="@dimen/atlas_padding_normal"/>
+        <FrameLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/atlas_padding_normal">
+
+            <com.layer.atlas.AtlasAvatar
+                android:id="@+id/avatar"
+                android:layout_width="@dimen/atlas_avatar_item_single"
+                android:layout_height="@dimen/atlas_avatar_item_single"/>
+
+            <ImageView
+                android:id="@+id/avatar_custom"
+                android:layout_width="@dimen/atlas_avatar_item_single"
+                android:layout_height="@dimen/atlas_avatar_item_single"
+                android:visibility="gone"/>
+
+        </FrameLayout>
 
         <!-- right content part -->
         <FrameLayout
