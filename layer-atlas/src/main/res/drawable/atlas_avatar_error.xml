@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shape
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="oval">
+    <size android:height="@dimen/atlas_avatar_item_single"
+        android:width="@dimen/atlas_avatar_item_single" />
+    <solid android:color="@color/atlas_avatar_background" />
+</shape>

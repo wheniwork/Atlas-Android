@@ -2,10 +2,12 @@ package com.layer.atlas.adapters;
 
 import android.content.Context;
 import android.net.Uri;
+import android.support.annotation.DrawableRes;
 import android.support.v7.widget.RecyclerView;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.layer.atlas.AtlasAvatar;
@@ -13,6 +15,7 @@ import com.layer.atlas.R;
 import com.layer.atlas.provider.ParticipantProvider;
 import com.layer.atlas.util.ConversationStyle;
 import com.layer.atlas.util.Util;
+import com.layer.atlas.util.picasso.transformations.CircleTransform;
 import com.layer.sdk.LayerClient;
 import com.layer.sdk.messaging.Conversation;
 import com.layer.sdk.messaging.Message;
@@ -25,6 +28,7 @@ import com.squareup.picasso.Picasso;
 import java.text.DateFormat;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.Set;
 
 public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConversationsAdapter.ViewHolder> implements AtlasBaseAdapter<Conversation>, RecyclerViewController.Callback {
     protected final LayerClient mLayerClient;
@@ -170,9 +174,10 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
         Uri conversationIcon = mOptions.getConversationIconUri(conversation);
         if (conversationIcon == null) {
-            viewHolder.mAvatarCluster.setParticipants(participantIds);
+            viewHolder.setParticipantAvatars(participantIds);
         } else {
-            viewHolder.mAvatarCluster.setIconUri(conversationIcon);
+            viewHolder.setConversationIcon(mPicasso, conversationIcon,
+                                           mOptions.getConversationIconErrorResource());
         }
 
         viewHolder.mTitleView.setText(mOptions.getConversationTitle(mLayerClient, mParticipantProvider, conversation));
@@ -276,6 +281,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
         // View cache
         protected TextView mTitleView;
         protected AtlasAvatar mAvatarCluster;
+        protected ImageView mAvatarCustom;
         protected TextView mMessageView;
         protected TextView mTimeView;
 
@@ -290,6 +296,7 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
             this.conversationStyle = conversationStyle;
 
             mAvatarCluster = (AtlasAvatar) itemView.findViewById(R.id.avatar);
+            mAvatarCustom = (ImageView) itemView.findViewById(R.id.avatar_custom);
             mTitleView = (TextView) itemView.findViewById(R.id.title);
             mMessageView = (TextView) itemView.findViewById(R.id.last_message);
             mTimeView = (TextView) itemView.findViewById(R.id.time);
@@ -316,6 +323,28 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
 
         public void setConversation(Conversation conversation) {
             mConversation = conversation;
+        }
+
+        public void setParticipantAvatars(Set<String> participantIds) {
+            setAvatarView(mAvatarCluster);
+            mAvatarCluster.setParticipants(participantIds);
+        }
+
+        public void setConversationIcon(Picasso picasso, Uri uri, @DrawableRes int errorResource) {
+            setAvatarView(mAvatarCustom);
+            picasso.load(uri)
+                   .tag(AtlasAvatar.TAG)
+                   .noPlaceholder()
+                   .noFade()
+                   .error(errorResource)
+                   .transform(new CircleTransform(AtlasAvatar.TAG + ".single"))
+                   .into(mAvatarCustom);
+        }
+
+        private void setAvatarView(View view) {
+            boolean isCustom = view.equals(mAvatarCustom);
+            mAvatarCluster.setVisibility(isCustom ? View.GONE : View.VISIBLE);
+            mAvatarCustom.setVisibility(isCustom ? View.VISIBLE : View.GONE);
         }
 
         @Override
@@ -382,6 +411,15 @@ public class AtlasConversationsAdapter extends RecyclerView.Adapter<AtlasConvers
          */
         public Uri getConversationIconUri(Conversation conversation) {
             return null;
+        }
+
+        /**
+         * Provide a drawable resource to be shown when the custom conversation icon failed to load
+         * @return
+         */
+        @DrawableRes
+        public int getConversationIconErrorResource() {
+            return R.drawable.atlas_avatar_error;
         }
     }
 }
